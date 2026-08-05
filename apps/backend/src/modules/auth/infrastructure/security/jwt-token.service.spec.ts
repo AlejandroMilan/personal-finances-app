@@ -16,4 +16,18 @@ describe('JwtTokenService', () => {
     expect(decoded.sub).toBe('u1');
     expect(decoded.email).toBe('ana@mail.com');
   });
+
+  it('verifies a signed token returning the payload', () => {
+    const token = service.sign({ sub: 'u1', email: 'ana@mail.com' });
+
+    const payload = service.verify(token);
+
+    expect(payload).toMatchObject({ sub: 'u1', email: 'ana@mail.com' });
+  });
+
+  it('rejects a token signed with a different secret', () => {
+    const token = new JwtService().sign({ sub: 'u1' }, { secret: 'other-secret' });
+
+    expect(() => service.verify(token)).toThrow();
+  });
 });

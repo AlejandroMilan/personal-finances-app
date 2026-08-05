@@ -5,6 +5,7 @@ export interface JwtPayload {
 
 export interface TokenService {
   sign(payload: JwtPayload): string;
+  verify(token: string): JwtPayload;
 }
 
 export const TOKEN_SERVICE = 'TOKEN_SERVICE';

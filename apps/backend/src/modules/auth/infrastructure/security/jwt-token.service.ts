@@ -16,4 +16,8 @@ export class JwtTokenService implements TokenService {
       expiresIn: this.expiresIn as unknown as number,
     });
   }
+
+  verify(token: string): JwtPayload {
+    return this.jwtService.verify<JwtPayload>(token, { secret: this.secret });
+  }
 }

@@ -10,6 +10,7 @@ import { RegisterUserUseCase } from './application/use-cases/register-user.use-c
 import { MongoUserRepository } from './infrastructure/persistence/user.repository.mongo';
 import { UserModel, UserSchema } from './infrastructure/persistence/user.schema';
 import { BcryptPasswordHasher } from './infrastructure/security/bcrypt-password-hasher';
+import { JwtAuthGuard } from './infrastructure/security/jwt-auth.guard';
 import { JwtTokenService } from './infrastructure/security/jwt-token.service';
 import { AuthController } from './presentation/auth.controller';
 
@@ -19,6 +20,7 @@ import { AuthController } from './presentation/auth.controller';
   providers: [
     RegisterUserUseCase,
     AuthenticateUserUseCase,
+    JwtAuthGuard,
     { provide: USER_REPOSITORY, useClass: MongoUserRepository },
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordHasher },
     {
@@ -32,5 +34,6 @@ import { AuthController } from './presentation/auth.controller';
         ),
     },
   ],
+  exports: [JwtAuthGuard, TOKEN_SERVICE],
 })
 export class AuthModule {}
