@@ -56,7 +56,6 @@ export class UpdateAccountUseCase {
 
       if (existingCard) {
         const merged = this.mergeCard(existingCard, input.creditCard ?? {});
-        this.assertCardValid(merged);
         creditCard = CreditCard.restore(merged);
       } else {
         const cardInput = input.creditCard;
@@ -70,7 +69,6 @@ export class UpdateAccountUseCase {
             'creditLimit, cutoffDate and paymentDate are required to create a credit card',
           );
         }
-        this.assertCardValid(cardInput);
         creditCard = CreditCard.create({
           accountId: account.id,
           creditLimit: cardInput.creditLimit,
@@ -100,11 +98,5 @@ export class UpdateAccountUseCase {
       cutoffDate: input.cutoffDate ?? existing.cutoffDate,
       paymentDate: input.paymentDate ?? existing.paymentDate,
     };
-  }
-
-  private assertCardValid(card: Partial<CreditCardInput> & { usedAmount?: number }): void {
-    if ((card.usedAmount ?? 0) > (card.creditLimit ?? 0)) {
-      throw new BadRequestException('usedAmount cannot exceed creditLimit');
-    }
   }
 }

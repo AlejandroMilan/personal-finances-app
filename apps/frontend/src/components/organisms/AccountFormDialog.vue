@@ -72,11 +72,6 @@ async function save(): Promise<void> {
   const errors = form.value ? await form.value.validate() : [];
   if (errors.length > 0) return;
 
-  if (isCredit.value && usedAmount.value > creditLimit.value) {
-    error.value = 'Used amount cannot exceed the credit limit';
-    return;
-  }
-
   const payload = {
     name: name.value,
     balance: balance.value,

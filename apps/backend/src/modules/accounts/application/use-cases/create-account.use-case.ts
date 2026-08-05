@@ -40,9 +40,6 @@ export class CreateAccountUseCase {
     if (input.type !== AccountType.CREDIT && input.creditCard) {
       throw new BadRequestException('creditCard is only allowed for credit accounts');
     }
-    if (input.creditCard && this.exceedsLimit(input.creditCard)) {
-      throw new BadRequestException('usedAmount cannot exceed creditLimit');
-    }
 
     const account = Account.create({
       userId: input.userId,
@@ -66,9 +63,5 @@ export class CreateAccountUseCase {
     }
 
     return { account: savedAccount, creditCard };
-  }
-
-  private exceedsLimit(card: CreditCardInput): boolean {
-    return (card.usedAmount ?? 0) > card.creditLimit;
   }
 }

@@ -151,17 +151,19 @@ describe('UpdateAccountUseCase', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('throws when the merged card exceeds the credit limit', async () => {
+  it('allows updating the card with used amount over the limit', async () => {
     accountRepository.findById.mockResolvedValue(account(AccountType.CREDIT));
+    accountRepository.save.mockImplementation((a: Account) => Promise.resolve(a));
     creditCardRepository.findByAccountId.mockResolvedValue(card());
+    creditCardRepository.save.mockImplementation((c: CreditCard) => Promise.resolve(c));
 
-    await expect(
-      useCase.execute({
-        userId: 'u1',
-        accountId: 'a1',
-        creditCard: { usedAmount: 6000 },
-      }),
-    ).rejects.toThrow(BadRequestException);
-    expect(creditCardRepository.save).not.toHaveBeenCalled();
+    await useCase.execute({
+      userId: 'u1',
+      accountId: 'a1',
+      creditCard: { usedAmount: 6000 },
+    });
+
+    const savedCard = creditCardRepository.save.mock.calls[0][0] as CreditCard;
+    expect(savedCard.usedAmount).toBe(6000);
   });
 });

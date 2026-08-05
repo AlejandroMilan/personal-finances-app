@@ -108,22 +108,34 @@ describe('CreateAccountUseCase', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('throws when usedAmount exceeds creditLimit', async () => {
-    await expect(
-      useCase.execute({
-        userId: 'u1',
-        name: 'Credit',
-        balance: 0,
-        color: '#D9C5A0',
-        type: AccountType.CREDIT,
-        creditCard: {
-          creditLimit: 1000,
-          usedAmount: 1500,
-          cutoffDate: new Date(),
-          paymentDate: new Date(),
-        },
-      }),
-    ).rejects.toThrow(BadRequestException);
-    expect(accountRepository.save).not.toHaveBeenCalled();
+  it('allows creating a credit card with used amount over the limit', async () => {
+    const account = Account.restore({
+      id: 'a1',
+      userId: 'u1',
+      name: 'Credit',
+      balance: 0,
+      color: '#D9C5A0',
+      type: AccountType.CREDIT,
+      createdAt: new Date(),
+    });
+    accountRepository.save.mockResolvedValue(account);
+
+    const result = await useCase.execute({
+      userId: 'u1',
+      name: 'Credit',
+      balance: 0,
+      color: '#D9C5A0',
+      type: AccountType.CREDIT,
+      creditCard: {
+        creditLimit: 1000,
+        usedAmount: 1500,
+        cutoffDate: new Date(),
+        paymentDate: new Date(),
+      },
+    });
+
+    const savedCard = creditCardRepository.save.mock.calls[0][0] as CreditCard;
+    expect(savedCard.usedAmount).toBe(1500);
+    expect(result.creditCard).toBe(savedCard);
   });
 });
