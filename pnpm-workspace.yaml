@@ -4,4 +4,5 @@ packages:
 verifyDepsBeforeRun: false
 
 allowBuilds:
+  mongodb-memory-server: set this to true or false
   unrs-resolver: true

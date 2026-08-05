@@ -19,20 +19,24 @@ Monorepo para la administración de finanzas personales. Gestionado con **pnpm w
 ### apps/backend — NestJS (API REST)
 
 - **Framework**: NestJS 11
-- **Persistencia**: MongoDB con Mongoose (`@nestjs/mongoose`, `mongoose`) — no conectado aún, solo instalado
-- **Autenticación**: JWT (`@nestjs/jwt`) — no configurado aún, solo instalado
+- **Persistencia**: MongoDB con Mongoose (`@nestjs/mongoose`, `mongoose`); URI desde `MONGODB_URI` (cluster remoto o local)
+- **Autenticación**: JWT (`@nestjs/jwt`) con `JWT_SECRET` y `JWT_EXPIRES_IN` desde env; hasheo de contraseñas con bcryptjs
+- **Validación**: class-validator + class-transformer con `ValidationPipe` global (`whitelist` + `transform`)
 - **Tests**: Jest (umbral de cobertura global 80 %)
-- **Arquitectura**: Clean architecture. Los módulos de dominio viven en `src/modules/`, organizados por capas:
+- **Arquitectura**: Clean architecture. Cada módulo vive en `src/modules/<modulo>/`, organizado por capas:
   - `domain/` — entidades, value objects, reglas de negocio (sin dependencias de Nest)
-  - `application/` — casos de uso (orquestan el dominio)
-  - `infrastructure/` — adaptadores (MongoDB, JWT, servicios externos)
+  - `application/` — casos de uso (orquestan el dominio) y puertos (interfaces + tokens de DI)
+  - `infrastructure/` — adaptadores (MongoDB, hashing, JWT)
   - `presentation/` — controladores y DTOs
+- **Módulo auth** (`src/modules/auth/`): registro (`POST /auth/register`) y login (`POST /auth/login`) con generación de token JWT
+- Configuración por env: copiar `apps/backend/.env.example` a `apps/backend/.env`
 - El estado actual es un hello world (`GET /` → `Hello World! Personal Finances API`)
 
 ### apps/frontend — Vue 3 (SPA)
 
 - **Framework**: Vue 3 + TypeScript + Vite
 - **Estado global**: Pinia (`src/stores/`)
+- **Router**: vue-router con navigation guard (`src/router/index.ts`); rutas protegidas con `meta.requiresAuth`
 - **UI**: Vuetify 4 con tema personalizado **verde/arena** (`src/plugins/vuetify.ts`)
 - **Tests**: Vitest + jsdom (umbral de cobertura 80 % sobre `src/utils/**`)
 - **Arquitectura**: Atomic design. Componentes en `src/components/` por nivel:
@@ -41,8 +45,8 @@ Monorepo para la administración de finanzas personales. Gestionado con **pnpm w
   - `organisms/` — secciones completas
   - `templates/` — layouts por página
   - `views/` — páginas
-- Servicios de API en `src/services/`, utilidades en `src/utils/`
-- El estado actual es un hello world renderizado en `src/App.vue`
+- Servicios de API en `src/services/` (proxy `/api` → backend :3000), utilidades en `src/utils/`
+- Flujo auth: `LoginView`/`RegisterView` → `AuthStore` (token + usuario en localStorage) → guard redirige a `/home`
 
 ## Comandos
 
