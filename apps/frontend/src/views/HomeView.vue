@@ -1,14 +1,7 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
-const router = useRouter();
-
-function logout(): void {
-  auth.logout();
-  void router.push({ name: 'login' });
-}
 </script>
 
 <template>
@@ -19,9 +12,6 @@ function logout(): void {
       <v-card-subtitle class="text-h6 mt-2">
         Welcome, {{ auth.user?.fullName }}
       </v-card-subtitle>
-      <v-btn color="primary" variant="outlined" class="mt-6" @click="logout">
-        Log out
-      </v-btn>
     </v-card>
   </v-container>
 </template>
