@@ -74,7 +74,9 @@ async function save(): Promise<void> {
 
   const payload = {
     name: name.value,
-    balance: balance.value,
+    ...(isCredit.value
+      ? {}
+      : { balance: balance.value }),
     color: color.value,
     type: type.value,
     creditCard: isCredit.value
@@ -112,6 +114,7 @@ function close(): void {
       <v-form ref="form" @submit.prevent="save">
         <v-text-field v-model="name" label="Name" :rules="nameRules" prepend-icon="mdi-wallet" />
         <v-text-field
+          v-if="!isCredit"
           v-model.number="balance"
           label="Balance"
           type="number"
@@ -161,6 +164,13 @@ function close(): void {
           />
           <v-text-field v-model="cutoffDate" label="Cutoff date" type="date" :rules="dateRules" />
           <v-text-field v-model="paymentDate" label="Payment date" type="date" :rules="dateRules" />
+          <v-text-field
+            :model-value="creditLimit - usedAmount"
+            label="Balance (limit - used)"
+            type="number"
+            prepend-icon="mdi-currency-usd"
+            readonly
+          />
         </template>
 
         <div class="d-flex justify-end mt-4">

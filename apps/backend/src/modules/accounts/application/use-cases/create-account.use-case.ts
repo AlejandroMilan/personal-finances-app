@@ -15,7 +15,7 @@ export interface CreditCardInput {
 export interface CreateAccountInput {
   userId: string;
   name: string;
-  balance: number;
+  balance?: number;
   color: string;
   type: AccountType;
   creditCard?: CreditCardInput;
@@ -41,10 +41,16 @@ export class CreateAccountUseCase {
       throw new BadRequestException('creditCard is only allowed for credit accounts');
     }
 
+    const usedAmount = input.creditCard?.usedAmount ?? 0;
+    const balance =
+      input.type === AccountType.CREDIT && input.creditCard
+        ? input.creditCard.creditLimit - usedAmount
+        : (input.balance ?? 0);
+
     const account = Account.create({
       userId: input.userId,
       name: input.name.trim(),
-      balance: input.balance,
+      balance,
       color: input.color,
       type: input.type,
     });
@@ -55,7 +61,7 @@ export class CreateAccountUseCase {
       creditCard = CreditCard.create({
         accountId: savedAccount.id,
         creditLimit: input.creditCard.creditLimit,
-        usedAmount: input.creditCard.usedAmount ?? 0,
+        usedAmount,
         cutoffDate: input.creditCard.cutoffDate,
         paymentDate: input.creditCard.paymentDate,
       });

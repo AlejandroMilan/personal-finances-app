@@ -37,8 +37,9 @@ export class CreateAccountDto {
   @MaxLength(80)
   name: string;
 
+  @IsOptional()
   @IsNumber()
-  balance: number;
+  balance?: number;
 
   @IsHexColor()
   color: string;

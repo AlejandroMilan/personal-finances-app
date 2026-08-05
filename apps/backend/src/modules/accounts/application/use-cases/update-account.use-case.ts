@@ -50,6 +50,7 @@ export class UpdateAccountUseCase {
     });
 
     let creditCard: CreditCard | null = null;
+    let balance = account.balance;
 
     if (targetType === AccountType.CREDIT) {
       const existingCard = await this.creditCardRepository.findByAccountId(account.id);
@@ -77,12 +78,23 @@ export class UpdateAccountUseCase {
           paymentDate: cardInput.paymentDate,
         });
       }
+      balance = creditCard.creditLimit - creditCard.usedAmount;
       await this.creditCardRepository.save(creditCard);
     } else if (existing.type === AccountType.CREDIT) {
       await this.creditCardRepository.deleteByAccountId(account.id);
     }
 
-    const savedAccount = await this.accountRepository.save(account);
+    const savedAccount = await this.accountRepository.save(
+      Account.restore({
+        id: account.id,
+        userId: account.userId,
+        name: account.name,
+        balance,
+        color: account.color,
+        type: account.type,
+        createdAt: account.createdAt,
+      }),
+    );
     return { account: savedAccount, creditCard };
   }
 

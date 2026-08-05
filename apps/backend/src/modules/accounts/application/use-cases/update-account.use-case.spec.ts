@@ -92,6 +92,9 @@ describe('UpdateAccountUseCase', () => {
     expect(savedCard.creditLimit).toBe(8000);
     expect(savedCard.usedAmount).toBe(200);
     expect(savedCard.cutoffDate).toEqual(new Date('2026-08-15'));
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: 7800 }),
+    );
     expect(result.creditCard?.creditLimit).toBe(8000);
   });
 
@@ -114,6 +117,9 @@ describe('UpdateAccountUseCase', () => {
     const savedCard = creditCardRepository.save.mock.calls[0][0] as CreditCard;
     expect(savedCard.accountId).toBe('a1');
     expect(savedCard.creditLimit).toBe(3000);
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: 3000 }),
+    );
   });
 
   it('throws when converting to credit without card details', async () => {
@@ -165,5 +171,8 @@ describe('UpdateAccountUseCase', () => {
 
     const savedCard = creditCardRepository.save.mock.calls[0][0] as CreditCard;
     expect(savedCard.usedAmount).toBe(6000);
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: -1000 }),
+    );
   });
 });

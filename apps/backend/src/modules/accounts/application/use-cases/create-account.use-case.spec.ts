@@ -75,6 +75,9 @@ describe('CreateAccountUseCase', () => {
     expect(savedCard.accountId).toBe('a1');
     expect(savedCard.creditLimit).toBe(5000);
     expect(savedCard.usedAmount).toBe(0);
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: 5000 }),
+    );
     expect(result.creditCard).toBe(savedCard);
   });
 
@@ -113,7 +116,7 @@ describe('CreateAccountUseCase', () => {
       id: 'a1',
       userId: 'u1',
       name: 'Credit',
-      balance: 0,
+      balance: -500,
       color: '#D9C5A0',
       type: AccountType.CREDIT,
       createdAt: new Date(),
@@ -123,7 +126,7 @@ describe('CreateAccountUseCase', () => {
     const result = await useCase.execute({
       userId: 'u1',
       name: 'Credit',
-      balance: 0,
+      balance: 999,
       color: '#D9C5A0',
       type: AccountType.CREDIT,
       creditCard: {
@@ -136,6 +139,62 @@ describe('CreateAccountUseCase', () => {
 
     const savedCard = creditCardRepository.save.mock.calls[0][0] as CreditCard;
     expect(savedCard.usedAmount).toBe(1500);
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: -500 }),
+    );
     expect(result.creditCard).toBe(savedCard);
+  });
+
+  it('derives the credit balance even when the used amount is not provided', async () => {
+    const account = Account.restore({
+      id: 'a1',
+      userId: 'u1',
+      name: 'Credit',
+      balance: 3000,
+      color: '#D9C5A0',
+      type: AccountType.CREDIT,
+      createdAt: new Date(),
+    });
+    accountRepository.save.mockResolvedValue(account);
+
+    await useCase.execute({
+      userId: 'u1',
+      name: 'Credit',
+      color: '#D9C5A0',
+      type: AccountType.CREDIT,
+      creditCard: {
+        creditLimit: 3000,
+        cutoffDate: new Date(),
+        paymentDate: new Date(),
+      },
+    });
+
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: 3000 }),
+    );
+  });
+
+  it('defaults the balance to zero when not provided', async () => {
+    const account = Account.restore({
+      id: 'a1',
+      userId: 'u1',
+      name: 'Cash',
+      balance: 0,
+      color: '#2E6B4F',
+      type: AccountType.CASH,
+      createdAt: new Date(),
+    });
+    accountRepository.save.mockResolvedValue(account);
+
+    await useCase.execute({
+      userId: 'u1',
+      name: 'Cash',
+      color: '#2E6B4F',
+      type: AccountType.CASH,
+    });
+
+    expect(accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ balance: 0 }),
+    );
   });
 });

@@ -29,7 +29,7 @@ Monorepo para la administración de finanzas personales. Gestionado con **pnpm w
   - `infrastructure/` — adaptadores (MongoDB, hashing, JWT)
   - `presentation/` — controladores y DTOs
 - **Módulo auth** (`src/modules/auth/`): registro (`POST /auth/register`) y login (`POST /auth/login`) con generación de token JWT. Incluye `JwtAuthGuard` (valida `Authorization: Bearer <token>`) y el decorador `@CurrentUser()`, exportados para otros módulos
-- **Módulo accounts** (`src/modules/accounts/`): CRUD de cuentas protegido con JWT (`GET/POST/PATCH/DELETE /accounts`). Cada cuenta tiene nombre, balance, color, tipo (`cash` | `debit` | `credit`) y userId; las de tipo crédito generan una entidad `CreditCard` asociada (límite, usado, fecha de corte, fecha de pago). Al borrar una cuenta de crédito se elimina también su tarjeta
+- **Módulo accounts** (`src/modules/accounts/`): CRUD de cuentas protegido con JWT (`GET/POST/PATCH/DELETE /accounts`). Cada cuenta tiene nombre, balance, color, tipo (`cash` | `debit` | `credit`) y userId; las de tipo crédito generan una entidad `CreditCard` asociada (límite, usado, fecha de corte, fecha de pago) y su balance se deriva automáticamente como `límite - usado` (puede ser negativo por sobregiro). Al borrar una cuenta de crédito se elimina también su tarjeta
 - Configuración por env: copiar `apps/backend/.env.example` a `apps/backend/.env`
 - El estado actual es un hello world (`GET /` → `Hello World! Personal Finances API`)
 
