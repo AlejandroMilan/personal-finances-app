@@ -61,6 +61,18 @@ function logout(): void {
           title="Accounts"
           @click="drawer = false"
         />
+        <v-list-item
+          to="/transactions"
+          prepend-icon="mdi-swap-horizontal"
+          title="Transactions"
+          @click="drawer = false"
+        />
+        <v-list-item
+          to="/categories"
+          prepend-icon="mdi-tag-multiple"
+          title="Categories"
+          @click="drawer = false"
+        />
       </v-list>
 
       <template #append>

@@ -8,7 +8,8 @@ import { CreditCardDocument, CreditCardModel } from './credit-card.schema';
 @Injectable()
 export class MongoCreditCardRepository implements CreditCardRepository {
   constructor(
-    @InjectModel(CreditCardModel.name) private readonly model: Model<CreditCardModel>,
+    @InjectModel(CreditCardModel.name)
+    private readonly model: Model<CreditCardModel>,
   ) {}
 
   async findByAccountId(accountId: string): Promise<CreditCard | null> {
@@ -17,7 +18,9 @@ export class MongoCreditCardRepository implements CreditCardRepository {
   }
 
   async findByAccountIds(accountIds: string[]): Promise<CreditCard[]> {
-    const docs = await this.model.find({ accountId: { $in: accountIds } }).exec();
+    const docs = await this.model
+      .find({ accountId: { $in: accountIds } })
+      .exec();
     return docs.map((doc) => this.toEntity(doc));
   }
 
@@ -37,7 +40,21 @@ export class MongoCreditCardRepository implements CreditCardRepository {
         { upsert: true, new: true },
       )
       .exec();
-    return this.toEntity(doc!);
+    return this.toEntity(doc);
+  }
+
+  async adjustUsedAmount(
+    accountId: string,
+    delta: number,
+  ): Promise<CreditCard | null> {
+    const doc = await this.model
+      .findOneAndUpdate(
+        { accountId },
+        { $inc: { usedAmount: delta } },
+        { new: true },
+      )
+      .exec();
+    return doc ? this.toEntity(doc) : null;
   }
 
   async deleteByAccountId(accountId: string): Promise<void> {

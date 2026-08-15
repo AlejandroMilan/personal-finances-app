@@ -1,13 +1,31 @@
 import { NotFoundException } from '@nestjs/common';
 import { AccountType } from '../../domain/account-type.enum';
 import { Account } from '../../domain/entities/account.entity';
-import { AccountRepository } from '../ports/account.repository';
-import { CreditCardRepository } from '../ports/credit-card.repository';
 import { DeleteAccountUseCase } from './delete-account.use-case';
 
 describe('DeleteAccountUseCase', () => {
-  const accountRepository = { findById: jest.fn(), findByUserId: jest.fn(), save: jest.fn(), delete: jest.fn() };
-  const creditCardRepository = { findByAccountId: jest.fn(), findByAccountIds: jest.fn(), save: jest.fn(), deleteByAccountId: jest.fn() };
+  const accountRepository = {
+    findById: jest.fn(),
+    findByUserId: jest.fn(),
+    save: jest.fn(),
+    adjustBalance: jest.fn(),
+    delete: jest.fn(),
+  };
+  const creditCardRepository = {
+    findByAccountId: jest.fn(),
+    findByAccountIds: jest.fn(),
+    save: jest.fn(),
+    adjustUsedAmount: jest.fn(),
+    deleteByAccountId: jest.fn(),
+  };
+  const transactionRepository = {
+    findById: jest.fn(),
+    findByUserId: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+    deleteByAccountId: jest.fn(),
+    clearCategoryReferences: jest.fn(),
+  };
   let useCase: DeleteAccountUseCase;
 
   const account = () =>
@@ -24,16 +42,18 @@ describe('DeleteAccountUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useCase = new DeleteAccountUseCase(
-      accountRepository as unknown as AccountRepository,
-      creditCardRepository as unknown as CreditCardRepository,
+      accountRepository,
+      creditCardRepository,
+      transactionRepository,
     );
   });
 
-  it('deletes the account and its credit card', async () => {
+  it('deletes the account, its credit card and its transactions', async () => {
     accountRepository.findById.mockResolvedValue(account());
 
     await useCase.execute({ userId: 'u1', accountId: 'a1' });
 
+    expect(transactionRepository.deleteByAccountId).toHaveBeenCalledWith('a1');
     expect(creditCardRepository.deleteByAccountId).toHaveBeenCalledWith('a1');
     expect(accountRepository.delete).toHaveBeenCalledWith('a1');
   });

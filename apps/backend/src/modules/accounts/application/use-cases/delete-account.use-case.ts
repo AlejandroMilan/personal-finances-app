@@ -1,6 +1,16 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { AccountRepository, ACCOUNT_REPOSITORY } from '../ports/account.repository';
-import { CreditCardRepository, CREDIT_CARD_REPOSITORY } from '../ports/credit-card.repository';
+import {
+  TRANSACTION_REPOSITORY,
+  TransactionRepository,
+} from '../../../transactions/application/ports/transaction.repository';
+import {
+  AccountRepository,
+  ACCOUNT_REPOSITORY,
+} from '../ports/account.repository';
+import {
+  CreditCardRepository,
+  CREDIT_CARD_REPOSITORY,
+} from '../ports/credit-card.repository';
 
 export interface DeleteAccountInput {
   userId: string;
@@ -10,8 +20,12 @@ export interface DeleteAccountInput {
 @Injectable()
 export class DeleteAccountUseCase {
   constructor(
-    @Inject(ACCOUNT_REPOSITORY) private readonly accountRepository: AccountRepository,
-    @Inject(CREDIT_CARD_REPOSITORY) private readonly creditCardRepository: CreditCardRepository,
+    @Inject(ACCOUNT_REPOSITORY)
+    private readonly accountRepository: AccountRepository,
+    @Inject(CREDIT_CARD_REPOSITORY)
+    private readonly creditCardRepository: CreditCardRepository,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: TransactionRepository,
   ) {}
 
   async execute(input: DeleteAccountInput): Promise<void> {
@@ -20,6 +34,7 @@ export class DeleteAccountUseCase {
       throw new NotFoundException('Account not found');
     }
 
+    await this.transactionRepository.deleteByAccountId(account.id);
     await this.creditCardRepository.deleteByAccountId(account.id);
     await this.accountRepository.delete(account.id);
   }

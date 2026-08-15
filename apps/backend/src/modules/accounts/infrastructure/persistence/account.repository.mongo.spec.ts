@@ -15,20 +15,30 @@ describe('MongoAccountRepository', () => {
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
   };
 
-  let modelMock: jest.Mock & { findOne: jest.Mock; find: jest.Mock; deleteOne: jest.Mock; findOneAndUpdate: jest.Mock };
+  let modelMock: jest.Mock & {
+    findOne: jest.Mock;
+    find: jest.Mock;
+    deleteOne: jest.Mock;
+    findOneAndUpdate: jest.Mock;
+  };
   let execMock: jest.Mock;
 
   beforeEach(() => {
     execMock = jest.fn().mockResolvedValue(doc);
     modelMock = Object.assign(jest.fn(), {
       findOne: jest.fn().mockReturnValue({ exec: execMock }),
-      find: jest.fn().mockReturnValue({ sort: jest.fn().mockReturnValue({ exec: execMock }) }),
-      deleteOne: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(undefined) }),
+      find: jest.fn().mockReturnValue({
+        sort: jest.fn().mockReturnValue({ exec: execMock }),
+      }),
+      deleteOne: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(undefined) }),
       findOneAndUpdate: jest.fn().mockReturnValue({ exec: execMock }),
     });
   });
 
-  const repo = () => new MongoAccountRepository(modelMock as unknown as Model<AccountModel>);
+  const repo = () =>
+    new MongoAccountRepository(modelMock as unknown as Model<AccountModel>);
 
   it('saves an account mapping the entity to a document', async () => {
     const account = Account.restore({
@@ -80,6 +90,25 @@ describe('MongoAccountRepository', () => {
     expect(modelMock.find).toHaveBeenCalledWith({ userId: 'u1' });
     expect(accounts).toHaveLength(1);
     expect(accounts[0].id).toBe('a1');
+  });
+
+  it('adjusts the balance of an account by the given delta', async () => {
+    execMock.mockResolvedValue({ ...doc, balance: 70 });
+
+    const adjusted = await repo().adjustBalance('a1', -30);
+
+    expect(modelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      { uuid: 'a1' },
+      { $inc: { balance: -30 } },
+      { new: true },
+    );
+    expect(adjusted?.balance).toBe(70);
+  });
+
+  it('returns null when adjusting the balance of a missing account', async () => {
+    execMock.mockResolvedValue(null);
+
+    await expect(repo().adjustBalance('missing', 10)).resolves.toBeNull();
   });
 
   it('deletes an account by id', async () => {

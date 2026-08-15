@@ -13,7 +13,12 @@ describe('MongoCreditCardRepository', () => {
     paymentDate: new Date('2026-09-05T00:00:00.000Z'),
   };
 
-  let modelMock: jest.Mock & { findOne: jest.Mock; find: jest.Mock; deleteMany: jest.Mock; findOneAndUpdate: jest.Mock };
+  let modelMock: jest.Mock & {
+    findOne: jest.Mock;
+    find: jest.Mock;
+    deleteMany: jest.Mock;
+    findOneAndUpdate: jest.Mock;
+  };
   let execMock: jest.Mock;
 
   beforeEach(() => {
@@ -21,13 +26,17 @@ describe('MongoCreditCardRepository', () => {
     modelMock = Object.assign(jest.fn(), {
       findOne: jest.fn().mockReturnValue({ exec: execMock }),
       find: jest.fn().mockReturnValue({ exec: execMock }),
-      deleteMany: jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(undefined) }),
+      deleteMany: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(undefined) }),
       findOneAndUpdate: jest.fn().mockReturnValue({ exec: execMock }),
     });
   });
 
   const repo = () =>
-    new MongoCreditCardRepository(modelMock as unknown as Model<CreditCardModel>);
+    new MongoCreditCardRepository(
+      modelMock as unknown as Model<CreditCardModel>,
+    );
 
   it('saves a credit card mapping the entity to a document', async () => {
     const card = CreditCard.restore({
@@ -73,9 +82,30 @@ describe('MongoCreditCardRepository', () => {
 
     const cards = await repo().findByAccountIds(['a1', 'a2']);
 
-    expect(modelMock.find).toHaveBeenCalledWith({ accountId: { $in: ['a1', 'a2'] } });
+    expect(modelMock.find).toHaveBeenCalledWith({
+      accountId: { $in: ['a1', 'a2'] },
+    });
     expect(cards).toHaveLength(1);
     expect(cards[0].accountId).toBe('a1');
+  });
+
+  it('adjusts the used amount of the card by the given delta', async () => {
+    execMock.mockResolvedValue({ ...doc, usedAmount: 1200 });
+
+    const adjusted = await repo().adjustUsedAmount('a1', 200);
+
+    expect(modelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      { accountId: 'a1' },
+      { $inc: { usedAmount: 200 } },
+      { new: true },
+    );
+    expect(adjusted?.usedAmount).toBe(1200);
+  });
+
+  it('returns null when adjusting the used amount of a missing account', async () => {
+    execMock.mockResolvedValue(null);
+
+    await expect(repo().adjustUsedAmount('missing', 10)).resolves.toBeNull();
   });
 
   it('deletes the cards of an account', async () => {
