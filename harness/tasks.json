@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:52:45.062Z",
+  "updatedAt": "2026-08-20T16:53:52.144Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -486,6 +486,391 @@
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0010",
+      "title": "Create the ScheduledTransaction domain entity",
+      "description": "Entidad de dominio con su ciclo de vida (pending/executed/cancelled), sus invariantes y el calculo de la fecha sugerida de reagendado. Sin imports de @nestjs/*.",
+      "status": "completada",
+      "createdAt": "2026-08-20T16:48:40.325Z",
+      "implementedAt": "2026-08-20T16:53:52.143Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "ScheduledTransaction.create rechaza amount <= 0 y title vacio con un error de dominio, y nace siempre en estado 'pending'",
+          "validated": true,
+          "validatedAt": "2026-08-20T16:53:36.433Z",
+          "note": "scheduled-transaction.entity.ts:41-48 valida title/amount y fija status PENDING; tests 'rejects an amount of %p', 'rejects the title %p' y 'creates a pending scheduled transaction'"
+        },
+        {
+          "id": "AC-2",
+          "text": "markExecuted(transactionId) sobre una agendada 'pending' la deja en 'executed' con el id de la transaccion creada; llamarlo sobre una ya 'executed' o 'cancelled' lanza error de dominio",
+          "validated": true,
+          "validatedAt": "2026-08-20T16:53:36.467Z",
+          "note": "entity.ts:143-152 markExecuted + assertPending; tests 'moves a pending... to executed with the transaction id', 'rejects executing an already executed', 'rejects executing a cancelled'"
+        },
+        {
+          "id": "AC-3",
+          "text": "cancel() sobre una 'pending' la deja en 'cancelled'; sobre una 'executed' lanza error de dominio",
+          "validated": true,
+          "validatedAt": "2026-08-20T16:53:36.498Z",
+          "note": "entity.ts:154-161 cancel + assertPending; tests 'moves a pending... to cancelled', 'rejects cancelling an executed', 'rejects cancelling an already cancelled'"
+        },
+        {
+          "id": "AC-4",
+          "text": "nextScheduledDate(fecha) devuelve la misma fecha un mes despues, y para fechas sin equivalente (31 de enero) devuelve el ultimo dia del mes destino (28/29 de febrero)",
+          "validated": true,
+          "validatedAt": "2026-08-20T16:53:36.528Z",
+          "note": "next-scheduled-date.util.ts:8-26 con clamp al ultimo dia; tests 31-ene->28-feb, 31-ene-2028->29-feb, dic->ene, conserva hora"
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% de lineas y branches en domain/ del modulo scheduled-transactions",
+          "validated": true,
+          "validatedAt": "2026-08-20T16:53:36.556Z",
+          "note": "pnpm --filter backend test:coverage: 37 suites / 195 tests en verde; domain y domain/entities del modulo al 100% en lineas y branches"
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0011",
+      "title": "Add the ScheduledTransaction repository port and Mongo adapter",
+      "description": "Port con su token de DI, schema de Mongoose en coleccion propia y adaptador que mapea documentos a entidades. Toda consulta filtra por userId.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:48:40.360Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El port expone findById, findByUserId(userId, filters), save y deleteById, y exporta el token SCHEDULED_TRANSACTION_REPOSITORY",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "findByUserId filtra por status y por rango de fecha prevista (from/to) y devuelve los resultados ordenados por scheduledFor ascendente",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "El adaptador devuelve entidades ScheduledTransaction (nunca documentos de Mongoose) y toda query incluye el userId recibido",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "El schema usa una coleccion propia, distinta de la de transactions, con indice por (userId, status, scheduledFor)",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el modulo scheduled-transactions",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0012",
+      "title": "Add create, list, update and delete scheduled transaction use cases",
+      "description": "Casos de uso del CRUD de agendadas, uno por archivo, dependiendo solo del port. Validan pertenencia de cuenta y categoria contra el userId del token.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:48:55.549Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "CreateScheduledTransactionUseCase lanza NotFoundException si la cuenta no existe o es de otro usuario, y BadRequestException si la categoria no existe o es de otro usuario",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "ListScheduledTransactionsUseCase devuelve solo las agendadas del userId recibido, aplicando los filtros de status y rango de fecha",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "UpdateScheduledTransactionUseCase y DeleteScheduledTransactionUseCase lanzan NotFoundException cuando la agendada es de otro usuario, y ConflictException al intentar editar una que no esta en 'pending'",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Ningun caso de uso importa mongoose ni el adaptador concreto: todos inyectan SCHEDULED_TRANSACTION_REPOSITORY",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en application/use-cases del modulo",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0013",
+      "title": "Add cancel and execute scheduled transaction use cases",
+      "description": "Cancelacion y ejecucion manual. Ejecutar crea la transaccion real reutilizando CreateTransactionUseCase con los datos confirmados por el usuario, y opcionalmente reagenda la siguiente.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:48:55.585Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "CancelScheduledTransactionUseCase deja la agendada en 'cancelled' sin crear ninguna transaccion ni mover el saldo de la cuenta",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "ExecuteScheduledTransactionUseCase crea la transaccion a traves de CreateTransactionUseCase usando los datos confirmados (monto, fecha, cuenta y categoria del input, con los de la agendada como valor por defecto) y deja la agendada en 'executed' con el id de la transaccion creada",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Ejecutar una agendada que ya esta en 'executed' o 'cancelled' lanza ConflictException y no crea ninguna transaccion",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Si el input pide reagendar, se crea una nueva agendada en 'pending' con la fecha indicada, copia de la original salvo la fecha y marcada como recurrente; si no lo pide, no se crea ninguna",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Ejecutar una agendada de otro usuario lanza NotFoundException",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en application/use-cases del modulo",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0014",
+      "title": "Expose the scheduled transactions REST endpoints",
+      "description": "Controlador, DTOs y wiring del modulo scheduled-transactions en AppModule. Solo HTTP: valida, delega y mapea a DTO de respuesta.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:49:12.972Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El controlador expone POST /scheduled-transactions, GET /scheduled-transactions, PATCH /:id, DELETE /:id, POST /:id/execute y POST /:id/cancel, todos bajo JwtAuthGuard",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Ningun endpoint acepta userId por body o query: siempre se toma de @CurrentUser()",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Los DTOs validan con class-validator (monto positivo, tipo income|expense, scheduledFor fecha ISO, status del filtro dentro del enum) y una peticion con campos no declarados los descarta",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "POST /:id/execute acepta los ajustes opcionales de monto, fecha, cuenta y categoria mas los datos de reagendado, y responde con la agendada actualizada y la transaccion creada",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "El controlador no contiene ningun if de negocio y ScheduledTransactionsModule queda registrado en AppModule",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en presentation/ del modulo",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0015",
+      "title": "Add schedule types, service, store and pure utilities in the frontend",
+      "description": "Capa de datos del frontend: tipos alineados con los response DTOs, service sobre api.ts, store de Pinia y utilidades puras de agenda.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:49:13.007Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "src/services/scheduled-transactions.ts reutiliza el cliente de api.ts (sin reconstruir headers de auth) y cubre listar, crear, actualizar, borrar, ejecutar y cancelar",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "El store de Pinia expone las agendadas pendientes, el estado de carga y el error, y tras ejecutar o cancelar refresca la lista sin recargar la pagina",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "src/utils/schedule.ts expone funciones puras para separar vencidas (fecha prevista anterior a hoy) de las del mes en curso, y para sugerir la proxima fecha un mes despues de la prevista, con ajuste al ultimo dia en meses cortos",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Ningun componente .vue llama a axios o fetch para la agenda: pasan siempre por el store",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% en utils/schedule.ts, el service y el store",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0016",
+      "title": "Build the scheduled transaction card and form dialog",
+      "description": "Molecula de fila de agendada y organismo de alta/edicion, siguiendo la forma de AccountCard y TransactionFormDialog.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:49:29.067Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "ScheduledTransactionCard muestra titulo, monto con el signo segun el tipo, cuenta, categoria y fecha prevista, y marca visiblemente como vencida la que tiene fecha anterior a hoy",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "La tarjeta ofrece confirmar y cancelar solo cuando la agendada esta en 'pending', y emite eventos en lugar de llamar al store directamente",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "ScheduledTransactionFormDialog permite capturar titulo, monto, tipo, cuenta, categoria opcional, etiquetas, fecha prevista y el switch de recurrente, y no deja enviar con monto <= 0, titulo vacio o sin cuenta",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Los colores salen de tokens del tema greenBeige, sin hex sueltos, y la tarjeta esta en molecules/ y el dialogo en organisms/",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% y hay tests de montaje para ambos componentes",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0017",
+      "title": "Build the execute dialog with the reschedule question",
+      "description": "Organismo del dialogo de confirmacion: precarga los datos agendados, permite ajustarlos y pregunta por el reagendado cuando la agendada es recurrente.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:49:29.101Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El dialogo precarga monto, cuenta y categoria de la agendada y la fecha de hoy, y permite editar los cuatro antes de confirmar",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Si la agendada es recurrente, el dialogo muestra la opcion de volver a agendar activada por defecto con la fecha sugerida un mes despues de la fecha prevista; si no lo es, la opcion no aparece",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Desmarcar la opcion de volver a agendar oculta el selector de fecha y hace que la peticion de ejecucion se envie sin datos de reagendado",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Confirmar emite una sola peticion de ejecucion con los datos ajustados y cierra el dialogo; cancelar no emite ninguna",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% y los tests cubren el caso recurrente y el no recurrente",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0018",
+      "title": "Add the ScheduleView screen with its route and menu entry",
+      "description": "Pantalla dedicada de la agenda: lista de pendientes con vencidas destacadas, filtro por estado y alta, edicion, ejecucion y cancelacion.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:49:44.293Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "La ruta /schedule existe con meta.requiresAuth y aparece en el menu de App.vue; entrar sin sesion redirige a /login",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "La vista lista las agendadas ordenadas por fecha prevista ascendente, con las vencidas agrupadas y destacadas al principio",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "El filtro por estado permite ver pendientes, ejecutadas y canceladas, y por defecto muestra las pendientes",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Desde la vista se puede crear, editar, ejecutar y cancelar, y tras cada accion la lista refleja el nuevo estado sin recargar la pagina",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Una agenda sin pendientes muestra un estado vacio explicito, no una lista en blanco ni un error",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% y hay test de montaje de la vista",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0019",
+      "title": "Add the schedule card to the dashboard",
+      "description": "Tarjeta de agenda en la pantalla de inicio con las vencidas y las del mes en curso, accionables sin salir del dashboard.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T16:49:44.327Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "UpcomingScheduleCard muestra solo agendadas 'pending' vencidas o con fecha prevista dentro del mes en curso, agrupadas bajo las etiquetas de vencidas y de este mes",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Cada fila permite confirmar y cancelar desde el dashboard, y tras la accion la fila desaparece de la tarjeta sin recargar la pagina",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "La tarjeta enlaza a /schedule y, sin nada pendiente, muestra un estado vacio explicito",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Las agendadas no alteran los totales ni las series de las graficas del dashboard, que siguen usando GET /transactions/summary tal cual",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% y HomeView.spec.ts cubre la presencia de la tarjeta",
+          "validated": false
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
     }
   ]
 }
