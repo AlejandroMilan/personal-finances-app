@@ -3,7 +3,7 @@
 > Archivo generado automáticamente por `harness/scripts/harness.mjs`.
 > Se regenera cada vez que una tarea cambia de status. No editar a mano.
 
-**Última actualización:** 2026-08-20T17:26:37.949Z
+**Última actualización:** 2026-08-20T17:27:37.715Z
 
 ## Progreso
 
@@ -24,8 +24,8 @@
 | Status | Cantidad | Ubicación |
 | --- | --- | --- |
 | `no implementado` | 0 | `specs/pending/` |
-| `en proceso` | 1 | `specs/pending/` |
-| `implementado` | 1 | `specs/implemented/` (fuera de git) |
+| `en proceso` | 0 | `specs/pending/` |
+| `implementado` | 2 | `specs/implemented/` (fuera de git) |
 
 ## Trabajo abierto
 
@@ -33,7 +33,5 @@ _No hay tareas abiertas._
 
 ## Specs activos
 
-| Spec | Título | Status | Tareas |
-| --- | --- | --- | --- |
-| [`0002-agenda-de-transacciones`](specs/pending/0002-agenda-de-transacciones.md) | Agenda de transacciones | `en proceso` | 11 |
+_No hay specs activos._
 
