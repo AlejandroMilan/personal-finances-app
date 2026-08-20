@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T16:56:18.050Z",
+  "updatedAt": "2026-08-20T16:59:27.607Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -583,34 +583,44 @@
       "id": "T-0012",
       "title": "Add create, list, update and delete scheduled transaction use cases",
       "description": "Casos de uso del CRUD de agendadas, uno por archivo, dependiendo solo del port. Validan pertenencia de cuenta y categoria contra el userId del token.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:48:55.549Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T16:59:27.606Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "CreateScheduledTransactionUseCase lanza NotFoundException si la cuenta no existe o es de otro usuario, y BadRequestException si la categoria no existe o es de otro usuario",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:59:27.449Z",
+          "note": "create-scheduled-transaction.use-case.ts:46-58 via assertAccountOwnership/assertCategoryOwnership; tests 'account does not exist', 'account belongs to another user' (NotFound), 'category does not exist', 'category belongs to another user' (BadRequest)"
         },
         {
           "id": "AC-2",
           "text": "ListScheduledTransactionsUseCase devuelve solo las agendadas del userId recibido, aplicando los filtros de status y rango de fecha",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:59:27.482Z",
+          "note": "list-scheduled-transactions.use-case.ts:26-32 pasa siempre input.userId al port; tests 'lists the scheduled transactions of the authenticated user' y 'forwards the status and date range filters'"
         },
         {
           "id": "AC-3",
           "text": "UpdateScheduledTransactionUseCase y DeleteScheduledTransactionUseCase lanzan NotFoundException cuando la agendada es de otro usuario, y ConflictException al intentar editar una que no esta en 'pending'",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:59:27.514Z",
+          "note": "update:57-66 y delete:31-42 lanzan NotFoundException por userId distinto y ConflictException si no esta 'pending'; tests 'belongs to another user' y 'throws ConflictException when the status is %s' en ambos specs"
         },
         {
           "id": "AC-4",
           "text": "Ningun caso de uso importa mongoose ni el adaptador concreto: todos inyectan SCHEDULED_TRANSACTION_REPOSITORY",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:59:27.545Z",
+          "note": "grep de 'mongoose' sobre domain/ y application/ del modulo: sin coincidencias; los 4 casos de uso inyectan @Inject(SCHEDULED_TRANSACTION_REPOSITORY)"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter backend test:coverage pasa con >= 80% en application/use-cases del modulo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:59:27.575Z",
+          "note": "pnpm --filter backend test:coverage: 42 suites / 236 tests en verde; application/use-cases del modulo 99.07% stmts, 98.36% branches"
         }
       ],
       "spec": "0002-agenda-de-transacciones"

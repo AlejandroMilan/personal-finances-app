@@ -3,20 +3,20 @@
 > Archivo generado automáticamente por `harness/scripts/harness.mjs`.
 > Se regenera cada vez que una tarea cambia de status. No editar a mano.
 
-**Última actualización:** 2026-08-20T16:56:18.060Z
+**Última actualización:** 2026-08-20T16:59:27.614Z
 
 ## Progreso
 
-`████████████░░░░░░░░` 58% (11/19 tareas completadas)
+`█████████████░░░░░░░` 63% (12/19 tareas completadas)
 
 ## Tareas
 
 | Status | Cantidad |
 | --- | --- |
-| `pendiente` | 8 |
+| `pendiente` | 7 |
 | `en proceso` | 0 |
 | `bloqueada` | 0 |
-| `completada` | 11 |
+| `completada` | 12 |
 | **Total en `tasks.json`** | **19 / 100** |
 
 ## Specs
@@ -31,7 +31,6 @@
 
 | Tarea | Título | Status | Spec | Creada |
 | --- | --- | --- | --- | --- |
-| T-0012 | Add create, list, update and delete scheduled transaction use cases | `pendiente` | `0002-agenda-de-transacciones` | 2026-08-20 |
 | T-0013 | Add cancel and execute scheduled transaction use cases | `pendiente` | `0002-agenda-de-transacciones` | 2026-08-20 |
 | T-0014 | Expose the scheduled transactions REST endpoints | `pendiente` | `0002-agenda-de-transacciones` | 2026-08-20 |
 | T-0015 | Add schedule types, service, store and pure utilities in the frontend | `pendiente` | `0002-agenda-de-transacciones` | 2026-08-20 |

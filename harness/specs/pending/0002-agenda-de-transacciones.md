@@ -114,7 +114,7 @@ Comportamiento esperado:
 | --- | --- | --- | --- |
 | T-0010 | Create the ScheduledTransaction domain entity | `completada` | 2026-08-20 |
 | T-0011 | Add the ScheduledTransaction repository port and Mongo adapter | `completada` | 2026-08-20 |
-| T-0012 | Add create, list, update and delete scheduled transaction use cases | `pendiente` | — |
+| T-0012 | Add create, list, update and delete scheduled transaction use cases | `completada` | 2026-08-20 |
 | T-0013 | Add cancel and execute scheduled transaction use cases | `pendiente` | — |
 | T-0014 | Expose the scheduled transactions REST endpoints | `pendiente` | — |
 | T-0015 | Add schedule types, service, store and pure utilities in the frontend | `pendiente` | — |
@@ -144,3 +144,6 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0010: `en proceso` → `completada`. |
 | 2026-08-20 | Tarea T-0011: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0011: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0012: `pendiente` → `en proceso`. |
+| 2026-08-20 | T-0012: borrar una agendada tambien exige estado `pending`, para que el historial de ejecutadas y canceladas no se pueda borrar (coherente con la Descripcion). |
+| 2026-08-20 | Tarea T-0012: `en proceso` → `completada`. |
