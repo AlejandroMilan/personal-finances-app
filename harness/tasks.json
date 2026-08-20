@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:46:51.947Z",
+  "updatedAt": "2026-08-20T07:48:18.864Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -332,39 +332,51 @@
       "id": "T-0007",
       "title": "Build the category donut card with centered total",
       "description": "Una sola molecule reutilizable, instanciada para gastos y para ingresos, con el total del periodo al centro de la dona.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:34.314Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:48:18.864Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "El mismo componente se usa para gastos e ingresos recibiendo los datos por props, sin duplicar el componente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:48:18.674Z",
+          "note": "un solo CategoryDonutCard.vue con props title/icon/data; test 'serves both expenses and income from the same component' lo monta dos veces"
         },
         {
           "id": "AC-2",
           "text": "El total del periodo se muestra al centro de la dona, formateado con utils/money.ts",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:48:18.705Z",
+          "note": "div .donut-center superpuesto al canvas con formatCurrency(props.data.total); test 'shows the period total at the centre formatted as currency' espera $200.50"
         },
         {
           "id": "AC-3",
           "text": "Cada porción usa el color de su categoría y la leyenda muestra el nombre de cada una",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:48:18.736Z",
+          "note": "backgroundColor = slices.map(color); test 'paints every slice with the colour of its category' verifica ['#2E6B4F','#7FA56E'] y 'lists every category name in the legend'"
         },
         {
           "id": "AC-4",
           "text": "Sin movimientos en el periodo muestra un estado vacío con el total en cero, no una dona vacía ni un error",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:48:18.767Z",
+          "note": "v-if data.isEmpty muestra donut-empty; test 'shows an empty state with a zero total when there are no movements': sin canvas, sin leyenda, total $0.00 y mensaje 'Sin movimientos en este periodo'"
         },
         {
           "id": "AC-5",
           "text": "El componente no llama a servicios ni recalcula agregados: solo recibe props y renderiza",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:48:18.798Z",
+          "note": "sin imports de services ni stores; los datasets se derivan de props con un computed de mapeo directo; test 'does not fetch or aggregate anything by itself'"
         },
         {
           "id": "AC-6",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:48:18.829Z",
+          "note": "pnpm --filter frontend test:coverage en verde, 88 tests"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
