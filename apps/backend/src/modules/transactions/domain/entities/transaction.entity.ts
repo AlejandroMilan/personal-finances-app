@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { TransactionType } from '../transaction-type.enum';
+import { TransactionError } from '../transaction.error';
 
 export interface TransactionProps {
   id: string;
   userId: string;
   accountId: string;
+  destinationAccountId: string | null;
   categoryId: string | null;
   type: TransactionType;
   title: string;
@@ -14,7 +16,19 @@ export interface TransactionProps {
   createdAt: Date;
 }
 
-export type CreateTransactionInput = Omit<TransactionProps, 'id' | 'createdAt'>;
+export type CreateTransactionInput = Omit<
+  TransactionProps,
+  'id' | 'createdAt' | 'destinationAccountId'
+> & {
+  destinationAccountId?: string | null;
+};
+
+type RestoreTransactionInput = Omit<
+  TransactionProps,
+  'destinationAccountId'
+> & {
+  destinationAccountId?: string | null;
+};
 
 export class Transaction {
   private readonly props: TransactionProps;
@@ -24,15 +38,47 @@ export class Transaction {
   }
 
   static create(input: CreateTransactionInput): Transaction {
+    this.assertDestination(input);
+
     return new Transaction({
       ...input,
+      categoryId:
+        input.type === TransactionType.TRANSFER ? null : input.categoryId,
+      destinationAccountId: input.destinationAccountId ?? null,
       id: randomUUID(),
       createdAt: new Date(),
     });
   }
 
-  static restore(props: TransactionProps): Transaction {
-    return new Transaction(props);
+  static restore(props: RestoreTransactionInput): Transaction {
+    return new Transaction({
+      ...props,
+      categoryId:
+        props.type === TransactionType.TRANSFER ? null : props.categoryId,
+      destinationAccountId: props.destinationAccountId ?? null,
+    });
+  }
+
+  private static assertDestination(input: CreateTransactionInput): void {
+    if (input.type === TransactionType.TRANSFER) {
+      if (!input.destinationAccountId) {
+        throw new TransactionError(
+          'Transfer transactions require a destination account',
+        );
+      }
+      if (input.destinationAccountId === input.accountId) {
+        throw new TransactionError(
+          'Transfer source and destination accounts must differ',
+        );
+      }
+      return;
+    }
+
+    if (input.destinationAccountId != null) {
+      throw new TransactionError(
+        'Only transfer transactions can have a destination account',
+      );
+    }
   }
 
   get id(): string {
@@ -45,6 +91,10 @@ export class Transaction {
 
   get accountId(): string {
     return this.props.accountId;
+  }
+
+  get destinationAccountId(): string | null {
+    return this.props.destinationAccountId;
   }
 
   get categoryId(): string | null {
@@ -79,5 +129,9 @@ export class Transaction {
     return this.props.type === TransactionType.INCOME
       ? this.props.amount
       : -this.props.amount;
+  }
+
+  getDestinationBalanceDelta(): number {
+    return this.props.type === TransactionType.TRANSFER ? this.props.amount : 0;
   }
 }
