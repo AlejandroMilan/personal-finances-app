@@ -7,7 +7,9 @@
 export function nextScheduledDate(date: Date): Date {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
-  const lastDayOfTargetMonth = new Date(Date.UTC(year, month + 2, 0)).getUTCDate();
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(year, month + 2, 0),
+  ).getUTCDate();
 
   return new Date(
     Date.UTC(

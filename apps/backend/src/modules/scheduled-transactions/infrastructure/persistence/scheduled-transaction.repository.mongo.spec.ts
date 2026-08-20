@@ -136,9 +136,9 @@ describe('MongoScheduledTransactionRepository', () => {
 
     await repo().findByUserId('u1', filters);
 
-    const query = modelMock.find.mock.calls[0][0] as {
-      scheduledFor: Record<string, Date>;
-    };
+    const [query] = modelMock.find.mock.calls[0] as [
+      { scheduledFor: Record<string, Date> },
+    ];
     expect(Object.keys(query.scheduledFor)).toEqual([operator]);
   });
 

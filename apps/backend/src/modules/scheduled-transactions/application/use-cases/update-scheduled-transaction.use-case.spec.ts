@@ -103,9 +103,9 @@ describe('UpdateScheduledTransactionUseCase', () => {
   it('validates the ownership of a new account', async () => {
     accounts.findById.mockResolvedValue(anAccount('other'));
 
-    await expect(
-      useCase.execute({ ...base, accountId: 'a2' }),
-    ).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute({ ...base, accountId: 'a2' })).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('validates the ownership of a new category', async () => {

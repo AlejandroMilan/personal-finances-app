@@ -116,7 +116,7 @@ Comportamiento esperado:
 | T-0011 | Add the ScheduledTransaction repository port and Mongo adapter | `completada` | 2026-08-20 |
 | T-0012 | Add create, list, update and delete scheduled transaction use cases | `completada` | 2026-08-20 |
 | T-0013 | Add cancel and execute scheduled transaction use cases | `completada` | 2026-08-20 |
-| T-0014 | Expose the scheduled transactions REST endpoints | `pendiente` | — |
+| T-0014 | Expose the scheduled transactions REST endpoints | `completada` | 2026-08-20 |
 | T-0015 | Add schedule types, service, store and pure utilities in the frontend | `pendiente` | — |
 | T-0016 | Build the scheduled transaction card and form dialog | `pendiente` | — |
 | T-0017 | Build the execute dialog with the reschedule question | `pendiente` | — |
@@ -149,3 +149,7 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0012: `en proceso` → `completada`. |
 | 2026-08-20 | Tarea T-0013: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0013: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0014: `pendiente` → `en proceso`. |
+| 2026-08-20 | T-0014: `TransactionsModule` ahora exporta `CreateTransactionUseCase` para que la ejecucion de la agenda lo reutilice; es el unico acoplamiento entre ambos modulos. |
+| 2026-08-20 | T-0014: auditoria de seguridad del backend de la agenda sin hallazgos altos ni criticos (todos los endpoints bajo `JwtAuthGuard`, `userId` solo desde el token, comprobacion de pertenencia en los seis casos de uso). |
+| 2026-08-20 | Tarea T-0014: `en proceso` → `completada`. |

@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { ScheduledTransactionsModule } from './modules/scheduled-transactions/scheduled-transactions.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
     AccountsModule,
     CategoriesModule,
     TransactionsModule,
+    ScheduledTransactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

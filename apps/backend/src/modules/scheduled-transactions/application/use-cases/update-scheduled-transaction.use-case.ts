@@ -15,7 +15,6 @@ import {
 } from '../../../categories/application/ports/category.repository';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
-import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
 import {
   SCHEDULED_TRANSACTION_REPOSITORY,
   ScheduledTransactionRepository,

@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CreateTransactionUseCase } from '../../../transactions/application/use-cases/create-transaction.use-case';
 import { Transaction } from '../../../transactions/domain/entities/transaction.entity';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
+import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
 import { ScheduledTransactionStatus } from '../../domain/scheduled-transaction-status.enum';
 import { ExecuteScheduledTransactionUseCase } from './execute-scheduled-transaction.use-case';
 import { aScheduled, scheduledRepositoryMock } from './test-doubles';
@@ -43,16 +44,18 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     const result = await useCase.execute(input);
 
     expect(createTransaction.execute).toHaveBeenCalledTimes(1);
-    const payload = createTransaction.execute.mock.calls[0][0] as {
-      userId: string;
-      accountId: string;
-      categoryId: string | null;
-      type: TransactionType;
-      title: string;
-      amount: number;
-      timestamp: Date;
-      tags: string[];
-    };
+    const [payload] = createTransaction.execute.mock.calls[0] as [
+      {
+        userId: string;
+        accountId: string;
+        categoryId: string | null;
+        type: TransactionType;
+        title: string;
+        amount: number;
+        timestamp: Date;
+        tags: string[];
+      },
+    ];
     expect(payload.userId).toBe('u1');
     expect(payload.accountId).toBe('a1');
     expect(payload.categoryId).toBe('c1');
@@ -156,11 +159,7 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     const alreadyExecuted = aScheduled();
     jest.spyOn(alreadyExecuted, 'isPending').mockReturnValue(true);
     jest.spyOn(alreadyExecuted, 'markExecuted').mockImplementation(() => {
-      throw new (
-        jest.requireActual(
-          '../../domain/scheduled-transaction.error',
-        ) as typeof import('../../domain/scheduled-transaction.error')
-      ).ScheduledTransactionError('already executed');
+      throw new ScheduledTransactionError('already executed');
     });
     scheduled.findById.mockResolvedValue(alreadyExecuted);
 

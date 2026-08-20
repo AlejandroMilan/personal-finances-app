@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:01:17.209Z",
+  "updatedAt": "2026-08-20T17:07:08.033Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -682,39 +682,51 @@
       "id": "T-0014",
       "title": "Expose the scheduled transactions REST endpoints",
       "description": "Controlador, DTOs y wiring del modulo scheduled-transactions en AppModule. Solo HTTP: valida, delega y mapea a DTO de respuesta.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:49:12.972Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:07:08.032Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "El controlador expone POST /scheduled-transactions, GET /scheduled-transactions, PATCH /:id, DELETE /:id, POST /:id/execute y POST /:id/cancel, todos bajo JwtAuthGuard",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:06:53.807Z",
+          "note": "scheduled-transactions.controller.ts:50 POST, :70 GET, :85 PATCH/:id, :108 DELETE/:id, :119 POST/:id/execute, :146 POST/:id/cancel; @UseGuards(JwtAuthGuard) a nivel de clase (:38). Test 'is mounted on /scheduled-transactions behind the JWT guard'"
         },
         {
           "id": "AC-2",
           "text": "Ningun endpoint acepta userId por body o query: siempre se toma de @CurrentUser()",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:06:53.841Z",
+          "note": "todos los metodos usan @CurrentUser() user y pasan user.id; los DTOs no declaran userId y el test 'drops fields that are not declared'/'drops a userId injected in the body' confirma que el whitelist lo elimina"
         },
         {
           "id": "AC-3",
           "text": "Los DTOs validan con class-validator (monto positivo, tipo income|expense, scheduledFor fecha ISO, status del filtro dentro del enum) y una peticion con campos no declarados los descarta",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:06:53.875Z",
+          "note": "create/update/execute DTOs con @IsPositive, @IsEnum(TransactionType), @IsDateString; list con @IsEnum(ScheduledTransactionStatus); scheduled-transaction.dto.spec.ts: 24 casos incluyendo 'rejects an amount of %p', 'rejects a type outside income and expense', 'rejects a status outside the enum'"
         },
         {
           "id": "AC-4",
           "text": "POST /:id/execute acepta los ajustes opcionales de monto, fecha, cuenta y categoria mas los datos de reagendado, y responde con la agendada actualizada y la transaccion creada",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:06:53.910Z",
+          "note": "ExecuteScheduledTransactionDto acepta amount/timestamp/accountId/categoryId/rescheduleFor opcionales; controller.execute:119-144 devuelve { scheduled, transaction, next }; tests 'executes a scheduled transaction with the confirmed adjustments and reschedule' y 'executes without adjustments nor reschedule'"
         },
         {
           "id": "AC-5",
           "text": "El controlador no contiene ningun if de negocio y ScheduledTransactionsModule queda registrado en AppModule",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:06:53.944Z",
+          "note": "el controlador solo mapea (toView/toTransactionView) sin ifs de negocio; app.module.ts:28 registra ScheduledTransactionsModule; scheduled-transactions.module.spec.ts compila el modulo y resuelve controller + SCHEDULED_TRANSACTION_REPOSITORY"
         },
         {
           "id": "AC-6",
           "text": "pnpm --filter backend test:coverage pasa con >= 80% en presentation/ del modulo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:06:53.977Z",
+          "note": "pnpm --filter backend test:coverage: 47 suites / 290 tests en verde; presentation 100% lineas / 91.66% branches, presentation/dto 100%. eslint --fix sin errores y nest build OK"
         }
       ],
       "spec": "0002-agenda-de-transacciones"

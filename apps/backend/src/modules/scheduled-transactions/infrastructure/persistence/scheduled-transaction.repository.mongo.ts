@@ -19,9 +19,7 @@ interface ScheduledTransactionFilterQuery {
 }
 
 @Injectable()
-export class MongoScheduledTransactionRepository
-  implements ScheduledTransactionRepository
-{
+export class MongoScheduledTransactionRepository implements ScheduledTransactionRepository {
   constructor(
     @InjectModel(ScheduledTransactionModel.name)
     private readonly model: Model<ScheduledTransactionModel>,

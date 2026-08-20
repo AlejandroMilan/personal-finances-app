@@ -34,6 +34,6 @@ import { TransactionsController } from './presentation/transactions.controller';
     GetTransactionsSummaryUseCase,
     { provide: TRANSACTION_REPOSITORY, useClass: MongoTransactionRepository },
   ],
-  exports: [TRANSACTION_REPOSITORY],
+  exports: [TRANSACTION_REPOSITORY, CreateTransactionUseCase],
 })
 export class TransactionsModule {}
