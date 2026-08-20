@@ -118,7 +118,7 @@ Comportamiento esperado:
 | T-0013 | Add cancel and execute scheduled transaction use cases | `completada` | 2026-08-20 |
 | T-0014 | Expose the scheduled transactions REST endpoints | `completada` | 2026-08-20 |
 | T-0015 | Add schedule types, service, store and pure utilities in the frontend | `completada` | 2026-08-20 |
-| T-0016 | Build the scheduled transaction card and form dialog | `pendiente` | — |
+| T-0016 | Build the scheduled transaction card and form dialog | `completada` | 2026-08-20 |
 | T-0017 | Build the execute dialog with the reschedule question | `pendiente` | — |
 | T-0018 | Add the ScheduleView screen with its route and menu entry | `pendiente` | — |
 | T-0019 | Add the schedule card to the dashboard | `pendiente` | — |
@@ -156,3 +156,5 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0015: `pendiente` → `en proceso`. |
 | 2026-08-20 | T-0015: `vitest.config.ts` mide cobertura solo sobre `src/utils/**`; ampliar el `include` habria roto el gate por archivos preexistentes sin tests, asi que el service y el store se cubren con specs propios sin tocar la config. |
 | 2026-08-20 | Tarea T-0015: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0016: `pendiente` → `en proceso`. |
+| 2026-08-20 | Tarea T-0016: `en proceso` → `completada`. |

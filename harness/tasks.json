@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:12:02.647Z",
+  "updatedAt": "2026-08-20T17:15:33.268Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -781,34 +781,44 @@
       "id": "T-0016",
       "title": "Build the scheduled transaction card and form dialog",
       "description": "Molecula de fila de agendada y organismo de alta/edicion, siguiendo la forma de AccountCard y TransactionFormDialog.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:49:29.067Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:15:33.268Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "ScheduledTransactionCard muestra titulo, monto con el signo segun el tipo, cuenta, categoria y fecha prevista, y marca visiblemente como vencida la que tiene fecha anterior a hoy",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:15:33.112Z",
+          "note": "ScheduledTransactionCard.vue muestra title, monto con signo por tipo, accountName, categoryName y fecha; clase text-error y chip 'Vencida' cuando isOverdue. Tests 'shows the title, account, category and date', 'shows an expense with a negative sign', 'shows an income with a positive sign', 'marks a pending scheduled transaction with a past date as overdue'"
         },
         {
           "id": "AC-2",
           "text": "La tarjeta ofrece confirmar y cancelar solo cuando la agendada esta en 'pending', y emite eventos en lugar de llamar al store directamente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:15:33.145Z",
+          "note": "v-if=isPending sobre data-test='pending-actions' y los cuatro botones hacen $emit; tests 'only offers the actions while it is pending' y 'emits %s as the %s event instead of calling a store'"
         },
         {
           "id": "AC-3",
           "text": "ScheduledTransactionFormDialog permite capturar titulo, monto, tipo, cuenta, categoria opcional, etiquetas, fecha prevista y el switch de recurrente, y no deja enviar con monto <= 0, titulo vacio o sin cuenta",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:15:33.176Z",
+          "note": "ScheduledTransactionFormDialog.vue con los 8 campos y titleRules/amountRules/accountRules/dateRules; tests 'offers every field of a scheduled transaction' y 'does not emit save with %s' (titulo en blanco, monto 0, sin cuenta)"
         },
         {
           "id": "AC-4",
           "text": "Los colores salen de tokens del tema greenBeige, sin hex sueltos, y la tarjeta esta en molecules/ y el dialogo en organisms/",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:15:33.206Z",
+          "note": "solo colores del tema (primary/error/success/warning/secondary/surface), sin hex en los componentes; la tarjeta esta en components/molecules/ y el dialogo en components/organisms/"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% y hay tests de montaje para ambos componentes",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:15:33.237Z",
+          "note": "pnpm --filter frontend test:coverage en verde: 19 archivos / 173 tests; ScheduledTransactionCard.spec.ts (16 casos) y ScheduledTransactionFormDialog.spec.ts (8 casos) montan ambos componentes; utils al 100% de lineas"
         }
       ],
       "spec": "0002-agenda-de-transacciones"
