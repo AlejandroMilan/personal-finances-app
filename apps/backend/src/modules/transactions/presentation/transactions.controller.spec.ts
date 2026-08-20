@@ -1,11 +1,15 @@
+import { BadRequestException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TOKEN_SERVICE } from '../../auth/application/ports/token-service';
 import { TransactionType } from '../domain/transaction-type.enum';
 import { Transaction } from '../domain/entities/transaction.entity';
 import { CreateTransactionUseCase } from '../application/use-cases/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/use-cases/delete-transaction.use-case';
+import { GetTransactionsSummaryUseCase } from '../application/use-cases/get-transactions-summary.use-case';
 import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
 import { UpdateTransactionUseCase } from '../application/use-cases/update-transaction.use-case';
+import { JwtAuthGuard } from '../../auth/infrastructure/security/jwt-auth.guard';
 import { TransactionsController } from './transactions.controller';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
@@ -17,6 +21,7 @@ describe('TransactionsController', () => {
   const listTransactions = { execute: jest.fn() };
   const updateTransaction = { execute: jest.fn() };
   const deleteTransaction = { execute: jest.fn() };
+  const getTransactionsSummary = { execute: jest.fn() };
 
   const user = { id: 'u1', email: 'ana@mail.com' };
 
@@ -43,6 +48,10 @@ describe('TransactionsController', () => {
         { provide: ListTransactionsUseCase, useValue: listTransactions },
         { provide: UpdateTransactionUseCase, useValue: updateTransaction },
         { provide: DeleteTransactionUseCase, useValue: deleteTransaction },
+        {
+          provide: GetTransactionsSummaryUseCase,
+          useValue: getTransactionsSummary,
+        },
         {
           provide: TOKEN_SERVICE,
           useValue: { sign: jest.fn(), verify: jest.fn() },
@@ -174,6 +183,112 @@ describe('TransactionsController', () => {
     expect(deleteTransaction.execute).toHaveBeenCalledWith({
       userId: 'u1',
       transactionId: 't1',
+    });
+  });
+
+  it('protects every route of the controller with the JWT guard', () => {
+    const guards = Reflect.getMetadata(
+      GUARDS_METADATA,
+      TransactionsController,
+    ) as unknown[];
+
+    expect(guards).toContain(JwtAuthGuard);
+  });
+
+  describe('summary', () => {
+    const summaryDto = {
+      from: '2026-08-01T06:00:00.000Z',
+      to: '2026-08-31T05:59:59.999Z',
+      granularity: 'day',
+      timeZone: 'America/Mexico_City',
+    } as never;
+
+    const summary = {
+      totals: { income: 900, expense: 250.5 },
+      byCategory: {
+        income: [{ categoryId: 'c3', total: 900 }],
+        expense: [
+          { categoryId: 'c1', total: 200.5 },
+          { categoryId: null, total: 50 },
+        ],
+      },
+      series: [
+        {
+          bucket: new Date('2026-08-01T06:00:00.000Z'),
+          income: 900,
+          expense: 250.5,
+        },
+      ],
+    };
+
+    it('returns the period summary of the authenticated user', async () => {
+      getTransactionsSummary.execute.mockResolvedValue(summary);
+
+      const result = await controller.summary(user, summaryDto);
+
+      expect(getTransactionsSummary.execute).toHaveBeenCalledWith({
+        userId: 'u1',
+        from: new Date('2026-08-01T06:00:00.000Z'),
+        to: new Date('2026-08-31T05:59:59.999Z'),
+        granularity: 'day',
+        timeZone: 'America/Mexico_City',
+      });
+      expect(result).toEqual({
+        from: '2026-08-01T06:00:00.000Z',
+        to: '2026-08-31T05:59:59.999Z',
+        granularity: 'day',
+        timeZone: 'America/Mexico_City',
+        totals: { income: 900, expense: 250.5 },
+        byCategory: summary.byCategory,
+        series: [
+          {
+            bucket: '2026-08-01T06:00:00.000Z',
+            income: 900,
+            expense: 250.5,
+          },
+        ],
+      });
+    });
+
+    it('ignores any user identifier coming in the query and uses the token one', async () => {
+      getTransactionsSummary.execute.mockResolvedValue(summary);
+
+      await controller.summary(user, {
+        ...(summaryDto as object),
+        userId: 'someone-else',
+      } as never);
+
+      expect(getTransactionsSummary.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u1' }),
+      );
+    });
+
+    it('defaults the time zone to UTC when the client does not send one', async () => {
+      getTransactionsSummary.execute.mockResolvedValue({
+        ...summary,
+        series: [],
+      });
+
+      const result = await controller.summary(user, {
+        from: '2026-08-01T00:00:00.000Z',
+        to: '2026-08-02T00:00:00.000Z',
+        granularity: 'day',
+      } as never);
+
+      expect(getTransactionsSummary.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ timeZone: 'UTC' }),
+      );
+      expect(result.timeZone).toBe('UTC');
+    });
+
+    it('propagates the use case errors instead of swallowing them', async () => {
+      getTransactionsSummary.execute.mockRejectedValue(
+        new BadRequestException('from must not be after to'),
+      );
+
+      await expect(controller.summary(user, summaryDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

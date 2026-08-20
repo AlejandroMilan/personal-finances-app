@@ -3,20 +3,20 @@
 > Archivo generado automáticamente por `harness/scripts/harness.mjs`.
 > Se regenera cada vez que una tarea cambia de status. No editar a mano.
 
-**Última actualización:** 2026-08-20T07:34:33.267Z
+**Última actualización:** 2026-08-20T07:38:00.605Z
 
 ## Progreso
 
-`██░░░░░░░░░░░░░░░░░░` 11% (1/9 tareas completadas)
+`████░░░░░░░░░░░░░░░░` 22% (2/9 tareas completadas)
 
 ## Tareas
 
 | Status | Cantidad |
 | --- | --- |
-| `pendiente` | 8 |
+| `pendiente` | 7 |
 | `en proceso` | 0 |
 | `bloqueada` | 0 |
-| `completada` | 1 |
+| `completada` | 2 |
 | **Total en `tasks.json`** | **9 / 100** |
 
 ## Specs
@@ -31,7 +31,6 @@
 
 | Tarea | Título | Status | Spec | Creada |
 | --- | --- | --- | --- | --- |
-| T-0002 | Expose GET /transactions/summary endpoint | `pendiente` | `0001-dashboard-de-inicio-en-la-aplicacion` | 2026-08-20 |
 | T-0003 | Add period calculation utilities | `pendiente` | `0001-dashboard-de-inicio-en-la-aplicacion` | 2026-08-20 |
 | T-0004 | Add summary types, service method and dashboard store | `pendiente` | `0001-dashboard-de-inicio-en-la-aplicacion` | 2026-08-20 |
 | T-0005 | Register Chart.js and map summary data to chart datasets | `pendiente` | `0001-dashboard-de-inicio-en-la-aplicacion` | 2026-08-20 |

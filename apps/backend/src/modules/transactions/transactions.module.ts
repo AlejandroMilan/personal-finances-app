@@ -6,6 +6,7 @@ import { CategoriesModule } from '../categories/categories.module';
 import { TRANSACTION_REPOSITORY } from './application/ports/transaction.repository';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { DeleteTransactionUseCase } from './application/use-cases/delete-transaction.use-case';
+import { GetTransactionsSummaryUseCase } from './application/use-cases/get-transactions-summary.use-case';
 import { ListTransactionsUseCase } from './application/use-cases/list-transactions.use-case';
 import { UpdateTransactionUseCase } from './application/use-cases/update-transaction.use-case';
 import {
@@ -30,6 +31,7 @@ import { TransactionsController } from './presentation/transactions.controller';
     UpdateTransactionUseCase,
     DeleteTransactionUseCase,
     ListTransactionsUseCase,
+    GetTransactionsSummaryUseCase,
     { provide: TRANSACTION_REPOSITORY, useClass: MongoTransactionRepository },
   ],
   exports: [TRANSACTION_REPOSITORY],

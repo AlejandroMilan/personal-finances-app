@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:34:33.260Z",
+  "updatedAt": "2026-08-20T07:38:00.597Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -67,44 +67,58 @@
       "id": "T-0002",
       "title": "Expose GET /transactions/summary endpoint",
       "description": "Caso de uso GetTransactionsSummaryUseCase, DTO de query validado y endpoint protegido que devuelve el resumen del periodo.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:04.208Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:38:00.597Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "GET /transactions/summary?from&to&granularity=day responde 200 con { from, to, totals, byCategory, series }",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:45.875Z",
+          "note": "controller summary() -> { from, to, granularity, timeZone, totals, byCategory, series }; test 'returns the period summary of the authenticated user'"
         },
         {
           "id": "AC-2",
           "text": "El endpoint está protegido con JwtAuthGuard: sin token responde 401",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:45.906Z",
+          "note": "UseGuards(JwtAuthGuard) a nivel de clase cubre /summary; test 'protects every route of the controller with the JWT guard' lo verifica leyendo la metadata"
         },
         {
           "id": "AC-3",
           "text": "El userId se toma del token; enviarlo en query o body no tiene ningún efecto sobre el resultado",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:45.937Z",
+          "note": "userId sale de CurrentUser(); test 'ignores any user identifier coming in the query and uses the token one' manda userId=someone-else y sigue llegando u1"
         },
         {
           "id": "AC-4",
           "text": "from o to ausentes o con formato inválido, o granularity fuera de hour|day|month, responden 400 sin consultar la base de datos",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:45.967Z",
+          "note": "GetSummaryDto con IsDateString/IsEnum/IsTimeZone + ValidationPipe global; 7 tests en get-summary.dto.spec.ts (granularity 'week', from 'yesterday', timeZone 'Mars/Olympus'). La validacion ocurre antes del controller, sin tocar la BD"
         },
         {
           "id": "AC-5",
           "text": "from posterior a to responde 400",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:45.998Z",
+          "note": "use case lanza BadRequestException; test 'rejects a range whose start is after its end' comprueba ademas que summarize NO se llama"
         },
         {
           "id": "AC-6",
           "text": "El controlador solo valida, delega en el caso de uso y mapea a DTO: no contiene lógica de agregación",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:46.028Z",
+          "note": "el controller solo mapea Date y toISOString; toda la validacion de rango vive en GetTransactionsSummaryUseCase y la agregacion en el repositorio"
         },
         {
           "id": "AC-7",
           "text": "pnpm --filter backend test:coverage pasa con >= 80% en branches, functions, lines y statements",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:37:46.059Z",
+          "note": "pnpm --filter backend test:coverage: 35 suites, 176 tests, global 98.88/93.37/96.53/98.89"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"

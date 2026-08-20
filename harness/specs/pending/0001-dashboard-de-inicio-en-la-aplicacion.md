@@ -86,7 +86,7 @@ Comportamiento esperado:
 | ID | Título | Status | Implementada |
 | --- | --- | --- | --- |
 | T-0001 | Add summary aggregation to the transactions repository port | `completada` | 2026-08-20 |
-| T-0002 | Expose GET /transactions/summary endpoint | `pendiente` | — |
+| T-0002 | Expose GET /transactions/summary endpoint | `completada` | 2026-08-20 |
 | T-0003 | Add period calculation utilities | `pendiente` | — |
 | T-0004 | Add summary types, service method and dashboard store | `pendiente` | — |
 | T-0005 | Register Chart.js and map summary data to chart datasets | `pendiente` | — |
@@ -113,3 +113,5 @@ Comportamiento esperado:
 | 2026-08-20 | Status: `no implementado` → `en proceso`. |
 | 2026-08-20 | T-0001: se añade `timeZone` a `SummaryQuery` para alinear los buckets al calendario local (ver Decisiones). |
 | 2026-08-20 | Tarea T-0001: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0002: `pendiente` → `en proceso`. |
+| 2026-08-20 | Tarea T-0002: `en proceso` → `completada`. |

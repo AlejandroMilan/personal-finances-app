@@ -17,16 +17,19 @@ import {
 } from '../../auth/presentation/current-user.decorator';
 import { JwtAuthGuard } from '../../auth/infrastructure/security/jwt-auth.guard';
 import { CreateTransactionUseCase } from '../application/use-cases/create-transaction.use-case';
+import { GetTransactionsSummaryUseCase } from '../application/use-cases/get-transactions-summary.use-case';
 import { DeleteTransactionUseCase } from '../application/use-cases/delete-transaction.use-case';
 import { ListTransactionsUseCase } from '../application/use-cases/list-transactions.use-case';
 import { UpdateTransactionUseCase } from '../application/use-cases/update-transaction.use-case';
 import { Transaction } from '../domain/entities/transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { GetSummaryDto } from './dto/get-summary.dto';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
 import {
   PaginatedTransactionsView,
   TransactionView,
 } from './dto/transaction-response.dto';
+import { TransactionsSummaryView } from './dto/summary-response.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 @Controller('transactions')
@@ -35,6 +38,7 @@ export class TransactionsController {
   constructor(
     private readonly createTransaction: CreateTransactionUseCase,
     private readonly listTransactions: ListTransactionsUseCase,
+    private readonly getTransactionsSummary: GetTransactionsSummaryUseCase,
     private readonly updateTransaction: UpdateTransactionUseCase,
     private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
@@ -80,6 +84,35 @@ export class TransactionsController {
       total: result.total,
       page: result.page,
       limit: result.limit,
+    };
+  }
+
+  @Get('summary')
+  async summary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() dto: GetSummaryDto,
+  ): Promise<TransactionsSummaryView> {
+    const timeZone = dto.timeZone ?? 'UTC';
+    const summary = await this.getTransactionsSummary.execute({
+      userId: user.id,
+      from: new Date(dto.from),
+      to: new Date(dto.to),
+      granularity: dto.granularity,
+      timeZone,
+    });
+
+    return {
+      from: dto.from,
+      to: dto.to,
+      granularity: dto.granularity,
+      timeZone,
+      totals: summary.totals,
+      byCategory: summary.byCategory,
+      series: summary.series.map((point) => ({
+        bucket: point.bucket.toISOString(),
+        income: point.income,
+        expense: point.expense,
+      })),
     };
   }
 
