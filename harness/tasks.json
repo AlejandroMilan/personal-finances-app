@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:48:18.864Z",
+  "updatedAt": "2026-08-20T07:50:06.564Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -385,34 +385,44 @@
       "id": "T-0008",
       "title": "Build the income vs expense line card with ritmo/acumulado toggle",
       "description": "Molecule con la gráfica lineal de dos series y el conmutador entre ritmo y acumulado.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:34.346Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:50:06.564Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "Muestra dos series diferenciadas, gastos e ingresos, sobre el mismo eje temporal del periodo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:50:06.408Z",
+          "note": "datasets Ingresos (success) y Gastos (error) sobre labels comunes; test 'draws two distinct series over the same time axis' verifica etiquetas distintas y borderColor distinto"
         },
         {
           "id": "AC-2",
           "text": "El toggle alterna entre ritmo y acumulado y actualiza la gráfica sin volver a llamar a la API",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:50:06.440Z",
+          "note": "mode es ref local consumido por toLineSeries; test 'switches to the cumulative reading without requesting data again': datos [100,100,150] y spy de fetch sin llamadas. 'goes back to rate mode...' cubre la vuelta"
         },
         {
           "id": "AC-3",
           "text": "Las etiquetas del eje temporal corresponden a la granularidad del periodo: horas, días o meses",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:50:06.471Z",
+          "note": "formatBucketLabel por granularidad; tests 'labels the axis with hours for an hourly granularity' (HH:MM) y 'labels the axis with months for a monthly granularity' (contiene 2026)"
         },
         {
           "id": "AC-4",
           "text": "Sin movimientos en el periodo muestra un estado vacío",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:50:06.502Z",
+          "note": "v-else-if series.isEmpty; tests 'shows an empty state when the period has no movements' y 'shows an empty state when every interval is zero'"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:50:06.533Z",
+          "note": "pnpm --filter frontend test:coverage en verde, 97 tests"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"

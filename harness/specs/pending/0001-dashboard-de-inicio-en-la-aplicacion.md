@@ -92,7 +92,7 @@ Comportamiento esperado:
 | T-0005 | Register Chart.js and map summary data to chart datasets | `completada` | 2026-08-20 |
 | T-0006 | Build the PeriodFilter component | `completada` | 2026-08-20 |
 | T-0007 | Build the category donut card with centered total | `completada` | 2026-08-20 |
-| T-0008 | Build the income vs expense line card with ritmo/acumulado toggle | `pendiente` | — |
+| T-0008 | Build the income vs expense line card with ritmo/acumulado toggle | `completada` | 2026-08-20 |
 | T-0009 | Replace HomeView with the dashboard layout | `pendiente` | — |
 
 ## Historial de cambios
@@ -125,3 +125,5 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0006: `en proceso` → `completada`. |
 | 2026-08-20 | Tarea T-0007: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0007: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0008: `pendiente` → `en proceso`. |
+| 2026-08-20 | Tarea T-0008: `en proceso` → `completada`. |
