@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "project": "personal-finances-app",
+  "limits": {
+    "maxTasks": 100,
+    "archivePolicy": "oldest-completed-first",
+    "archiveFile": "archive/tasks-archive.jsonl"
+  },
+  "paths": {
+    "specsPending": "specs/pending",
+    "specsImplemented": "specs/implemented",
+    "specTemplate": "specs/TEMPLATE.md",
+    "tasks": "tasks.json",
+    "status": "STATUS.md",
+    "agents": "agents",
+    "rules": "rules"
+  },
+  "statuses": {
+    "spec": ["no implementado", "en proceso", "implementado"],
+    "task": ["pendiente", "en proceso", "bloqueada", "completada"]
+  },
+  "gates": {
+    "requireSpecForAnyChange": true,
+    "requireTestsBeforeComplete": true,
+    "requireAcceptanceValidation": true,
+    "requireSecurityAudit": true,
+    "coverageThreshold": 80
+  },
+  "commands": {
+    "test": "pnpm test",
+    "coverage": "pnpm test:coverage",
+    "build": "pnpm build"
+  }
+}

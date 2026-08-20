@@ -20,3 +20,9 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Harness: los specs implementados no se versionan (ahorro de espacio en GitHub)
+harness/specs/implemented/*
+!harness/specs/implemented/.gitkeep
+harness/archive/*
+!harness/archive/.gitkeep

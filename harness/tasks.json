@@ -1,0 +1,381 @@
+{
+  "version": 1,
+  "maxTasks": 100,
+  "updatedAt": "2026-08-20T07:22:34.380Z",
+  "tasks": [
+    {
+      "id": "T-0001",
+      "title": "Add summary aggregation to the transactions repository port",
+      "description": "Nuevo método summarize en TransactionRepository y su adaptador de Mongo: agrega por tipo, por categoría y por bucket temporal en una sola consulta.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:04.176Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El port TransactionRepository expone summarize(userId, { from, to, granularity }) y el adaptador de Mongo lo implementa con aggregate, sin traer documentos a memoria",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "La agregación filtra siempre por el userId recibido y por timestamp >= from y <= to",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Devuelve totales por tipo (income/expense), totales por categoryId dentro de cada tipo, y una serie de buckets con income y expense por bucket",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Las transacciones con categoryId null se agrupan bajo la clave null y no se descartan",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Los buckets sin movimientos aparecen en la serie con income 0 y expense 0, en orden cronológico",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "granularity acepta hour, day y month y agrupa por ese intervalo",
+          "validated": false
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en branches, functions, lines y statements",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0002",
+      "title": "Expose GET /transactions/summary endpoint",
+      "description": "Caso de uso GetTransactionsSummaryUseCase, DTO de query validado y endpoint protegido que devuelve el resumen del periodo.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:04.208Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "GET /transactions/summary?from&to&granularity=day responde 200 con { from, to, totals, byCategory, series }",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "El endpoint está protegido con JwtAuthGuard: sin token responde 401",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "El userId se toma del token; enviarlo en query o body no tiene ningún efecto sobre el resultado",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "from o to ausentes o con formato inválido, o granularity fuera de hour|day|month, responden 400 sin consultar la base de datos",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "from posterior a to responde 400",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "El controlador solo valida, delega en el caso de uso y mapea a DTO: no contiene lógica de agregación",
+          "validated": false
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en branches, functions, lines y statements",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0003",
+      "title": "Add period calculation utilities",
+      "description": "src/utils/period.ts: rangos de día, semana, mes, año y personalizado, más la granularidad derivada de cada periodo.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:04.247Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "buildPeriodRange('day'|'week'|'month'|'year') devuelve el inicio y fin del periodo en curso en hora local del navegador",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "La semana empieza en lunes y termina en domingo",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "resolveGranularity devuelve hour para día, day para semana y mes, y month para año",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Un rango personalizado devuelve granularidad según su duración: hour hasta 2 días, day hasta 92 días, month por encima",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Un rango personalizado con from posterior a to se rechaza con un error explícito",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% sobre src/utils/**",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0004",
+      "title": "Add summary types, service method and dashboard store",
+      "description": "types/summary.ts, getSummary en services/transactions.ts y stores/dashboard.ts con el periodo como única fuente de verdad.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:34.208Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El store expone period, summary, loading y error, y por defecto arranca en el mes en curso",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "setPeriod dispara exactamente una llamada a getSummary y actualiza los datos que alimentan las tres gráficas",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "El servicio reutiliza el cliente de services/api.ts: no construye headers de autenticación a mano",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Un fallo de red deja loading en false, expone el error y no deja el summary anterior mostrándose como si fuera del nuevo periodo",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0005",
+      "title": "Register Chart.js and map summary data to chart datasets",
+      "description": "Registro tree-shakeable de Chart.js en src/plugins/charts.ts y utilidades puras de mapeo en src/utils/summary.ts.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:34.247Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "pnpm add chart.js vue-chartjs queda reflejado en apps/frontend/package.json y pnpm build compila sin errores",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Solo se registran los controladores, escalas y plugins que usan la dona y la línea, no Chart.register(...registerables)",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "toDonutDataset asigna a cada porción el color de su categoría y agrupa categoryId null como 'Sin categoría' con un color neutro del tema",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "toLineDatasets devuelve dos series, gastos e ingresos, y en modo acumulado cada punto es la suma corrida desde el inicio del periodo",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Con un periodo sin movimientos, las funciones de mapeo devuelven un resultado vacío identificable para que la UI muestre su estado vacío",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "Los colores y tipografías salen del tema greenBeige, no hex sueltos en los componentes",
+          "validated": false
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% sobre src/utils/**",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0006",
+      "title": "Build the PeriodFilter component",
+      "description": "Molecule con las opciones día, semana, mes, año y un diálogo de rango personalizado; emite el periodo seleccionado.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:34.280Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Muestra las opciones día, semana, mes, año y personalizado, con mes preseleccionado al montar",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Elegir una opción emite el rango resuelto por utils/period.ts, sin recalcular fechas dentro del componente",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "La opción personalizada abre un diálogo con fecha de inicio y fin y no permite confirmar si el inicio es posterior al fin",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Respeta la jerarquía de atomic design y el tema greenBeige, sin llamadas HTTP dentro del componente",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0007",
+      "title": "Build the category donut card with centered total",
+      "description": "Una sola molecule reutilizable, instanciada para gastos y para ingresos, con el total del periodo al centro de la dona.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:34.314Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El mismo componente se usa para gastos e ingresos recibiendo los datos por props, sin duplicar el componente",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "El total del periodo se muestra al centro de la dona, formateado con utils/money.ts",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Cada porción usa el color de su categoría y la leyenda muestra el nombre de cada una",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Sin movimientos en el periodo muestra un estado vacío con el total en cero, no una dona vacía ni un error",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "El componente no llama a servicios ni recalcula agregados: solo recibe props y renderiza",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0008",
+      "title": "Build the income vs expense line card with ritmo/acumulado toggle",
+      "description": "Molecule con la gráfica lineal de dos series y el conmutador entre ritmo y acumulado.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:34.346Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Muestra dos series diferenciadas, gastos e ingresos, sobre el mismo eje temporal del periodo",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "El toggle alterna entre ritmo y acumulado y actualiza la gráfica sin volver a llamar a la API",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Las etiquetas del eje temporal corresponden a la granularidad del periodo: horas, días o meses",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Sin movimientos en el periodo muestra un estado vacío",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    },
+    {
+      "id": "T-0009",
+      "title": "Replace HomeView with the dashboard layout",
+      "description": "Organism DashboardSummary que compone el filtro y las tres tarjetas, y reescritura de HomeView.",
+      "status": "pendiente",
+      "createdAt": "2026-08-20T07:22:34.379Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "GET /home ya no muestra el Hello World: renderiza el filtro de periodo y las tres gráficas",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Cambiar el periodo en el filtro actualiza las tres gráficas a la vez, con una sola petición al backend",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "El layout es responsive: las dos donas caben lado a lado en escritorio y se apilan en móvil",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Mientras carga muestra un indicador y no gráficas con datos del periodo anterior",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "La ruta /home sigue protegida por meta.requiresAuth",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% y pnpm build compila sin errores",
+          "validated": false
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm test:coverage pasa en verde en todo el monorepo",
+          "validated": false
+        }
+      ],
+      "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
+    }
+  ]
+}
