@@ -121,7 +121,7 @@ Comportamiento esperado:
 | T-0016 | Build the scheduled transaction card and form dialog | `completada` | 2026-08-20 |
 | T-0017 | Build the execute dialog with the reschedule question | `completada` | 2026-08-20 |
 | T-0018 | Add the ScheduleView screen with its route and menu entry | `completada` | 2026-08-20 |
-| T-0019 | Add the schedule card to the dashboard | `pendiente` | — |
+| T-0019 | Add the schedule card to the dashboard | `completada` | 2026-08-20 |
 
 ## Historial de cambios
 
@@ -162,3 +162,6 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0017: `en proceso` → `completada`. |
 | 2026-08-20 | Tarea T-0018: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0018: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0019: `pendiente` → `en proceso`. |
+| 2026-08-20 | Tarea T-0019: `en proceso` → `completada`. |
+| 2026-08-20 | T-0019: `ScheduledTransactionCard` gana el prop `compact`, que oculta editar y eliminar; el dashboard solo ofrece confirmar y cancelar y manda a `/schedule` para lo demas. |

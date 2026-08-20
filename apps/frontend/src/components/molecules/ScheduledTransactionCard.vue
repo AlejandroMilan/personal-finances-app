@@ -8,6 +8,8 @@ const props = defineProps<{
   scheduled: ScheduledTransactionView;
   accountName?: string;
   categoryName?: string;
+  /** En modo compacto solo se ofrecen confirmar y cancelar. */
+  compact?: boolean;
 }>();
 
 defineEmits<{ execute: []; cancel: []; edit: []; delete: [] }>();
@@ -122,6 +124,7 @@ const scheduledDate = computed(() =>
           @click="$emit('cancel')"
         />
         <v-btn
+          v-if="!props.compact"
           icon="mdi-pencil"
           variant="text"
           size="small"
@@ -130,6 +133,7 @@ const scheduledDate = computed(() =>
           @click="$emit('edit')"
         />
         <v-btn
+          v-if="!props.compact"
           icon="mdi-delete"
           variant="text"
           size="small"

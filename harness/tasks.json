@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:20:19.096Z",
+  "updatedAt": "2026-08-20T17:23:37.041Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -926,34 +926,44 @@
       "id": "T-0019",
       "title": "Add the schedule card to the dashboard",
       "description": "Tarjeta de agenda en la pantalla de inicio con las vencidas y las del mes en curso, accionables sin salir del dashboard.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:49:44.327Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:23:37.040Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "UpcomingScheduleCard muestra solo agendadas 'pending' vencidas o con fecha prevista dentro del mes en curso, agrupadas bajo las etiquetas de vencidas y de este mes",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:23:36.889Z",
+          "note": "UpcomingScheduleCard.vue usa scheduleStore.buckets (splitPendingSchedule filtra status==='pending' y el mes en curso) en las secciones data-test='dashboard-overdue' y 'dashboard-current-month'. Tests 'shows the overdue ones and the ones of the current month, grouped', 'leaves out what falls beyond the current month' y 'leaves out what is not pending'"
         },
         {
           "id": "AC-2",
           "text": "Cada fila permite confirmar y cancelar desde el dashboard, y tras la accion la fila desaparece de la tarjeta sin recargar la pagina",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:23:36.922Z",
+          "note": "la tarjeta usa ScheduledTransactionCard en modo compact (solo confirmar y cancelar) y llama al store; tests 'confirms from the dashboard and refreshes without reloading' y 'cancels from the dashboard and refreshes without reloading' comprueban que la fila desaparece tras la accion"
         },
         {
           "id": "AC-3",
           "text": "La tarjeta enlaza a /schedule y, sin nada pendiente, muestra un estado vacio explicito",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:23:36.952Z",
+          "note": "v-btn to='/schedule' data-test='schedule-link' y bloque data-test='upcoming-schedule-empty'; tests 'links to the schedule screen' y 'shows an explicit empty state when there is nothing pending'"
         },
         {
           "id": "AC-4",
           "text": "Las agendadas no alteran los totales ni las series de las graficas del dashboard, que siguen usando GET /transactions/summary tal cual",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:23:36.982Z",
+          "note": "DashboardSummary y el store de dashboard quedan intactos; test 'keeps the summary charts fed only by the transactions summary' verifica que summary se llama una vez con from/to/granularity/timeZone aun habiendo agendadas pendientes"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% y HomeView.spec.ts cubre la presencia de la tarjeta",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:23:37.011Z",
+          "note": "pnpm --filter frontend test:coverage en verde: 22 archivos / 208 tests, utils 100% lineas / 98.52% branches; HomeView.spec.ts cubre la presencia de data-test='upcoming-schedule-card'"
         }
       ],
       "spec": "0002-agenda-de-transacciones"

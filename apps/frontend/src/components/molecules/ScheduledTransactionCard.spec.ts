@@ -114,6 +114,15 @@ describe('ScheduledTransactionCard', () => {
     ).toBe(false);
   });
 
+  it('hides edit and delete in compact mode', () => {
+    const wrapper = mountCard(scheduled(), { compact: true });
+
+    expect(wrapper.find('[data-test="execute-action"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="cancel-action"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="edit-action"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="delete-action"]').exists()).toBe(false);
+  });
+
   it.each([
     ['execute-action', 'execute'],
     ['cancel-action', 'cancel'],
