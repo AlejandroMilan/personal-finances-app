@@ -16,6 +16,9 @@ export class TransactionModel {
   accountId: string;
 
   @Prop({ index: true })
+  destinationAccountId: string;
+
+  @Prop({ index: true })
   categoryId: string;
 
   @Prop({ required: true, enum: TransactionType })

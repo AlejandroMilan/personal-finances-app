@@ -92,6 +92,7 @@ export class MongoTransactionRepository implements TransactionRepository {
           $set: {
             userId: transaction.userId,
             accountId: transaction.accountId,
+            destinationAccountId: transaction.destinationAccountId,
             categoryId: transaction.categoryId,
             type: transaction.type,
             title: transaction.title,
@@ -111,8 +112,13 @@ export class MongoTransactionRepository implements TransactionRepository {
     await this.model.deleteOne({ uuid: id }).exec();
   }
 
-  async deleteByAccountId(accountId: string): Promise<void> {
-    await this.model.deleteMany({ accountId }).exec();
+  async deleteByAccountId(userId: string, accountId: string): Promise<void> {
+    await this.model
+      .deleteMany({
+        userId,
+        $or: [{ accountId }, { destinationAccountId: accountId }],
+      })
+      .exec();
   }
 
   async clearCategoryReferences(categoryId: string): Promise<void> {
@@ -138,6 +144,7 @@ export class MongoTransactionRepository implements TransactionRepository {
         {
           $match: {
             userId,
+            type: { $ne: TransactionType.TRANSFER },
             timestamp: { $gte: query.from, $lte: query.to },
           },
         },
@@ -223,7 +230,7 @@ export class MongoTransactionRepository implements TransactionRepository {
       const entry = totals.get(key) ?? { income: 0, expense: 0 };
       if (group._id.type === TransactionType.INCOME) {
         entry.income += group.total;
-      } else {
+      } else if (group._id.type === TransactionType.EXPENSE) {
         entry.expense += group.total;
       }
       totals.set(key, entry);
@@ -283,6 +290,7 @@ export class MongoTransactionRepository implements TransactionRepository {
       id: doc.uuid,
       userId: doc.userId,
       accountId: doc.accountId,
+      destinationAccountId: doc.destinationAccountId ?? null,
       categoryId: doc.categoryId ?? null,
       type: doc.type,
       title: doc.title,

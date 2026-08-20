@@ -34,7 +34,10 @@ export class DeleteAccountUseCase {
       throw new NotFoundException('Account not found');
     }
 
-    await this.transactionRepository.deleteByAccountId(account.id);
+    await this.transactionRepository.deleteByAccountId(
+      input.userId,
+      account.id,
+    );
     await this.creditCardRepository.deleteByAccountId(account.id);
     await this.accountRepository.delete(account.id);
   }

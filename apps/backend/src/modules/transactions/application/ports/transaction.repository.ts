@@ -57,7 +57,7 @@ export interface TransactionRepository {
   ): Promise<PaginatedTransactions>;
   save(transaction: Transaction): Promise<Transaction>;
   delete(id: string): Promise<void>;
-  deleteByAccountId(accountId: string): Promise<void>;
+  deleteByAccountId(userId: string, accountId: string): Promise<void>;
   clearCategoryReferences(categoryId: string): Promise<void>;
   summarize(userId: string, query: SummaryQuery): Promise<TransactionsSummary>;
 }

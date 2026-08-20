@@ -1,7 +1,7 @@
 import { Model } from 'mongoose';
 import { TransactionType } from '../../domain/transaction-type.enum';
 import { Transaction } from '../../domain/entities/transaction.entity';
-import { TransactionModel } from './transaction.schema';
+import { TransactionModel, TransactionSchema } from './transaction.schema';
 import { MongoTransactionRepository } from './transaction.repository.mongo';
 
 describe('MongoTransactionRepository', () => {
@@ -16,6 +16,12 @@ describe('MongoTransactionRepository', () => {
     timestamp: new Date('2026-08-01T12:00:00.000Z'),
     tags: ['food'],
     createdAt: new Date('2026-08-01T12:00:00.000Z'),
+  };
+  const transferDoc = {
+    ...doc,
+    categoryId: null,
+    type: TransactionType.TRANSFER,
+    destinationAccountId: 'a2',
   };
 
   let execMock: jest.Mock;
@@ -109,11 +115,47 @@ describe('MongoTransactionRepository', () => {
     expect(saved.title).toBe('Lunch');
   });
 
-  it('returns a transaction entity when found by id', async () => {
+  it('declares and persists the destination account for transfers', async () => {
+    const transaction = Transaction.restore({
+      id: 't1',
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 50,
+      timestamp: new Date('2026-08-01T12:00:00.000Z'),
+      tags: [],
+      createdAt: new Date('2026-08-01T12:00:00.000Z'),
+    });
+    modelMock.findOneAndUpdate.mockReturnValue({
+      exec: jest.fn().mockResolvedValue(transferDoc),
+    });
+
+    const saved = await repo().save(transaction);
+
+    const destinationPath = TransactionSchema.path('destinationAccountId');
+    expect(destinationPath).toBeDefined();
+    expect(destinationPath?.options.index).toBe(true);
+    expect(destinationPath?.options.required).not.toBe(true);
+    expect(modelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      { uuid: 't1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ destinationAccountId: 'a2' }),
+      }),
+      { upsert: true, new: true },
+    );
+    expect(saved.destinationAccountId).toBe('a2');
+  });
+
+  it('maps a legacy transaction document without a destination account to null', async () => {
     const found = await repo().findById('t1');
 
     expect(modelMock.findOne).toHaveBeenCalledWith({ uuid: 't1' });
+    expect(found).toBeInstanceOf(Transaction);
     expect(found?.title).toBe('Lunch');
+    expect(found?.destinationAccountId).toBeNull();
   });
 
   it('returns null when not found by id', async () => {
@@ -160,6 +202,58 @@ describe('MongoTransactionRepository', () => {
     });
   });
 
+  it('filters transfers by type while preserving the user and date filters', async () => {
+    const from = new Date('2026-08-01');
+    const to = new Date('2026-08-31');
+    const ownTransfer = { ...transferDoc, uuid: 'own-transfer', userId: 'u1' };
+    const foreignTransfer = {
+      ...transferDoc,
+      uuid: 'foreign-transfer',
+      userId: 'u2',
+    };
+    modelMock.find.mockImplementation(
+      (query: { userId: string; type?: TransactionType }) => {
+        const matchingDocs = [ownTransfer, foreignTransfer].filter(
+          (candidate) =>
+            candidate.userId === query.userId && candidate.type === query.type,
+        );
+
+        return {
+          sort: jest.fn().mockReturnValue({
+            skip: jest.fn().mockReturnValue({
+              limit: jest.fn().mockReturnValue({
+                exec: jest.fn().mockResolvedValue(matchingDocs),
+              }),
+            }),
+          }),
+        };
+      },
+    );
+
+    const result = await repo().findByUserId('u1', {
+      type: TransactionType.TRANSFER,
+      from,
+      to,
+      page: 1,
+      limit: 20,
+    });
+
+    const expectedQuery = {
+      userId: 'u1',
+      type: TransactionType.TRANSFER,
+      timestamp: { $gte: from, $lte: to },
+    };
+    expect(modelMock.find).toHaveBeenCalledWith(expectedQuery);
+    expect(modelMock.countDocuments).toHaveBeenCalledWith(expectedQuery);
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'own-transfer',
+        userId: 'u1',
+        type: TransactionType.TRANSFER,
+      }),
+    ]);
+  });
+
   it('escapes regex characters in the title filter', async () => {
     await repo().findByUserId('u1', { title: 'a.b*', page: 1, limit: 20 });
 
@@ -198,10 +292,13 @@ describe('MongoTransactionRepository', () => {
     expect(modelMock.deleteOne).toHaveBeenCalledWith({ uuid: 't1' });
   });
 
-  it('deletes all transactions of an account', async () => {
-    await repo().deleteByAccountId('a1');
+  it('deletes only the user transactions where the account is source or destination', async () => {
+    await repo().deleteByAccountId('u1', 'a1');
 
-    expect(modelMock.deleteMany).toHaveBeenCalledWith({ accountId: 'a1' });
+    expect(modelMock.deleteMany).toHaveBeenCalledWith({
+      userId: 'u1',
+      $or: [{ accountId: 'a1' }, { destinationAccountId: 'a1' }],
+    });
   });
 
   it('clears the category references of the transactions', async () => {
@@ -230,6 +327,7 @@ describe('MongoTransactionRepository', () => {
       expect(pipeline[0]).toEqual({
         $match: {
           userId: 'u1',
+          type: { $ne: TransactionType.TRANSFER },
           timestamp: { $gte: query.from, $lte: query.to },
         },
       });
@@ -273,6 +371,75 @@ describe('MongoTransactionRepository', () => {
       ]);
       expect(summary.byCategory.income).toEqual([
         { categoryId: 'c3', total: 200 },
+      ]);
+    });
+
+    it('excludes transfers from totals, categories and series', async () => {
+      withFacets([
+        {
+          byCategory: [
+            {
+              _id: { type: TransactionType.TRANSFER, categoryId: null },
+              total: 999,
+            },
+            {
+              _id: { type: TransactionType.INCOME, categoryId: 'c1' },
+              total: 50,
+            },
+            {
+              _id: { type: TransactionType.EXPENSE, categoryId: 'c2' },
+              total: 25,
+            },
+          ],
+          series: [
+            {
+              _id: {
+                bucket: new Date('2026-08-02T06:00:00.000Z'),
+                type: TransactionType.TRANSFER,
+              },
+              total: 999,
+            },
+            {
+              _id: {
+                bucket: new Date('2026-08-01T06:00:00.000Z'),
+                type: TransactionType.INCOME,
+              },
+              total: 50,
+            },
+            {
+              _id: {
+                bucket: new Date('2026-08-03T06:00:00.000Z'),
+                type: TransactionType.EXPENSE,
+              },
+              total: 25,
+            },
+          ],
+        },
+      ]);
+
+      const summary = await repo().summarize('u1', query);
+
+      expect(summary.totals).toEqual({ income: 50, expense: 25 });
+      expect(summary.byCategory).toEqual({
+        income: [{ categoryId: 'c1', total: 50 }],
+        expense: [{ categoryId: 'c2', total: 25 }],
+      });
+      expect(summary.series).toEqual([
+        {
+          bucket: new Date('2026-08-01T06:00:00.000Z'),
+          income: 50,
+          expense: 0,
+        },
+        {
+          bucket: new Date('2026-08-02T06:00:00.000Z'),
+          income: 0,
+          expense: 0,
+        },
+        {
+          bucket: new Date('2026-08-03T06:00:00.000Z'),
+          income: 0,
+          expense: 25,
+        },
       ]);
     });
 

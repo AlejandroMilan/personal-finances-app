@@ -54,7 +54,10 @@ describe('DeleteAccountUseCase', () => {
 
     await useCase.execute({ userId: 'u1', accountId: 'a1' });
 
-    expect(transactionRepository.deleteByAccountId).toHaveBeenCalledWith('a1');
+    expect(transactionRepository.deleteByAccountId).toHaveBeenCalledWith(
+      'u1',
+      'a1',
+    );
     expect(creditCardRepository.deleteByAccountId).toHaveBeenCalledWith('a1');
     expect(accountRepository.delete).toHaveBeenCalledWith('a1');
   });
