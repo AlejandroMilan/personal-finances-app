@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:43:57.316Z",
+  "updatedAt": "2026-08-20T07:46:51.947Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -286,34 +286,44 @@
       "id": "T-0006",
       "title": "Build the PeriodFilter component",
       "description": "Molecule con las opciones día, semana, mes, año y un diálogo de rango personalizado; emite el periodo seleccionado.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:34.280Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:46:51.946Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "Muestra las opciones día, semana, mes, año y personalizado, con mes preseleccionado al montar",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:46:28.565Z",
+          "note": "chips dia/semana/mes/anio/personalizado; tests 'shows the day, week, month, year and custom options' y 'highlights the month option when it is the selected one' (variant flat vs tonal)"
         },
         {
           "id": "AC-2",
           "text": "Elegir una opción emite el rango resuelto por utils/period.ts, sin recalcular fechas dentro del componente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:46:28.596Z",
+          "note": "selectPreset emite buildPeriodRange(preset) y applyCustom emite buildCustomPeriodRange(); no hay aritmetica de fechas en el .vue (el parseo del input vive en utils/period.ts). Tests 'emits the range resolved by the period utilities...' y 'emits a whole day range for the day preset'"
         },
         {
           "id": "AC-3",
           "text": "La opción personalizada abre un diálogo con fecha de inicio y fin y no permite confirmar si el inicio es posterior al fin",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:46:28.627Z",
+          "note": "v-dialog con custom-from/custom-to; test 'opens the custom dialog with two date fields'. Boton Aplicar con :disabled=!customIsValid; test 'does not emit a custom range when the start is after the end' comprueba que no se emite nada"
         },
         {
           "id": "AC-4",
           "text": "Respeta la jerarquía de atomic design y el tema greenBeige, sin llamadas HTTP dentro del componente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:46:28.658Z",
+          "note": "molecule en components/molecules/ que solo usa componentes Vuetify y colores del tema (primary/secondary); sin imports de services ni stores; test 'does not perform any HTTP request on its own'"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:46:28.690Z",
+          "note": "pnpm --filter frontend test:coverage en verde; utils 100 stmts / 98.27 branches"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"

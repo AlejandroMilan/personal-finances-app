@@ -3,7 +3,9 @@ import {
   buildCustomPeriodRange,
   buildPeriodRange,
   currentTimeZone,
+  parseDateInput,
   resolveGranularity,
+  toDateInput,
 } from './period';
 
 /** Jueves 20 de agosto de 2026, 15:47 hora local. */
@@ -182,5 +184,34 @@ describe('currentTimeZone', () => {
     expect(() =>
       new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(new Date()),
     ).not.toThrow();
+  });
+});
+
+describe('parseDateInput', () => {
+  it('reads a date input value as a local date', () => {
+    const date = parseDateInput('2026-08-01');
+
+    expect(date.getFullYear()).toBe(2026);
+    expect(date.getMonth()).toBe(7);
+    expect(date.getDate()).toBe(1);
+    expect(date.getHours()).toBe(0);
+  });
+
+  it('returns an invalid date for an empty or malformed value', () => {
+    expect(Number.isNaN(parseDateInput('').getTime())).toBe(true);
+    expect(Number.isNaN(parseDateInput('nope').getTime())).toBe(true);
+  });
+});
+
+describe('toDateInput', () => {
+  it('formats a local date for a date input', () => {
+    expect(toDateInput(new Date(2026, 7, 1))).toBe('2026-08-01');
+    expect(toDateInput(new Date(2026, 11, 25))).toBe('2026-12-25');
+  });
+
+  it('round trips with parseDateInput', () => {
+    const value = '2026-02-28';
+
+    expect(toDateInput(parseDateInput(value))).toBe(value);
   });
 });

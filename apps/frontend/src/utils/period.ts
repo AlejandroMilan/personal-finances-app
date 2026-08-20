@@ -120,6 +120,25 @@ export function buildCustomPeriodRange(from: Date, to: Date): PeriodRange {
   };
 }
 
+/**
+ * Convierte el valor de un `<input type="date">` (`YYYY-MM-DD`) en una fecha
+ * local. `new Date('2026-08-01')` la interpretaría como UTC y desplazaría el día
+ * para quien no esté en el meridiano de Greenwich.
+ */
+export function parseDateInput(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) {
+    return new Date(Number.NaN);
+  }
+  return new Date(year, month - 1, day);
+}
+
+/** Formato `YYYY-MM-DD` que espera un `<input type="date">`. */
+export function toDateInput(date: Date): string {
+  const pad = (value: number): string => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /** Zona IANA del navegador; el backend la usa para alinear los buckets. */
 export function currentTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';

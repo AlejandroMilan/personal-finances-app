@@ -14,6 +14,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    setupFiles: ['src/test-utils/setup.ts'],
+    server: { deps: { inline: ['vuetify'] } },
     coverage: {
       provider: 'v8',
       include: ['src/utils/**/*.ts'],
