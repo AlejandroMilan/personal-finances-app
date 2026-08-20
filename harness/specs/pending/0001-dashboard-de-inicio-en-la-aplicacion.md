@@ -89,7 +89,7 @@ Comportamiento esperado:
 | T-0002 | Expose GET /transactions/summary endpoint | `completada` | 2026-08-20 |
 | T-0003 | Add period calculation utilities | `completada` | 2026-08-20 |
 | T-0004 | Add summary types, service method and dashboard store | `completada` | 2026-08-20 |
-| T-0005 | Register Chart.js and map summary data to chart datasets | `pendiente` | — |
+| T-0005 | Register Chart.js and map summary data to chart datasets | `completada` | 2026-08-20 |
 | T-0006 | Build the PeriodFilter component | `pendiente` | — |
 | T-0007 | Build the category donut card with centered total | `pendiente` | — |
 | T-0008 | Build the income vs expense line card with ritmo/acumulado toggle | `pendiente` | — |
@@ -119,3 +119,5 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0003: `en proceso` → `completada`. |
 | 2026-08-20 | Tarea T-0004: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0004: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0005: `pendiente` → `en proceso`. |
+| 2026-08-20 | Tarea T-0005: `en proceso` → `completada`. |

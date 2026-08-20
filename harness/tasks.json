@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:41:42.649Z",
+  "updatedAt": "2026-08-20T07:43:57.316Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -226,44 +226,58 @@
       "id": "T-0005",
       "title": "Register Chart.js and map summary data to chart datasets",
       "description": "Registro tree-shakeable de Chart.js en src/plugins/charts.ts y utilidades puras de mapeo en src/utils/summary.ts.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:34.247Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:43:57.315Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "pnpm add chart.js vue-chartjs queda reflejado en apps/frontend/package.json y pnpm build compila sin errores",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.110Z",
+          "note": "apps/frontend/package.json: chart.js ^4.5.1 y vue-chartjs ^5.3.4; pnpm build compila backend y frontend sin errores (vue-tsc --noEmit limpio)"
         },
         {
           "id": "AC-2",
           "text": "Solo se registran los controladores, escalas y plugins que usan la dona y la línea, no Chart.register(...registerables)",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.144Z",
+          "note": "plugins/charts.ts registra solo DoughnutController, ArcElement, LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip y Legend; 'registerables' no se importa (solo aparece en un comentario)"
         },
         {
           "id": "AC-3",
           "text": "toDonutDataset asigna a cada porción el color de su categoría y agrupa categoryId null como 'Sin categoría' con un color neutro del tema",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.173Z",
+          "note": "toDonutData toma nombre y color del catalogo de categorias; tests 'uses the name and colour of each category' y 'groups the null category under Sin categoria with a neutral colour' (#9E9585)"
         },
         {
           "id": "AC-4",
           "text": "toLineDatasets devuelve dos series, gastos e ingresos, y en modo acumulado cada punto es la suma corrida desde el inicio del periodo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.201Z",
+          "note": "toLineSeries devuelve income y expense; tests 'adds up progressively from the start of the period in cumulative mode' ([100,100,150]) y 'keeps the cumulative series monotonic'"
         },
         {
           "id": "AC-5",
           "text": "Con un periodo sin movimientos, las funciones de mapeo devuelven un resultado vacío identificable para que la UI muestre su estado vacío",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.230Z",
+          "note": "DonutData.isEmpty y LineSeries.isEmpty; tests 'reports an empty result for a period with no movements' y 'reports an empty series when every interval is zero'"
         },
         {
           "id": "AC-6",
           "text": "Los colores y tipografías salen del tema greenBeige, no hex sueltos en los componentes",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.259Z",
+          "note": "chartTheme y fallbackPalette en plugins/charts.ts derivan de los colores de greenBeige (vuetify.ts); los componentes consumiran estos tokens en T-0007/T-0008"
         },
         {
           "id": "AC-7",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% sobre src/utils/**",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:43:57.287Z",
+          "note": "pnpm --filter frontend test:coverage: src/utils 100 stmts / 98.14 branches / 100 funcs / 100 lines"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
