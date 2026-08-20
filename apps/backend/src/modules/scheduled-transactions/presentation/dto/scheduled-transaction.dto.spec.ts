@@ -49,10 +49,10 @@ describe('CreateScheduledTransactionDto', () => {
     ).toContain('amount');
   });
 
-  it('rejects a type outside income and expense', () => {
+  it('rejects a type outside TransactionType', () => {
     expect(
       properties(
-        validate(CreateScheduledTransactionDto, { ...valid, type: 'transfer' }),
+        validate(CreateScheduledTransactionDto, { ...valid, type: 'refund' }),
       ),
     ).toContain('type');
   });

@@ -31,6 +31,7 @@ describe('ScheduledTransaction', () => {
     expect(scheduled.isPending()).toBe(true);
     expect(scheduled.userId).toBe('u1');
     expect(scheduled.accountId).toBe('a1');
+    expect(scheduled.destinationAccountId).toBeNull();
     expect(scheduled.categoryId).toBe('c1');
     expect(scheduled.type).toBe(TransactionType.EXPENSE);
     expect(scheduled.amount).toBe(12000);
@@ -63,13 +64,63 @@ describe('ScheduledTransaction', () => {
     );
   });
 
+  it('creates a transfer without a category and with a destination account', () => {
+    const scheduled = ScheduledTransaction.create(
+      input({
+        categoryId: 'c1',
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+      }),
+    );
+
+    expect(scheduled.type).toBe(TransactionType.TRANSFER);
+    expect(scheduled.destinationAccountId).toBe('a2');
+    expect(scheduled.categoryId).toBeNull();
+  });
+
+  it.each([undefined, null, ''])(
+    'rejects a transfer without a destination account (%p)',
+    (destinationAccountId) => {
+      expect(() =>
+        ScheduledTransaction.create(
+          input({
+            type: TransactionType.TRANSFER,
+            destinationAccountId,
+          }),
+        ),
+      ).toThrow(ScheduledTransactionError);
+    },
+  );
+
+  it('rejects a transfer to its source account', () => {
+    expect(() =>
+      ScheduledTransaction.create(
+        input({
+          type: TransactionType.TRANSFER,
+          destinationAccountId: 'a1',
+        }),
+      ),
+    ).toThrow(ScheduledTransactionError);
+  });
+
+  it.each([TransactionType.INCOME, TransactionType.EXPENSE])(
+    'rejects a %s with a destination account',
+    (type) => {
+      expect(() =>
+        ScheduledTransaction.create(
+          input({ type, destinationAccountId: 'a2' }),
+        ),
+      ).toThrow(ScheduledTransactionError);
+    },
+  );
+
   it('restores a scheduled transaction from persistence', () => {
     const date = new Date('2026-01-01T00:00:00.000Z');
     const scheduled = ScheduledTransaction.restore({
       id: 's1',
       userId: 'u1',
       accountId: 'a1',
-      categoryId: null,
+      categoryId: 'c1',
       type: TransactionType.INCOME,
       title: 'Payroll',
       amount: 25000,
@@ -83,7 +134,8 @@ describe('ScheduledTransaction', () => {
     });
 
     expect(scheduled.id).toBe('s1');
-    expect(scheduled.categoryId).toBeNull();
+    expect(scheduled.destinationAccountId).toBeNull();
+    expect(scheduled.categoryId).toBe('c1');
     expect(scheduled.title).toBe('Payroll');
     expect(scheduled.type).toBe(TransactionType.INCOME);
     expect(scheduled.tags).toEqual([]);

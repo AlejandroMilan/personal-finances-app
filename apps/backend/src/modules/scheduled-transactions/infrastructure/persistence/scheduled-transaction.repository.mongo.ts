@@ -49,6 +49,7 @@ export class MongoScheduledTransactionRepository implements ScheduledTransaction
           $set: {
             userId: scheduled.userId,
             accountId: scheduled.accountId,
+            destinationAccountId: scheduled.destinationAccountId,
             categoryId: scheduled.categoryId,
             type: scheduled.type,
             title: scheduled.title,
@@ -97,6 +98,7 @@ export class MongoScheduledTransactionRepository implements ScheduledTransaction
       id: doc.uuid,
       userId: doc.userId,
       accountId: doc.accountId,
+      destinationAccountId: doc.destinationAccountId ?? null,
       categoryId: doc.categoryId ?? null,
       type: doc.type,
       title: doc.title,

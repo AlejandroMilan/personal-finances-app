@@ -7,6 +7,7 @@ export interface ScheduledTransactionProps {
   id: string;
   userId: string;
   accountId: string;
+  destinationAccountId: string | null;
   categoryId: string | null;
   type: TransactionType;
   title: string;
@@ -23,8 +24,22 @@ export interface ScheduledTransactionProps {
 
 export type CreateScheduledTransactionInput = Omit<
   ScheduledTransactionProps,
-  'id' | 'status' | 'transactionId' | 'createdAt' | 'updatedAt'
->;
+  | 'id'
+  | 'status'
+  | 'transactionId'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'destinationAccountId'
+> & {
+  destinationAccountId?: string | null;
+};
+
+type RestoreScheduledTransactionInput = Omit<
+  ScheduledTransactionProps,
+  'destinationAccountId'
+> & {
+  destinationAccountId?: string | null;
+};
 
 export class ScheduledTransaction {
   private readonly props: ScheduledTransactionProps;
@@ -34,6 +49,8 @@ export class ScheduledTransaction {
   }
 
   static create(input: CreateScheduledTransactionInput): ScheduledTransaction {
+    this.assertDestination(input);
+
     const title = input.title.trim();
     if (title.length === 0) {
       throw new ScheduledTransactionError('Title must not be empty');
@@ -45,6 +62,9 @@ export class ScheduledTransaction {
     const now = new Date();
     return new ScheduledTransaction({
       ...input,
+      categoryId:
+        input.type === TransactionType.TRANSFER ? null : input.categoryId,
+      destinationAccountId: input.destinationAccountId ?? null,
       title,
       tags: input.tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0),
       id: randomUUID(),
@@ -55,8 +75,39 @@ export class ScheduledTransaction {
     });
   }
 
-  static restore(props: ScheduledTransactionProps): ScheduledTransaction {
-    return new ScheduledTransaction(props);
+  static restore(
+    props: RestoreScheduledTransactionInput,
+  ): ScheduledTransaction {
+    return new ScheduledTransaction({
+      ...props,
+      categoryId:
+        props.type === TransactionType.TRANSFER ? null : props.categoryId,
+      destinationAccountId: props.destinationAccountId ?? null,
+    });
+  }
+
+  private static assertDestination(
+    input: CreateScheduledTransactionInput,
+  ): void {
+    if (input.type === TransactionType.TRANSFER) {
+      if (!input.destinationAccountId) {
+        throw new ScheduledTransactionError(
+          'Transfer scheduled transactions require a destination account',
+        );
+      }
+      if (input.destinationAccountId === input.accountId) {
+        throw new ScheduledTransactionError(
+          'Transfer source and destination accounts must differ',
+        );
+      }
+      return;
+    }
+
+    if (input.destinationAccountId != null) {
+      throw new ScheduledTransactionError(
+        'Only transfer scheduled transactions can have a destination account',
+      );
+    }
   }
 
   get id(): string {
@@ -69,6 +120,10 @@ export class ScheduledTransaction {
 
   get accountId(): string {
     return this.props.accountId;
+  }
+
+  get destinationAccountId(): string | null {
+    return this.props.destinationAccountId;
   }
 
   get categoryId(): string | null {

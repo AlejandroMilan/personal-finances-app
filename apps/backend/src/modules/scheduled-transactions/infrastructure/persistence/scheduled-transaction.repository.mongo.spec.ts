@@ -26,6 +26,12 @@ describe('MongoScheduledTransactionRepository', () => {
     createdAt: scheduledFor,
     updatedAt: scheduledFor,
   };
+  const transferDoc = {
+    ...doc,
+    categoryId: null,
+    type: TransactionType.TRANSFER,
+    destinationAccountId: 'a2',
+  };
 
   let modelMock: {
     findOne: jest.Mock;
@@ -61,6 +67,16 @@ describe('MongoScheduledTransactionRepository', () => {
     expect(ScheduledTransactionSchema.get('collection')).not.toBe(
       'transactions',
     );
+  });
+
+  it('declares an optional indexed destination account', () => {
+    const destinationPath = ScheduledTransactionSchema.path(
+      'destinationAccountId',
+    );
+
+    expect(destinationPath).toBeDefined();
+    expect(destinationPath?.options.index).toBe(true);
+    expect(destinationPath?.options.required).not.toBe(true);
   });
 
   it('indexes by user, status and scheduled date', () => {
@@ -147,6 +163,7 @@ describe('MongoScheduledTransactionRepository', () => {
       id: 's1',
       userId: 'u1',
       accountId: 'a1',
+      destinationAccountId: null,
       categoryId: null,
       type: TransactionType.INCOME,
       title: 'Payroll',
@@ -168,6 +185,7 @@ describe('MongoScheduledTransactionRepository', () => {
         $set: {
           userId: 'u1',
           accountId: 'a1',
+          destinationAccountId: null,
           categoryId: null,
           type: TransactionType.INCOME,
           title: 'Payroll',
@@ -186,20 +204,60 @@ describe('MongoScheduledTransactionRepository', () => {
     expect(saved).toBeInstanceOf(ScheduledTransaction);
   });
 
-  it('maps a document without category, tags or transaction id', async () => {
-    execMock.mockResolvedValue({
-      ...doc,
-      categoryId: undefined,
-      tags: undefined,
-      transactionId: undefined,
+  it('saves and rehydrates a transfer destination account', async () => {
+    const scheduled = ScheduledTransaction.restore({
+      id: 's1',
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: 'c1',
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 250,
+      tags: [],
+      scheduledFor,
+      recurring: true,
+      status: ScheduledTransactionStatus.PENDING,
+      transactionId: null,
+      createdAt: scheduledFor,
+      updatedAt: scheduledFor,
+    });
+    modelMock.findOneAndUpdate.mockReturnValue({
+      exec: jest.fn().mockResolvedValue(transferDoc),
     });
 
-    const found = await repo().findById('s1');
+    const saved = await repo().save(scheduled);
 
-    expect(found?.categoryId).toBeNull();
-    expect(found?.tags).toEqual([]);
-    expect(found?.transactionId).toBeNull();
+    expect(modelMock.findOneAndUpdate).toHaveBeenCalledWith(
+      { uuid: 's1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ destinationAccountId: 'a2' }),
+      }),
+      { upsert: true, new: true },
+    );
+    expect(saved.destinationAccountId).toBe('a2');
+    expect(saved.categoryId).toBeNull();
   });
+
+  it.each([undefined, null])(
+    'rehydrates a legacy document with destination %p as null',
+    async (destinationAccountId) => {
+      execMock.mockResolvedValue({
+        ...doc,
+        destinationAccountId,
+        categoryId: undefined,
+        tags: undefined,
+        transactionId: undefined,
+      });
+
+      const found = await repo().findById('s1');
+
+      expect(found?.categoryId).toBeNull();
+      expect(found?.destinationAccountId).toBeNull();
+      expect(found?.tags).toEqual([]);
+      expect(found?.transactionId).toBeNull();
+    },
+  );
 
   it('deletes by id', async () => {
     await repo().deleteById('s1');
