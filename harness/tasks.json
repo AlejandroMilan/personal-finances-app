@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T16:59:27.607Z",
+  "updatedAt": "2026-08-20T17:01:17.209Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -629,39 +629,51 @@
       "id": "T-0013",
       "title": "Add cancel and execute scheduled transaction use cases",
       "description": "Cancelacion y ejecucion manual. Ejecutar crea la transaccion real reutilizando CreateTransactionUseCase con los datos confirmados por el usuario, y opcionalmente reagenda la siguiente.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:48:55.585Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:01:17.208Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "CancelScheduledTransactionUseCase deja la agendada en 'cancelled' sin crear ninguna transaccion ni mover el saldo de la cuenta",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:01:09.193Z",
+          "note": "cancel-scheduled-transaction.use-case.ts:36-38 solo llama a save(existing.cancel()); no inyecta ni account ni transaction repository. Test 'cancels a pending scheduled transaction without creating anything'"
         },
         {
           "id": "AC-2",
           "text": "ExecuteScheduledTransactionUseCase crea la transaccion a traves de CreateTransactionUseCase usando los datos confirmados (monto, fecha, cuenta y categoria del input, con los de la agendada como valor por defecto) y deja la agendada en 'executed' con el id de la transaccion creada",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:01:09.227Z",
+          "note": "execute-...use-case.ts:60-71 delega en createTransaction.execute con input.X ?? existing.X y :76 markExecuted(transaction.id); tests 'creates the transaction through CreateTransactionUseCase...', 'applies the confirmed adjustments...', 'marks the scheduled transaction as executed with the created transaction id'"
         },
         {
           "id": "AC-3",
           "text": "Ejecutar una agendada que ya esta en 'executed' o 'cancelled' lanza ConflictException y no crea ninguna transaccion",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:01:09.258Z",
+          "note": "execute:52-56 lanza ConflictException si !isPending(); test 'throws ConflictException and creates nothing when the status is %s' verifica createTransaction.execute no llamado"
         },
         {
           "id": "AC-4",
           "text": "Si el input pide reagendar, se crea una nueva agendada en 'pending' con la fecha indicada, copia de la original salvo la fecha y marcada como recurrente; si no lo pide, no se crea ninguna",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:01:09.290Z",
+          "note": "execute:91-113 scheduleNext devuelve null sin rescheduleFor y crea una copia recurring/pending con la fecha indicada; tests 'does not schedule a next occurrence when it is not requested' y 'schedules the next occurrence as a recurring pending copy'"
         },
         {
           "id": "AC-5",
           "text": "Ejecutar una agendada de otro usuario lanza NotFoundException",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:01:09.322Z",
+          "note": "execute:47-50 compara existing.userId con input.userId; test 'throws NotFoundException when it belongs to another user'"
         },
         {
           "id": "AC-6",
           "text": "pnpm --filter backend test:coverage pasa con >= 80% en application/use-cases del modulo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:01:09.353Z",
+          "note": "pnpm --filter backend test:coverage: 44 suites / 254 tests en verde; application/use-cases del modulo 99.33% stmts, 98.82% branches"
         }
       ],
       "spec": "0002-agenda-de-transacciones"
