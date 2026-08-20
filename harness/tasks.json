@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T16:53:52.144Z",
+  "updatedAt": "2026-08-20T16:56:18.050Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -537,34 +537,44 @@
       "id": "T-0011",
       "title": "Add the ScheduledTransaction repository port and Mongo adapter",
       "description": "Port con su token de DI, schema de Mongoose en coleccion propia y adaptador que mapea documentos a entidades. Toda consulta filtra por userId.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:48:40.360Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T16:56:18.050Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "El port expone findById, findByUserId(userId, filters), save y deleteById, y exporta el token SCHEDULED_TRANSACTION_REPOSITORY",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:56:09.201Z",
+          "note": "scheduled-transaction.repository.ts:14-23: findById, findByUserId, save, deleteById + token SCHEDULED_TRANSACTION_REPOSITORY"
         },
         {
           "id": "AC-2",
           "text": "findByUserId filtra por status y por rango de fecha prevista (from/to) y devuelve los resultados ordenados por scheduledFor ascendente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:56:09.232Z",
+          "note": "repository.mongo.ts:82-100 buildQuery (status + $gte/$lte) y sort({scheduledFor:1}); tests 'filters by status', 'filters by scheduled date range', 'filters by %s alone', 'scopes the listing to the user and sorts...'"
         },
         {
           "id": "AC-3",
           "text": "El adaptador devuelve entidades ScheduledTransaction (nunca documentos de Mongoose) y toda query incluye el userId recibido",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:56:09.266Z",
+          "note": "toEntity() usa ScheduledTransaction.restore; test 'returns an entity when found by id' y 'scopes the listing...' asertan instanceof ScheduledTransaction. buildQuery siempre parte de { userId }"
         },
         {
           "id": "AC-4",
           "text": "El schema usa una coleccion propia, distinta de la de transactions, con indice por (userId, status, scheduledFor)",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:56:09.297Z",
+          "note": "schema.ts:9 collection 'scheduled_transactions' + index (userId, status, scheduledFor); tests 'uses its own collection, separate from transactions' e 'indexes by user, status and scheduled date'"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter backend test:coverage pasa con >= 80% en el modulo scheduled-transactions",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T16:56:09.328Z",
+          "note": "pnpm --filter backend test:coverage: 38 suites / 207 tests en verde; infrastructure/persistence del modulo al 100%"
         }
       ],
       "spec": "0002-agenda-de-transacciones"
