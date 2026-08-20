@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:15:33.268Z",
+  "updatedAt": "2026-08-20T17:17:19.746Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -827,34 +827,44 @@
       "id": "T-0017",
       "title": "Build the execute dialog with the reschedule question",
       "description": "Organismo del dialogo de confirmacion: precarga los datos agendados, permite ajustarlos y pregunta por el reagendado cuando la agendada es recurrente.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:49:29.101Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:17:19.746Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "El dialogo precarga monto, cuenta y categoria de la agendada y la fecha de hoy, y permite editar los cuatro antes de confirmar",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:17:19.587Z",
+          "note": "ExecuteScheduledDialog.vue:48-54 precarga amount/accountId/categoryId de la agendada y timestamp con hoy; los cuatro campos son editables (data-test amount/timestamp/account/category-field). Tests 'preloads the scheduled amount, account and category, and today as the date' y 'lets the four fields be edited before confirming'"
         },
         {
           "id": "AC-2",
           "text": "Si la agendada es recurrente, el dialogo muestra la opcion de volver a agendar activada por defecto con la fecha sugerida un mes despues de la fecha prevista; si no lo es, la opcion no aparece",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:17:19.619Z",
+          "note": "v-if=isRecurring envuelve el bloque de reagendado; reschedule.value = scheduled.recurring y rescheduleFor = suggestedNextDate(scheduledFor). Tests 'offers the reschedule already on, suggesting one month after the scheduled date' (2026-09-01 -> 2026-10-01) y 'hides the reschedule question for a non recurring scheduled transaction'"
         },
         {
           "id": "AC-3",
           "text": "Desmarcar la opcion de volver a agendar oculta el selector de fecha y hace que la peticion de ejecucion se envie sin datos de reagendado",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:17:19.651Z",
+          "note": "v-if='reschedule' sobre data-test='reschedule-date' y el spread condicional en confirm(); test 'hides the date picker and sends no reschedule when the option is turned off' comprueba ambas cosas"
         },
         {
           "id": "AC-4",
           "text": "Confirmar emite una sola peticion de ejecucion con los datos ajustados y cierra el dialogo; cancelar no emite ninguna",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:17:19.682Z",
+          "note": "confirm() emite un solo evento con los datos ajustados; close() solo emite update:modelValue. Tests 'emits a single confirm event' y 'emits nothing when cancelling'"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% y los tests cubren el caso recurrente y el no recurrente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:17:19.714Z",
+          "note": "pnpm --filter frontend test:coverage en verde: 20 archivos / 184 tests; ExecuteScheduledDialog.spec.ts cubre recurrente (con y sin reagendado) y no recurrente, mas el clamp 31-ene -> 28-feb"
         }
       ],
       "spec": "0002-agenda-de-transacciones"
