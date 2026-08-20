@@ -36,10 +36,10 @@ describe('CreateTransactionUseCase', () => {
   };
   let useCase: CreateTransactionUseCase;
 
-  const account = (type: AccountType) =>
+  const account = (type: AccountType, id = 'a1', userId = 'u1') =>
     Account.restore({
-      id: 'a1',
-      userId: 'u1',
+      id,
+      userId,
       name: 'Savings',
       balance: 100,
       color: '#2E6B4F',
@@ -144,6 +144,92 @@ describe('CreateTransactionUseCase', () => {
     expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', 1000);
   });
 
+  it('creates a transfer decreasing the source and increasing the destination', async () => {
+    accountRepository.findById
+      .mockResolvedValueOnce(account(AccountType.CASH, 'a1'))
+      .mockResolvedValueOnce(account(AccountType.CASH, 'a2'));
+
+    await useCase.execute({
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 75,
+    });
+
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', -75);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a2', 75);
+  });
+
+  it.each([
+    ['missing', null],
+    ['belongs to another user', account(AccountType.CASH, 'a2', 'u2')],
+  ])(
+    'rejects a transfer when the destination %s without adjusting balances',
+    async (_reason, destinationAccount) => {
+      accountRepository.findById
+        .mockResolvedValueOnce(account(AccountType.CASH, 'a1'))
+        .mockResolvedValueOnce(destinationAccount);
+
+      await expect(
+        useCase.execute({
+          userId: 'u1',
+          accountId: 'a1',
+          destinationAccountId: 'a2',
+          type: TransactionType.TRANSFER,
+          title: 'Move money',
+          amount: 75,
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+      expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+      expect(transactionRepository.save).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, null, ''])(
+    'rejects a transfer without a destination before adjusting balances (%p)',
+    async (destinationAccountId) => {
+      accountRepository.findById.mockResolvedValue(account(AccountType.CASH));
+
+      await expect(
+        useCase.execute({
+          userId: 'u1',
+          accountId: 'a1',
+          destinationAccountId,
+          type: TransactionType.TRANSFER,
+          title: 'Move money',
+          amount: 75,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+      expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+      expect(transactionRepository.save).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a transfer to the source account before adjusting balances', async () => {
+    accountRepository.findById.mockResolvedValue(account(AccountType.CASH));
+
+    await expect(
+      useCase.execute({
+        userId: 'u1',
+        accountId: 'a1',
+        destinationAccountId: 'a1',
+        type: TransactionType.TRANSFER,
+        title: 'Move money',
+        amount: 75,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+    expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+    expect(transactionRepository.save).not.toHaveBeenCalled();
+  });
+
   it('creates an expense on a credit account adjusting the used amount', async () => {
     accountRepository.findById.mockResolvedValue(account(AccountType.CREDIT));
 
@@ -156,6 +242,46 @@ describe('CreateTransactionUseCase', () => {
     });
 
     expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', -200);
+    expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
+      'a1',
+      200,
+    );
+  });
+
+  it('reduces the used amount when transferring towards a credit account', async () => {
+    accountRepository.findById
+      .mockResolvedValueOnce(account(AccountType.CASH, 'a1'))
+      .mockResolvedValueOnce(account(AccountType.CREDIT, 'a2'));
+
+    await useCase.execute({
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      type: TransactionType.TRANSFER,
+      title: 'Pay card',
+      amount: 200,
+    });
+
+    expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
+      'a2',
+      -200,
+    );
+  });
+
+  it('increases the used amount when transferring from a credit account', async () => {
+    accountRepository.findById
+      .mockResolvedValueOnce(account(AccountType.CREDIT, 'a1'))
+      .mockResolvedValueOnce(account(AccountType.CASH, 'a2'));
+
+    await useCase.execute({
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      type: TransactionType.TRANSFER,
+      title: 'Use card funds',
+      amount: 200,
+    });
+
     expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
       'a1',
       200,

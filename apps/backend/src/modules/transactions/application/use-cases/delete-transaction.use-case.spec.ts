@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AccountType } from '../../../accounts/domain/account-type.enum';
 import { Account } from '../../../accounts/domain/entities/account.entity';
 import { TransactionType } from '../../domain/transaction-type.enum';
@@ -31,10 +31,10 @@ describe('DeleteTransactionUseCase', () => {
   };
   let useCase: DeleteTransactionUseCase;
 
-  const account = (type: AccountType) =>
+  const account = (type: AccountType, id = 'a1', userId = 'u1') =>
     Account.restore({
-      id: 'a1',
-      userId: 'u1',
+      id,
+      userId,
       name: 'Savings',
       balance: 100,
       color: '#2E6B4F',
@@ -50,6 +50,21 @@ describe('DeleteTransactionUseCase', () => {
       categoryId: null,
       type: TransactionType.EXPENSE,
       title: 'Lunch',
+      amount: 50,
+      timestamp: new Date('2026-08-01T12:00:00.000Z'),
+      tags: [],
+      createdAt: new Date('2026-08-01T12:00:00.000Z'),
+    });
+
+  const transfer = (destinationAccountId: string | null = 'a2') =>
+    Transaction.restore({
+      id: 't1',
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId,
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
       amount: 50,
       timestamp: new Date('2026-08-01T12:00:00.000Z'),
       tags: [],
@@ -114,4 +129,79 @@ describe('DeleteTransactionUseCase', () => {
       -50,
     );
   });
+
+  it('deletes a transfer reverting both account balances', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById
+      .mockResolvedValueOnce(account(AccountType.CASH, 'a1'))
+      .mockResolvedValueOnce(account(AccountType.CASH, 'a2'));
+
+    await useCase.execute({ userId: 'u1', transactionId: 't1' });
+
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', 50);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a2', -50);
+    expect(transactionRepository.delete).toHaveBeenCalledWith('t1');
+  });
+
+  it('deletes a transfer reverting used amounts on both credit accounts', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById
+      .mockResolvedValueOnce(account(AccountType.CREDIT, 'a1'))
+      .mockResolvedValueOnce(account(AccountType.CREDIT, 'a2'));
+
+    await useCase.execute({ userId: 'u1', transactionId: 't1' });
+
+    expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
+      'a1',
+      -50,
+    );
+    expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
+      'a2',
+      50,
+    );
+  });
+
+  it.each([null, 'a1'])(
+    'rejects a malformed transfer with destination %p before adjusting balances',
+    async (destinationAccountId) => {
+      transactionRepository.findById.mockResolvedValue(
+        transfer(destinationAccountId),
+      );
+      accountRepository.findById.mockResolvedValue(
+        account(AccountType.CASH, 'a1'),
+      );
+
+      await expect(
+        useCase.execute({ userId: 'u1', transactionId: 't1' }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+      expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+      expect(transactionRepository.delete).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['missing', null],
+    ['belonging to another user', account(AccountType.CASH, 'a2', 'u2')],
+  ])(
+    'rejects a transfer deletion when the destination is %s without adjusting balances',
+    async (_reason, destinationAccount) => {
+      transactionRepository.findById.mockResolvedValue(transfer());
+      accountRepository.findById.mockImplementation((id: string) => {
+        if (id === 'a2') {
+          return Promise.resolve(destinationAccount);
+        }
+        return Promise.resolve(account(AccountType.CASH, 'a1'));
+      });
+
+      await expect(
+        useCase.execute({ userId: 'u1', transactionId: 't1' }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+      expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+      expect(transactionRepository.delete).not.toHaveBeenCalled();
+    },
+  );
 });

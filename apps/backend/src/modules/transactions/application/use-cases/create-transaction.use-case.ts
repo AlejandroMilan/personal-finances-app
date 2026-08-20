@@ -28,6 +28,7 @@ import {
 export interface CreateTransactionInput {
   userId: string;
   accountId: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   type: TransactionType;
   title: string;
@@ -55,6 +56,8 @@ export class CreateTransactionUseCase {
       throw new NotFoundException('Account not found');
     }
 
+    const destinationAccount = await this.findDestinationAccount(input);
+
     if (input.categoryId) {
       await this.assertCategoryOwnership(input.categoryId, input.userId);
     }
@@ -62,6 +65,7 @@ export class CreateTransactionUseCase {
     const transaction = Transaction.create({
       userId: input.userId,
       accountId: input.accountId,
+      destinationAccountId: input.destinationAccountId,
       categoryId: input.categoryId ?? null,
       type: input.type,
       title: input.title.trim(),
@@ -70,9 +74,58 @@ export class CreateTransactionUseCase {
       tags: this.cleanTags(input.tags),
     });
 
-    await this.applyDelta(account, transaction.getBalanceDelta());
+    await this.applyTransactionDeltas(account, destinationAccount, transaction);
 
     return this.transactionRepository.save(transaction);
+  }
+
+  private async findDestinationAccount(
+    input: CreateTransactionInput,
+  ): Promise<Account | null> {
+    if (input.type !== TransactionType.TRANSFER) {
+      return null;
+    }
+
+    this.assertTransferDestination(input.accountId, input.destinationAccountId);
+
+    const destinationAccount = await this.accountRepository.findById(
+      input.destinationAccountId,
+    );
+    if (!destinationAccount || destinationAccount.userId !== input.userId) {
+      throw new NotFoundException('Destination account not found');
+    }
+
+    return destinationAccount;
+  }
+
+  private assertTransferDestination(
+    accountId: string,
+    destinationAccountId: string | null | undefined,
+  ): asserts destinationAccountId is string {
+    if (!destinationAccountId) {
+      throw new BadRequestException(
+        'Transfer transactions require a destination account',
+      );
+    }
+    if (destinationAccountId === accountId) {
+      throw new BadRequestException(
+        'Transfer source and destination accounts must differ',
+      );
+    }
+  }
+
+  private async applyTransactionDeltas(
+    account: Account,
+    destinationAccount: Account | null,
+    transaction: Transaction,
+  ): Promise<void> {
+    await this.applyDelta(account, transaction.getBalanceDelta());
+    if (transaction.type === TransactionType.TRANSFER && destinationAccount) {
+      await this.applyDelta(
+        destinationAccount,
+        transaction.getDestinationBalanceDelta(),
+      );
+    }
   }
 
   private async applyDelta(account: Account, delta: number): Promise<void> {

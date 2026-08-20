@@ -25,10 +25,16 @@ import {
   TransactionRepository,
 } from '../ports/transaction.repository';
 
+interface BalanceAdjustment {
+  account: Account;
+  delta: number;
+}
+
 export interface UpdateTransactionInput {
   userId: string;
   transactionId: string;
   accountId?: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   type?: TransactionType;
   title?: string;
@@ -59,24 +65,45 @@ export class UpdateTransactionUseCase {
     }
 
     const accountId = input.accountId ?? existing.accountId;
+    const type = input.type ?? existing.type;
+    const destinationAccountId =
+      input.destinationAccountId === undefined
+        ? existing.destinationAccountId
+        : input.destinationAccountId;
+    this.assertDestination(type, accountId, destinationAccountId);
+
+    const accounts = new Map<string, Account>();
+    const oldAccount = await this.findOwnedAccount(
+      existing.accountId,
+      input.userId,
+      accounts,
+    );
+    const oldDestinationAccount =
+      existing.type === TransactionType.TRANSFER
+        ? await this.findTransferDestination(
+            existing.accountId,
+            existing.destinationAccountId,
+            input.userId,
+            accounts,
+          )
+        : null;
+    const newAccount = await this.findOwnedAccount(
+      accountId,
+      input.userId,
+      accounts,
+    );
+    const newDestinationAccount =
+      type === TransactionType.TRANSFER
+        ? await this.findTransferDestination(
+            accountId,
+            destinationAccountId,
+            input.userId,
+            accounts,
+          )
+        : null;
+
     const categoryId =
       input.categoryId === undefined ? existing.categoryId : input.categoryId;
-
-    const oldAccount = await this.accountRepository.findById(
-      existing.accountId,
-    );
-    if (!oldAccount || oldAccount.userId !== input.userId) {
-      throw new NotFoundException('Account not found');
-    }
-
-    let newAccount = oldAccount;
-    if (accountId !== existing.accountId) {
-      const target = await this.accountRepository.findById(accountId);
-      if (!target || target.userId !== input.userId) {
-        throw new NotFoundException('Account not found');
-      }
-      newAccount = target;
-    }
 
     if (categoryId) {
       const category = await this.categoryRepository.findById(categoryId);
@@ -89,8 +116,9 @@ export class UpdateTransactionUseCase {
       id: existing.id,
       userId: existing.userId,
       accountId,
+      destinationAccountId,
       categoryId,
-      type: input.type ?? existing.type,
+      type,
       title: input.title?.trim() ?? existing.title,
       amount: input.amount ?? existing.amount,
       timestamp: input.timestamp ?? existing.timestamp,
@@ -100,36 +128,142 @@ export class UpdateTransactionUseCase {
       createdAt: existing.createdAt,
     });
 
-    const oldDelta = existing.getBalanceDelta();
-    const newDelta = updated.getBalanceDelta();
-
-    if (accountId === existing.accountId) {
-      const delta = newDelta - oldDelta;
-      if (delta !== 0) {
-        await this.accountRepository.adjustBalance(accountId, delta);
-        if (oldAccount.type === AccountType.CREDIT) {
-          await this.creditCardRepository.adjustUsedAmount(accountId, -delta);
-        }
-      }
-    } else {
-      await this.revertDelta(oldAccount, oldDelta);
-      await this.applyDelta(newAccount, newDelta);
-    }
+    const adjustments = new Map<string, BalanceAdjustment>();
+    this.addTransactionAdjustments(
+      adjustments,
+      existing,
+      oldAccount,
+      oldDestinationAccount,
+      -1,
+    );
+    this.addTransactionAdjustments(
+      adjustments,
+      updated,
+      newAccount,
+      newDestinationAccount,
+      1,
+    );
+    await this.applyAdjustments(adjustments);
 
     return this.transactionRepository.save(updated);
+  }
+
+  private assertDestination(
+    type: TransactionType,
+    accountId: string,
+    destinationAccountId: string | null,
+  ): void {
+    if (type === TransactionType.TRANSFER) {
+      this.assertTransferDestination(accountId, destinationAccountId);
+      return;
+    }
+
+    if (destinationAccountId !== null) {
+      throw new BadRequestException(
+        'Only transfer transactions can have a destination account',
+      );
+    }
+  }
+
+  private assertTransferDestination(
+    accountId: string,
+    destinationAccountId: string | null,
+  ): asserts destinationAccountId is string {
+    if (!destinationAccountId) {
+      throw new BadRequestException(
+        'Transfer transactions require a destination account',
+      );
+    }
+    if (destinationAccountId === accountId) {
+      throw new BadRequestException(
+        'Transfer source and destination accounts must differ',
+      );
+    }
+  }
+
+  private async findOwnedAccount(
+    accountId: string,
+    userId: string,
+    accounts: Map<string, Account>,
+  ): Promise<Account> {
+    const cached = accounts.get(accountId);
+    if (cached) {
+      return cached;
+    }
+
+    const account = await this.accountRepository.findById(accountId);
+    if (!account || account.userId !== userId) {
+      throw new NotFoundException('Account not found');
+    }
+
+    accounts.set(accountId, account);
+    return account;
+  }
+
+  private async findTransferDestination(
+    accountId: string,
+    destinationAccountId: string | null,
+    userId: string,
+    accounts: Map<string, Account>,
+  ): Promise<Account> {
+    this.assertTransferDestination(accountId, destinationAccountId);
+    const destinationAccount = await this.findOwnedAccount(
+      destinationAccountId,
+      userId,
+      accounts,
+    );
+    return destinationAccount;
+  }
+
+  private addTransactionAdjustments(
+    adjustments: Map<string, BalanceAdjustment>,
+    transaction: Transaction,
+    account: Account,
+    destinationAccount: Account | null,
+    multiplier: number,
+  ): void {
+    this.addAdjustment(
+      adjustments,
+      account,
+      transaction.getBalanceDelta() * multiplier,
+    );
+    if (transaction.type === TransactionType.TRANSFER && destinationAccount) {
+      this.addAdjustment(
+        adjustments,
+        destinationAccount,
+        transaction.getDestinationBalanceDelta() * multiplier,
+      );
+    }
+  }
+
+  private addAdjustment(
+    adjustments: Map<string, BalanceAdjustment>,
+    account: Account,
+    delta: number,
+  ): void {
+    const current = adjustments.get(account.id);
+    if (current) {
+      current.delta += delta;
+      return;
+    }
+
+    adjustments.set(account.id, { account, delta });
+  }
+
+  private async applyAdjustments(
+    adjustments: Map<string, BalanceAdjustment>,
+  ): Promise<void> {
+    for (const adjustment of adjustments.values()) {
+      if (adjustment.delta !== 0) {
+        await this.applyDelta(adjustment.account, adjustment.delta);
+      }
+    }
   }
 
   private async applyDelta(account: Account, delta: number): Promise<void> {
     await this.accountRepository.adjustBalance(account.id, delta);
     if (account.type === AccountType.CREDIT) {
       await this.creditCardRepository.adjustUsedAmount(account.id, -delta);
-    }
-  }
-
-  private async revertDelta(account: Account, delta: number): Promise<void> {
-    await this.accountRepository.adjustBalance(account.id, -delta);
-    if (account.type === AccountType.CREDIT) {
-      await this.creditCardRepository.adjustUsedAmount(account.id, delta);
     }
   }
 }

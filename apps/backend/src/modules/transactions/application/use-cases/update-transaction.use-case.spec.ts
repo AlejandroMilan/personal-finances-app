@@ -37,10 +37,10 @@ describe('UpdateTransactionUseCase', () => {
   };
   let useCase: UpdateTransactionUseCase;
 
-  const account = (id: string, type: AccountType) =>
+  const account = (id: string, type: AccountType, userId = 'u1') =>
     Account.restore({
       id,
-      userId: 'u1',
+      userId,
       name: 'Savings',
       balance: 100,
       color: '#2E6B4F',
@@ -59,6 +59,21 @@ describe('UpdateTransactionUseCase', () => {
       amount: 50,
       timestamp: new Date('2026-08-01T12:00:00.000Z'),
       tags: ['food'],
+      createdAt: new Date('2026-08-01T12:00:00.000Z'),
+    });
+
+  const transfer = () =>
+    Transaction.restore({
+      id: 't1',
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 50,
+      timestamp: new Date('2026-08-01T12:00:00.000Z'),
+      tags: [],
       createdAt: new Date('2026-08-01T12:00:00.000Z'),
     });
 
@@ -214,6 +229,165 @@ describe('UpdateTransactionUseCase', () => {
       50,
     );
   });
+
+  it('recalculates both sides when a transfer amount changes', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById.mockImplementation((id: string) =>
+      Promise.resolve(account(id, AccountType.CASH)),
+    );
+
+    await useCase.execute({
+      userId: 'u1',
+      transactionId: 't1',
+      amount: 80,
+    });
+
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', -30);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a2', 30);
+  });
+
+  it('reverts the old destination when a transfer destination changes', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById.mockImplementation((id: string) =>
+      Promise.resolve(account(id, AccountType.CASH)),
+    );
+
+    await useCase.execute({
+      userId: 'u1',
+      transactionId: 't1',
+      destinationAccountId: 'a3',
+    });
+
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a2', -50);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a3', 50);
+    expect(accountRepository.adjustBalance).not.toHaveBeenCalledWith('a1', -50);
+  });
+
+  it('reverts both old accounts and applies the new amount and accounts together', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById.mockImplementation((id: string) =>
+      Promise.resolve(account(id, AccountType.CASH)),
+    );
+
+    await useCase.execute({
+      userId: 'u1',
+      transactionId: 't1',
+      accountId: 'a3',
+      destinationAccountId: 'a4',
+      amount: 80,
+    });
+
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', 50);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a2', -50);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a3', -80);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a4', 80);
+    expect(transactionRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: 'a3',
+        destinationAccountId: 'a4',
+        amount: 80,
+      }),
+    );
+  });
+
+  it('reverts the old source when a transfer source changes', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById.mockImplementation((id: string) =>
+      Promise.resolve(account(id, AccountType.CASH)),
+    );
+
+    await useCase.execute({
+      userId: 'u1',
+      transactionId: 't1',
+      accountId: 'a3',
+    });
+
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a1', 50);
+    expect(accountRepository.adjustBalance).toHaveBeenCalledWith('a3', -50);
+    expect(accountRepository.adjustBalance).not.toHaveBeenCalledWith('a2', 50);
+  });
+
+  it('adjusts used amounts on both credit accounts when a transfer amount changes', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+    accountRepository.findById.mockImplementation((id: string) =>
+      Promise.resolve(account(id, AccountType.CREDIT)),
+    );
+
+    await useCase.execute({
+      userId: 'u1',
+      transactionId: 't1',
+      amount: 80,
+    });
+
+    expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
+      'a1',
+      30,
+    );
+    expect(creditCardRepository.adjustUsedAmount).toHaveBeenCalledWith(
+      'a2',
+      -30,
+    );
+  });
+
+  it('rejects a transfer update with a missing destination before adjusting balances', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+
+    await expect(
+      useCase.execute({
+        userId: 'u1',
+        transactionId: 't1',
+        destinationAccountId: null,
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+    expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+    expect(transactionRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a transfer update to its source account before adjusting balances', async () => {
+    transactionRepository.findById.mockResolvedValue(transfer());
+
+    await expect(
+      useCase.execute({
+        userId: 'u1',
+        transactionId: 't1',
+        destinationAccountId: 'a1',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+    expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+    expect(transactionRepository.save).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing', null],
+    ['belonging to another user', account('a3', AccountType.CASH, 'u2')],
+  ])(
+    'rejects a transfer update when the new destination is %s without adjusting balances',
+    async (_reason, destinationAccount) => {
+      transactionRepository.findById.mockResolvedValue(transfer());
+      accountRepository.findById.mockImplementation((id: string) => {
+        if (id === 'a3') {
+          return Promise.resolve(destinationAccount);
+        }
+        return Promise.resolve(account(id, AccountType.CASH));
+      });
+
+      await expect(
+        useCase.execute({
+          userId: 'u1',
+          transactionId: 't1',
+          destinationAccountId: 'a3',
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(accountRepository.adjustBalance).not.toHaveBeenCalled();
+      expect(creditCardRepository.adjustUsedAmount).not.toHaveBeenCalled();
+      expect(transactionRepository.save).not.toHaveBeenCalled();
+    },
+  );
 
   it('clears the category when categoryId is null', async () => {
     transactionRepository.findById.mockResolvedValue(transaction());
