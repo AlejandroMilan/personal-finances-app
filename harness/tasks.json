@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:17:19.746Z",
+  "updatedAt": "2026-08-20T17:20:19.096Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -873,39 +873,51 @@
       "id": "T-0018",
       "title": "Add the ScheduleView screen with its route and menu entry",
       "description": "Pantalla dedicada de la agenda: lista de pendientes con vencidas destacadas, filtro por estado y alta, edicion, ejecucion y cancelacion.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:49:44.293Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:20:19.096Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "La ruta /schedule existe con meta.requiresAuth y aparece en el menu de App.vue; entrar sin sesion redirige a /login",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:20:18.896Z",
+          "note": "router/index.ts:26-31 ruta /schedule con meta.requiresAuth; App.vue:70-75 entrada 'Agenda' con mdi-calendar-clock. Tests 'is routed at /schedule behind the auth guard' y 'redirects to the login screen when there is no session'"
         },
         {
           "id": "AC-2",
           "text": "La vista lista las agendadas ordenadas por fecha prevista ascendente, con las vencidas agrupadas y destacadas al principio",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:20:18.941Z",
+          "note": "ScheduleView.vue usa scheduleStore.sorted (orden ascendente) y separa buckets.overdue en data-test='overdue-section' antes de 'upcoming-section'. Tests 'groups the overdue ones first, separated from the upcoming ones' y 'sorts the listing by scheduled date ascending'"
         },
         {
           "id": "AC-3",
           "text": "El filtro por estado permite ver pendientes, ejecutadas y canceladas, y por defecto muestra las pendientes",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:20:18.972Z",
+          "note": "v-btn-toggle data-test='status-filter' con las tres opciones; el store arranca en 'pending'. Test 'starts on the pending filter and can switch to the other states' verifica la llamada con status executed"
         },
         {
           "id": "AC-4",
           "text": "Desde la vista se puede crear, editar, ejecutar y cancelar, y tras cada accion la lista refleja el nuevo estado sin recargar la pagina",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:20:19.003Z",
+          "note": "openCreate/openEdit/save, openExecute/confirmExecute, cancel y remove delegan en el store, que refresca con fetchScheduled. Tests 'creates...', 'edits...', 'executes...', 'cancels...' y 'deletes a scheduled transaction and refreshes the list' (list llamado 2 veces, sin recarga)"
         },
         {
           "id": "AC-5",
           "text": "Una agenda sin pendientes muestra un estado vacio explicito, no una lista en blanco ni un error",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:20:19.034Z",
+          "note": "bloque data-test='schedule-empty' con icono y copy explicito; test 'shows an explicit empty state when there is nothing pending'"
         },
         {
           "id": "AC-6",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% y hay test de montaje de la vista",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:20:19.065Z",
+          "note": "pnpm --filter frontend test:coverage en verde: 21 archivos / 197 tests, incluido ScheduleView.spec.ts con 13 casos de montaje de la vista"
         }
       ],
       "spec": "0002-agenda-de-transacciones"

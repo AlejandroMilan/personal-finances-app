@@ -120,7 +120,7 @@ Comportamiento esperado:
 | T-0015 | Add schedule types, service, store and pure utilities in the frontend | `completada` | 2026-08-20 |
 | T-0016 | Build the scheduled transaction card and form dialog | `completada` | 2026-08-20 |
 | T-0017 | Build the execute dialog with the reschedule question | `completada` | 2026-08-20 |
-| T-0018 | Add the ScheduleView screen with its route and menu entry | `pendiente` | — |
+| T-0018 | Add the ScheduleView screen with its route and menu entry | `completada` | 2026-08-20 |
 | T-0019 | Add the schedule card to the dashboard | `pendiente` | — |
 
 ## Historial de cambios
@@ -160,3 +160,5 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0016: `en proceso` → `completada`. |
 | 2026-08-20 | Tarea T-0017: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0017: `en proceso` → `completada`. |
+| 2026-08-20 | Tarea T-0018: `pendiente` → `en proceso`. |
+| 2026-08-20 | Tarea T-0018: `en proceso` → `completada`. |

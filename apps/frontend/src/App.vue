@@ -68,6 +68,12 @@ function logout(): void {
           @click="drawer = false"
         />
         <v-list-item
+          to="/schedule"
+          prepend-icon="mdi-calendar-clock"
+          title="Agenda"
+          @click="drawer = false"
+        />
+        <v-list-item
           to="/categories"
           prepend-icon="mdi-tag-multiple"
           title="Categories"
