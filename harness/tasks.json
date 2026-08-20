@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:07:08.033Z",
+  "updatedAt": "2026-08-20T17:12:02.647Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -735,34 +735,44 @@
       "id": "T-0015",
       "title": "Add schedule types, service, store and pure utilities in the frontend",
       "description": "Capa de datos del frontend: tipos alineados con los response DTOs, service sobre api.ts, store de Pinia y utilidades puras de agenda.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T16:49:13.007Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T17:12:02.647Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "src/services/scheduled-transactions.ts reutiliza el cliente de api.ts (sin reconstruir headers de auth) y cubre listar, crear, actualizar, borrar, ejecutar y cancelar",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:12:02.495Z",
+          "note": "services/scheduled-transactions.ts importa apiFetch de ./api y expone list/create/update/remove/execute/cancel; test 'never builds authorization headers on its own' comprueba que no pasa headers propios"
         },
         {
           "id": "AC-2",
           "text": "El store de Pinia expone las agendadas pendientes, el estado de carga y el error, y tras ejecutar o cancelar refresca la lista sin recargar la pagina",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:12:02.527Z",
+          "note": "stores/scheduled-transactions.ts expone items/pending/buckets/loading/error; execute y cancel llaman a fetchScheduled (y execute ademas a accounts). Tests 'executes, refreshes the list and the account balances' y 'cancels and refreshes the list without touching the balances'"
         },
         {
           "id": "AC-3",
           "text": "src/utils/schedule.ts expone funciones puras para separar vencidas (fecha prevista anterior a hoy) de las del mes en curso, y para sugerir la proxima fecha un mes despues de la prevista, con ajuste al ultimo dia en meses cortos",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:12:02.559Z",
+          "note": "utils/schedule.ts: isOverdue/isInCurrentMonth/splitPendingSchedule y suggestedNextDate con clamp; schedule.spec.ts cubre 31-ene->28-feb, 2028->29-feb, dic->ene y el corte de vencidas en el dia en curso"
         },
         {
           "id": "AC-4",
           "text": "Ningun componente .vue llama a axios o fetch para la agenda: pasan siempre por el store",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:12:02.588Z",
+          "note": "grep de fetch/axios en src/components: sin coincidencias para la agenda; los componentes llegan en T-0016..T-0019 y consumen el store"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% en utils/schedule.ts, el service y el store",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T17:12:02.617Z",
+          "note": "pnpm --filter frontend test:coverage en verde: 17 archivos / 150 tests, utils al 100% de lineas y 98.52% de branches (schedule.ts 100%). Nota: vitest.config.ts limita la cobertura medida a src/utils/**; el service y el store quedan cubiertos por sus specs propios (9 y 13 tests) y no se toco el umbral ni el include"
         }
       ],
       "spec": "0002-agenda-de-transacciones"
