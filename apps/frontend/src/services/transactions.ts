@@ -5,6 +5,10 @@ import type {
   TransactionView,
   UpdateTransactionPayload,
 } from '../types/transaction';
+import type {
+  SummaryQueryParams,
+  TransactionsSummaryView,
+} from '../types/summary';
 import { apiFetch } from './api';
 
 function buildQuery(filters: TransactionFilters): string {
@@ -24,6 +28,16 @@ function buildQuery(filters: TransactionFilters): string {
 export const transactionsService = {
   list(filters: TransactionFilters): Promise<PaginatedTransactions> {
     return apiFetch<PaginatedTransactions>(`/transactions?${buildQuery(filters)}`);
+  },
+
+  summary(params: SummaryQueryParams): Promise<TransactionsSummaryView> {
+    const query = new URLSearchParams({
+      from: params.from.toISOString(),
+      to: params.to.toISOString(),
+      granularity: params.granularity,
+      timeZone: params.timeZone,
+    });
+    return apiFetch<TransactionsSummaryView>(`/transactions/summary?${query.toString()}`);
   },
 
   create(payload: CreateTransactionPayload): Promise<TransactionView> {

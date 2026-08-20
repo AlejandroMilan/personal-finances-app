@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:39:50.854Z",
+  "updatedAt": "2026-08-20T07:41:42.649Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -180,34 +180,44 @@
       "id": "T-0004",
       "title": "Add summary types, service method and dashboard store",
       "description": "types/summary.ts, getSummary en services/transactions.ts y stores/dashboard.ts con el periodo como única fuente de verdad.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:34.208Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:41:42.648Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "El store expone period, summary, loading y error, y por defecto arranca en el mes en curso",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:41:42.497Z",
+          "note": "stores/dashboard.ts expone period, summary, loading, error (y hasData); test 'starts on the current month' comprueba kind=month y el mes actual"
         },
         {
           "id": "AC-2",
           "text": "setPeriod dispara exactamente una llamada a getSummary y actualiza los datos que alimentan las tres gráficas",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:41:42.530Z",
+          "note": "selectPreset/selectCustomRange llaman una sola vez a transactionsService.summary; tests 'changing the preset triggers exactly one request...' y 'selecting a custom range... requests once' con toHaveBeenCalledTimes(1)"
         },
         {
           "id": "AC-3",
           "text": "El servicio reutiliza el cliente de services/api.ts: no construye headers de autenticación a mano",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:41:42.561Z",
+          "note": "services/transactions.ts importa apiFetch; grep de Authorization/localStorage en el archivo devuelve 0; test 'goes through the shared api client instead of building its own request'"
         },
         {
           "id": "AC-4",
           "text": "Un fallo de red deja loading en false, expone el error y no deja el summary anterior mostrándose como si fuera del nuevo periodo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:41:42.590Z",
+          "note": "catch pone summary=null, error=mensaje y finally loading=false; test 'exposes the error and clears the stale summary when the request fails'"
         },
         {
           "id": "AC-5",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:41:42.620Z",
+          "note": "pnpm --filter frontend test:coverage: 52 tests, umbral src/utils 100/96.87/100/100"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
