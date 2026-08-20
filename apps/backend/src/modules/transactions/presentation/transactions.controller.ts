@@ -52,6 +52,7 @@ export class TransactionsController {
     const transaction = await this.createTransaction.execute({
       userId: user.id,
       accountId: dto.accountId,
+      destinationAccountId: dto.destinationAccountId,
       categoryId: dto.categoryId,
       type: dto.type,
       title: dto.title,
@@ -126,6 +127,7 @@ export class TransactionsController {
       userId: user.id,
       transactionId: id,
       accountId: dto.accountId,
+      destinationAccountId: dto.destinationAccountId,
       categoryId: dto.categoryId,
       type: dto.type,
       title: dto.title,
@@ -163,6 +165,7 @@ export class TransactionsController {
     return {
       id: transaction.id,
       accountId: transaction.accountId,
+      destinationAccountId: transaction.destinationAccountId,
       categoryId: transaction.categoryId,
       type: transaction.type,
       title: transaction.title,

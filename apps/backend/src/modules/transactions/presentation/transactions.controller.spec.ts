@@ -25,13 +25,14 @@ describe('TransactionsController', () => {
 
   const user = { id: 'u1', email: 'ana@mail.com' };
 
-  const transaction = () =>
+  const transaction = (type = TransactionType.EXPENSE) =>
     Transaction.restore({
       id: 't1',
       userId: 'u1',
       accountId: 'a1',
+      destinationAccountId: null,
       categoryId: 'c1',
-      type: TransactionType.EXPENSE,
+      type,
       title: 'Lunch',
       amount: 50,
       timestamp: new Date('2026-08-01T12:00:00.000Z'),
@@ -79,6 +80,7 @@ describe('TransactionsController', () => {
     expect(createTransaction.execute).toHaveBeenCalledWith({
       userId: 'u1',
       accountId: 'a1',
+      destinationAccountId: undefined,
       categoryId: 'c1',
       type: TransactionType.EXPENSE,
       title: 'Lunch',
@@ -89,6 +91,7 @@ describe('TransactionsController', () => {
     expect(response).toEqual({
       id: 't1',
       accountId: 'a1',
+      destinationAccountId: null,
       categoryId: 'c1',
       type: TransactionType.EXPENSE,
       title: 'Lunch',
@@ -134,6 +137,149 @@ describe('TransactionsController', () => {
     expect(response.page).toBe(1);
   });
 
+  it('creates a transfer with its destination and returns it in the view', async () => {
+    createTransaction.execute.mockResolvedValue(
+      Transaction.restore({
+        id: 't2',
+        userId: 'u1',
+        accountId: 'a1',
+        destinationAccountId: 'a2',
+        categoryId: null,
+        type: TransactionType.TRANSFER,
+        title: 'Move money',
+        amount: 75,
+        timestamp: new Date('2026-08-02T12:00:00.000Z'),
+        tags: [],
+        createdAt: new Date('2026-08-02T12:00:00.000Z'),
+      }),
+    );
+    const dto: CreateTransactionDto = {
+      title: 'Move money',
+      amount: 75,
+      type: TransactionType.TRANSFER,
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+    };
+
+    const response = await controller.create(user, dto);
+
+    expect(createTransaction.execute).toHaveBeenCalledWith({
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: undefined,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 75,
+      timestamp: undefined,
+      tags: undefined,
+    });
+    expect(response).toEqual({
+      id: 't2',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 75,
+      timestamp: new Date('2026-08-02T12:00:00.000Z'),
+      tags: [],
+    });
+  });
+
+  it.each([TransactionType.INCOME, TransactionType.EXPENSE])(
+    'includes destinationAccountId as null for %s transactions',
+    async (type) => {
+      createTransaction.execute.mockResolvedValue(transaction(type));
+
+      const response = await controller.create(user, {
+        title: type === TransactionType.INCOME ? 'Salary' : 'Lunch',
+        amount: 50,
+        type,
+        accountId: 'a1',
+        categoryId: 'c1',
+      });
+
+      expect(response).toEqual(
+        expect.objectContaining({
+          type,
+          destinationAccountId: null,
+        }),
+      );
+      expect(
+        Object.prototype.hasOwnProperty.call(response, 'destinationAccountId'),
+      ).toBe(true);
+    },
+  );
+
+  it('propagates a bad request when a transfer has no destination', async () => {
+    const error = new BadRequestException(
+      'Transfer transactions require a destination account',
+    );
+    createTransaction.execute.mockRejectedValue(error);
+    const dto: CreateTransactionDto = {
+      title: 'Move money',
+      amount: 75,
+      type: TransactionType.TRANSFER,
+      accountId: 'a1',
+    };
+
+    await expect(controller.create(user, dto)).rejects.toBe(error);
+
+    expect(error.getStatus()).toBe(400);
+    expect(createTransaction.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        type: TransactionType.TRANSFER,
+        destinationAccountId: undefined,
+      }),
+    );
+  });
+
+  it('lists transfers through the existing type filter for the current user', async () => {
+    const transfer = Transaction.restore({
+      id: 't2',
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 75,
+      timestamp: new Date('2026-08-02T12:00:00.000Z'),
+      tags: [],
+      createdAt: new Date('2026-08-02T12:00:00.000Z'),
+    });
+    listTransactions.execute.mockResolvedValue({
+      items: [transfer],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    const response = await controller.list(user, {
+      type: TransactionType.TRANSFER,
+    });
+
+    expect(listTransactions.execute).toHaveBeenCalledWith('u1', {
+      accountId: undefined,
+      categoryId: undefined,
+      type: TransactionType.TRANSFER,
+      title: undefined,
+      tags: undefined,
+      from: undefined,
+      to: undefined,
+      page: 1,
+      limit: 20,
+    });
+    expect(response.items).toEqual([
+      expect.objectContaining({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+      }),
+    ]);
+  });
+
   it('lists transactions without filters using defaults', async () => {
     listTransactions.execute.mockResolvedValue({
       items: [],
@@ -167,6 +313,7 @@ describe('TransactionsController', () => {
       userId: 'u1',
       transactionId: 't1',
       accountId: undefined,
+      destinationAccountId: undefined,
       categoryId: undefined,
       type: undefined,
       title: 'Dinner',

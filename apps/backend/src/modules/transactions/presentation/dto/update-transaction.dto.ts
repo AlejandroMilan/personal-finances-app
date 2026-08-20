@@ -35,6 +35,11 @@ export class UpdateTransactionDto {
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
+  destinationAccountId?: string | null;
+
+  @IsOptional()
+  @IsString()
   categoryId?: string | null;
 
   @IsOptional()

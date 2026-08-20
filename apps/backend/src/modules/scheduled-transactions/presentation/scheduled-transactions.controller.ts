@@ -173,6 +173,7 @@ export class ScheduledTransactionsController {
     return {
       id: transaction.id,
       accountId: transaction.accountId,
+      destinationAccountId: transaction.destinationAccountId,
       categoryId: transaction.categoryId,
       type: transaction.type,
       title: transaction.title,

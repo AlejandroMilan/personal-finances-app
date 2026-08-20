@@ -32,6 +32,11 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  destinationAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   categoryId?: string;
 
   @IsOptional()

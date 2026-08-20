@@ -256,6 +256,7 @@ describe('ScheduledTransactionsController', () => {
     expect(response.transaction).toEqual({
       id: 't1',
       accountId: 'a1',
+      destinationAccountId: null,
       categoryId: 'c1',
       type: TransactionType.EXPENSE,
       title: 'Rent',
@@ -264,6 +265,44 @@ describe('ScheduledTransactionsController', () => {
       tags: ['home'],
     });
     expect(response.next?.id).toBe('s2');
+  });
+
+  it('serializes the destination account of an executed transfer', async () => {
+    const transfer = Transaction.restore({
+      id: 't2',
+      userId: 'u1',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 75,
+      timestamp: new Date('2026-08-20T00:00:00.000Z'),
+      tags: [],
+      createdAt: new Date('2026-08-20T00:00:00.000Z'),
+    });
+    executeScheduled.execute.mockResolvedValue({
+      scheduled: scheduled({
+        status: ScheduledTransactionStatus.EXECUTED,
+        transactionId: 't2',
+      }),
+      transaction: transfer,
+      next: null,
+    });
+
+    const response = await controller.execute(user, 's1', {});
+
+    expect(response.transaction).toEqual({
+      id: 't2',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      categoryId: null,
+      type: TransactionType.TRANSFER,
+      title: 'Move money',
+      amount: 75,
+      timestamp: new Date('2026-08-20T00:00:00.000Z'),
+      tags: [],
+    });
   });
 
   it('executes without adjustments nor reschedule', async () => {
