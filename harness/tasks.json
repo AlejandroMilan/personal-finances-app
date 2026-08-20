@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:50:06.564Z",
+  "updatedAt": "2026-08-20T07:52:45.062Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -431,44 +431,58 @@
       "id": "T-0009",
       "title": "Replace HomeView with the dashboard layout",
       "description": "Organism DashboardSummary que compone el filtro y las tres tarjetas, y reescritura de HomeView.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:34.379Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:52:45.061Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "GET /home ya no muestra el Hello World: renderiza el filtro de periodo y las tres gráficas",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:44.872Z",
+          "note": "HomeView.vue ahora solo monta DashboardSummary; grep 'Hello World' en apps/frontend/src solo aparece en la asercion negativa del test 'no longer renders the hello world placeholder'"
         },
         {
           "id": "AC-2",
           "text": "Cambiar el periodo en el filtro actualiza las tres gráficas a la vez, con una sola petición al backend",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:44.900Z",
+          "note": "test 'updates the three charts with a single request when the period changes': tras clic en el preset anio, summary se llama 1 vez y con granularity=month"
         },
         {
           "id": "AC-3",
           "text": "El layout es responsive: las dos donas caben lado a lado en escritorio y se apilan en móvil",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:44.926Z",
+          "note": "test 'stacks the donuts on mobile and places them side by side on desktop': las dos donas son cols=12 md=6 y la linea cols=12"
         },
         {
           "id": "AC-4",
           "text": "Mientras carga muestra un indicador y no gráficas con datos del periodo anterior",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:44.953Z",
+          "note": "test 'shows loading indicators instead of stale data while fetching': con la promesa pendiente hay 3 VProgressCircular y ningun canvas; al resolver aparecen las 2 donas"
         },
         {
           "id": "AC-5",
           "text": "La ruta /home sigue protegida por meta.requiresAuth",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:44.980Z",
+          "note": "router/index.ts ruta /home conserva meta: { requiresAuth: true }"
         },
         {
           "id": "AC-6",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% y pnpm build compila sin errores",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:45.007Z",
+          "note": "frontend 106 tests, utils 100/98.3/100/100; pnpm build compila backend y frontend (vue-tsc + vite build en verde)"
         },
         {
           "id": "AC-7",
           "text": "pnpm test:coverage pasa en verde en todo el monorepo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:52:45.034Z",
+          "note": "pnpm test:coverage monorepo: backend 176 tests (98.88/93.37/96.53/98.89) y frontend 106 tests (100/98.3/100/100)"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
