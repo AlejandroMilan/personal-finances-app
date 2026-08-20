@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:38:00.597Z",
+  "updatedAt": "2026-08-20T07:39:50.854Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -127,39 +127,51 @@
       "id": "T-0003",
       "title": "Add period calculation utilities",
       "description": "src/utils/period.ts: rangos de día, semana, mes, año y personalizado, más la granularidad derivada de cada periodo.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:04.247Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:39:50.854Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "buildPeriodRange('day'|'week'|'month'|'year') devuelve el inicio y fin del periodo en curso en hora local del navegador",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:39:50.673Z",
+          "note": "buildPeriodRange usa constructores locales de Date; tests 'returns the current day...', '...month from the first to the last day', '...year from January 1st to December 31st' comprueban horas 0 y 23:59:59.999 locales"
         },
         {
           "id": "AC-2",
           "text": "La semana empieza en lunes y termina en domingo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:39:50.708Z",
+          "note": "daysSinceMonday = (getDay()+6)%7; test 'starts the week on Monday and ends it on Sunday' (jueves 20/08/2026 -> lun 17 a dom 23) y 'keeps the week inside the previous month when it straddles two months'"
         },
         {
           "id": "AC-3",
           "text": "resolveGranularity devuelve hour para día, day para semana y mes, y month para año",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:39:50.737Z",
+          "note": "resolveGranularity: test 'maps each preset to its granularity' -> day:hour, week:day, month:day, year:month"
         },
         {
           "id": "AC-4",
           "text": "Un rango personalizado devuelve granularidad según su duración: hour hasta 2 días, day hasta 92 días, month por encima",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:39:50.766Z",
+          "note": "HOURLY_MAX_DAYS=2, DAILY_MAX_DAYS=92; tests de rango corto/medio/largo mas 'switches to day exactly after the two day mark'"
         },
         {
           "id": "AC-5",
           "text": "Un rango personalizado con from posterior a to se rechaza con un error explícito",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:39:50.795Z",
+          "note": "buildCustomPeriodRange lanza RangeError('The start date must not be after the end date'); test homonimo + 'rejects invalid dates'"
         },
         {
           "id": "AC-6",
           "text": "pnpm --filter frontend test:coverage pasa con >= 80% sobre src/utils/**",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:39:50.825Z",
+          "note": "pnpm --filter frontend test:coverage: 6 archivos, 41 tests, src/utils 100 stmts / 96.87 branches / 100 funcs / 100 lines"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"
