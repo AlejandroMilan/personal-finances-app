@@ -4,7 +4,7 @@ title: Agenda de transacciones
 status: en proceso
 created: 2026-08-20
 updated: 2026-08-20
-tasks: [T-0010, T-0011, T-0012, T-0013, T-0014, T-0015, T-0016, T-0017, T-0018, T-0019]
+tasks: [T-0010, T-0011, T-0012, T-0013, T-0014, T-0015, T-0016, T-0017, T-0018, T-0019, T-0020]
 ---
 
 # Agenda de transacciones
@@ -122,6 +122,7 @@ Comportamiento esperado:
 | T-0017 | Build the execute dialog with the reschedule question | `completada` | 2026-08-20 |
 | T-0018 | Add the ScheduleView screen with its route and menu entry | `completada` | 2026-08-20 |
 | T-0019 | Add the schedule card to the dashboard | `completada` | 2026-08-20 |
+| T-0020 | Default the reschedule date server side | `completada` | 2026-08-20 |
 
 ## Historial de cambios
 
@@ -165,3 +166,8 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0019: `pendiente` → `en proceso`. |
 | 2026-08-20 | Tarea T-0019: `en proceso` → `completada`. |
 | 2026-08-20 | T-0019: `ScheduledTransactionCard` gana el prop `compact`, que oculta editar y eliminar; el dashboard solo ofrece confirmar y cancelar y manda a `/schedule` para lo demas. |
+| 2026-08-20 | Tarea T-0020 creada: Default the reschedule date server side. |
+| 2026-08-20 | Tarea T-0020: `pendiente` → `en proceso`. |
+| 2026-08-20 | T-0020: el endpoint de ejecucion acepta `reschedule` sin fecha y aplica el default del dominio (un mes desde la fecha prevista); `nextScheduledDate` deja de ser codigo muerto. |
+| 2026-08-20 | Tarea T-0020: `en proceso` → `completada`. |
+| 2026-08-20 | Auditoria de seguridad final sin hallazgos altos ni criticos: los 6 endpoints bajo `JwtAuthGuard`, `userId` siempre desde `@CurrentUser()`, pertenencia verificada en cada caso de uso y en `CreateTransactionUseCase` al ejecutar, sin secretos ni logging de datos financieros. Informativa: `findById` del repositorio no filtra por `userId` (mismo patron que `transactions` y `categories`); la comprobacion vive en los casos de uso. |

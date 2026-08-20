@@ -127,6 +127,7 @@ export class ScheduledTransactionsController {
       timestamp: dto.timestamp ? new Date(dto.timestamp) : undefined,
       accountId: dto.accountId,
       categoryId: dto.categoryId,
+      reschedule: dto.reschedule,
       rescheduleFor: dto.rescheduleFor
         ? new Date(dto.rescheduleFor)
         : undefined,

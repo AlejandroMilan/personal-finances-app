@@ -104,7 +104,7 @@ describe('ExecuteScheduledTransactionUseCase', () => {
   });
 
   it('does not schedule a next occurrence when it is not requested', async () => {
-    const result = await useCase.execute(input);
+    const result = await useCase.execute({ ...input, reschedule: false });
 
     expect(result.next).toBeNull();
     expect(scheduled.save).toHaveBeenCalledTimes(1);
@@ -125,6 +125,42 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     expect(result.next?.accountId).toBe('a1');
     expect(result.next?.categoryId).toBe('c1');
     expect(result.next?.id).not.toBe('s1');
+  });
+
+  it('schedules the next occurrence one month later when only the flag comes', async () => {
+    const result = await useCase.execute({ ...input, reschedule: true });
+
+    expect(scheduled.save).toHaveBeenCalledTimes(2);
+    // La agendada de prueba está prevista para el 2026-09-01.
+    expect(result.next?.scheduledFor.toISOString()).toBe(
+      '2026-10-01T00:00:00.000Z',
+    );
+    expect(result.next?.recurring).toBe(true);
+    expect(result.next?.status).toBe(ScheduledTransactionStatus.PENDING);
+  });
+
+  it('clamps the default next date to the last day of a shorter month', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({ scheduledFor: new Date('2026-01-31T00:00:00.000Z') }),
+    );
+
+    const result = await useCase.execute({ ...input, reschedule: true });
+
+    expect(result.next?.scheduledFor.toISOString()).toBe(
+      '2026-02-28T00:00:00.000Z',
+    );
+  });
+
+  it('prefers the explicit date over the default, with the flag on', async () => {
+    const rescheduleFor = new Date('2026-11-15T00:00:00.000Z');
+
+    const result = await useCase.execute({
+      ...input,
+      reschedule: true,
+      rescheduleFor,
+    });
+
+    expect(result.next?.scheduledFor).toBe(rescheduleFor);
   });
 
   it.each([

@@ -43,7 +43,9 @@ export interface ExecuteScheduledTransactionPayload {
   timestamp?: string;
   accountId?: string;
   categoryId?: string | null;
-  /** Sin este campo no se agenda ninguna ocurrencia siguiente. */
+  /** Pide reagendar; sin `rescheduleFor` el backend usa un mes después. */
+  reschedule?: boolean;
+  /** Fecha exacta de la siguiente ocurrencia. */
   rescheduleFor?: string;
 }
 

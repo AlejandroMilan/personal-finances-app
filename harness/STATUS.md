@@ -3,11 +3,11 @@
 > Archivo generado automáticamente por `harness/scripts/harness.mjs`.
 > Se regenera cada vez que una tarea cambia de status. No editar a mano.
 
-**Última actualización:** 2026-08-20T17:23:37.048Z
+**Última actualización:** 2026-08-20T17:26:37.949Z
 
 ## Progreso
 
-`████████████████████` 100% (19/19 tareas completadas)
+`████████████████████` 100% (20/20 tareas completadas)
 
 ## Tareas
 
@@ -16,8 +16,8 @@
 | `pendiente` | 0 |
 | `en proceso` | 0 |
 | `bloqueada` | 0 |
-| `completada` | 19 |
-| **Total en `tasks.json`** | **19 / 100** |
+| `completada` | 20 |
+| **Total en `tasks.json`** | **20 / 100** |
 
 ## Specs
 
@@ -35,5 +35,5 @@ _No hay tareas abiertas._
 
 | Spec | Título | Status | Tareas |
 | --- | --- | --- | --- |
-| [`0002-agenda-de-transacciones`](specs/pending/0002-agenda-de-transacciones.md) | Agenda de transacciones | `en proceso` | 10 |
+| [`0002-agenda-de-transacciones`](specs/pending/0002-agenda-de-transacciones.md) | Agenda de transacciones | `en proceso` | 11 |
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:23:37.041Z",
+  "updatedAt": "2026-08-20T17:26:37.942Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -964,6 +964,59 @@
           "validated": true,
           "validatedAt": "2026-08-20T17:23:37.011Z",
           "note": "pnpm --filter frontend test:coverage en verde: 22 archivos / 208 tests, utils 100% lineas / 98.52% branches; HomeView.spec.ts cubre la presencia de data-test='upcoming-schedule-card'"
+        }
+      ],
+      "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0020",
+      "title": "Default the reschedule date server side",
+      "description": "El dominio ya sabe calcular la fecha de la siguiente ocurrencia (nextScheduledDate) pero nadie la usa: el frontend siempre manda la fecha. Se expone un flag reschedule para que el backend pueda aplicar el default de un mes por si mismo, en lugar de dejar codigo de dominio muerto.",
+      "status": "completada",
+      "createdAt": "2026-08-20T17:24:30.112Z",
+      "implementedAt": "2026-08-20T17:26:37.941Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "POST /:id/execute con reschedule=true y sin rescheduleFor agenda la siguiente ocurrencia un mes despues de la fecha prevista de la ejecutada, usando nextScheduledDate",
+          "validated": true,
+          "validatedAt": "2026-08-20T17:26:37.751Z",
+          "note": "execute-scheduled-transaction.use-case.ts:101-109 scheduleNext usa nextScheduledDate(existing.scheduledFor) cuando falta rescheduleFor; tests 'schedules the next occurrence one month later when only the flag comes' (2026-09-01 -> 2026-10-01) y 'clamps the default next date to the last day of a shorter month' (31-ene -> 28-feb)"
+        },
+        {
+          "id": "AC-2",
+          "text": "POST /:id/execute con rescheduleFor sigue respetando esa fecha exacta, con o sin el flag reschedule",
+          "validated": true,
+          "validatedAt": "2026-08-20T17:26:37.784Z",
+          "note": "input.rescheduleFor ?? nextScheduledDate(...); tests 'schedules the next occurrence as a recurring pending copy' (solo fecha) y 'prefers the explicit date over the default, with the flag on'"
+        },
+        {
+          "id": "AC-3",
+          "text": "POST /:id/execute sin reschedule ni rescheduleFor no agenda nada",
+          "validated": true,
+          "validatedAt": "2026-08-20T17:26:37.816Z",
+          "note": "guarda !input.rescheduleFor && !input.reschedule devuelve null; test 'does not schedule a next occurrence when it is not requested' con reschedule: false"
+        },
+        {
+          "id": "AC-4",
+          "text": "El DTO valida reschedule como booleano opcional y descarta cualquier campo no declarado",
+          "validated": true,
+          "validatedAt": "2026-08-20T17:26:37.847Z",
+          "note": "ExecuteScheduledTransactionDto: @IsOptional + @IsBoolean sobre reschedule; tests 'accepts the reschedule flag on its own', 'rejects a reschedule flag that is not a boolean' y 'drops a userId injected in the body'"
+        },
+        {
+          "id": "AC-5",
+          "text": "nextScheduledDate deja de ser codigo muerto: grep muestra al menos un import desde application/",
+          "validated": true,
+          "validatedAt": "2026-08-20T17:26:37.879Z",
+          "note": "grep -rn next-scheduled-date sobre application/: execute-scheduled-transaction.use-case.ts:10 lo importa"
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el modulo scheduled-transactions",
+          "validated": true,
+          "validatedAt": "2026-08-20T17:26:37.910Z",
+          "note": "pnpm --filter backend test:coverage: 47 suites / 295 tests en verde; use-cases 99.34% stmts y 98.87% branches, dto 100%. Frontend: 22 archivos / 208 tests en verde"
         }
       ],
       "spec": "0002-agenda-de-transacciones"

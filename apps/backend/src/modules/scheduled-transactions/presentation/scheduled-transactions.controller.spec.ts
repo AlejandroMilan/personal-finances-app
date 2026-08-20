@@ -237,6 +237,7 @@ describe('ScheduledTransactionsController', () => {
       timestamp: '2026-08-20T00:00:00.000Z',
       accountId: 'a2',
       categoryId: 'c2',
+      reschedule: true,
       rescheduleFor: '2026-10-01T00:00:00.000Z',
     });
 
@@ -247,6 +248,7 @@ describe('ScheduledTransactionsController', () => {
       timestamp: new Date('2026-08-20T00:00:00.000Z'),
       accountId: 'a2',
       categoryId: 'c2',
+      reschedule: true,
       rescheduleFor: new Date('2026-10-01T00:00:00.000Z'),
     });
     expect(response.scheduled.status).toBe(ScheduledTransactionStatus.EXECUTED);
@@ -280,6 +282,7 @@ describe('ScheduledTransactionsController', () => {
       timestamp: undefined,
       accountId: undefined,
       categoryId: undefined,
+      reschedule: undefined,
       rescheduleFor: undefined,
     });
     expect(response.next).toBeNull();

@@ -7,6 +7,7 @@ import {
 import { CreateTransactionUseCase } from '../../../transactions/application/use-cases/create-transaction.use-case';
 import { Transaction } from '../../../transactions/domain/entities/transaction.entity';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
+import { nextScheduledDate } from '../../domain/next-scheduled-date.util';
 import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
 import {
   SCHEDULED_TRANSACTION_REPOSITORY,
@@ -21,7 +22,9 @@ export interface ExecuteScheduledTransactionInput {
   timestamp?: Date;
   accountId?: string;
   categoryId?: string | null;
-  /** Cuando viene, se agenda la siguiente ocurrencia en esa fecha. */
+  /** Pide agendar la siguiente ocurrencia; sin fecha, un mes después. */
+  reschedule?: boolean;
+  /** Fecha exacta de la siguiente ocurrencia; implica `reschedule`. */
   rescheduleFor?: Date;
 }
 
@@ -70,7 +73,7 @@ export class ExecuteScheduledTransactionUseCase {
     });
 
     const scheduled = await this.saveExecuted(existing, transaction.id);
-    const next = await this.scheduleNext(existing, input.rescheduleFor);
+    const next = await this.scheduleNext(existing, input);
 
     return { scheduled, transaction, next };
   }
@@ -93,11 +96,16 @@ export class ExecuteScheduledTransactionUseCase {
 
   private async scheduleNext(
     existing: ScheduledTransaction,
-    rescheduleFor: Date | undefined,
+    input: ExecuteScheduledTransactionInput,
   ): Promise<ScheduledTransaction | null> {
-    if (!rescheduleFor) {
+    if (!input.rescheduleFor && !input.reschedule) {
       return null;
     }
+
+    // Sin fecha explícita manda el default del dominio: un mes después de la
+    // fecha prevista, no de hoy.
+    const scheduledFor =
+      input.rescheduleFor ?? nextScheduledDate(existing.scheduledFor);
 
     return this.scheduledRepository.save(
       ScheduledTransaction.create({
@@ -108,7 +116,7 @@ export class ExecuteScheduledTransactionUseCase {
         title: existing.title,
         amount: existing.amount,
         tags: existing.tags,
-        scheduledFor: rescheduleFor,
+        scheduledFor,
         recurring: true,
       }),
     );

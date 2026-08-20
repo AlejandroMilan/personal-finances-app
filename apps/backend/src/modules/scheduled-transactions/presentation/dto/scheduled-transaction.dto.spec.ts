@@ -191,6 +191,20 @@ describe('ExecuteScheduledTransactionDto', () => {
     ).toContain('amount');
   });
 
+  it('accepts the reschedule flag on its own', () => {
+    expect(
+      validate(ExecuteScheduledTransactionDto, { reschedule: true }),
+    ).toHaveLength(0);
+  });
+
+  it('rejects a reschedule flag that is not a boolean', () => {
+    expect(
+      properties(
+        validate(ExecuteScheduledTransactionDto, { reschedule: 'yes' }),
+      ),
+    ).toContain('reschedule');
+  });
+
   it('rejects a rescheduleFor that is not an ISO date', () => {
     expect(
       properties(

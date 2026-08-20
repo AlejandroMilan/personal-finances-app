@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsNotEmpty,
   IsNumber,
@@ -29,7 +30,12 @@ export class ExecuteScheduledTransactionDto {
   @IsNotEmpty()
   categoryId?: string | null;
 
-  /** Fecha de la siguiente ocurrencia; sin ella no se reagenda nada. */
+  /** Pide reagendar; sin `rescheduleFor` el backend usa un mes después. */
+  @IsOptional()
+  @IsBoolean()
+  reschedule?: boolean;
+
+  /** Fecha exacta de la siguiente ocurrencia. */
   @IsOptional()
   @IsDateString()
   rescheduleFor?: string;
