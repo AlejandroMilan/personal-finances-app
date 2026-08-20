@@ -13,6 +13,7 @@ describe('UpdateTransactionUseCase', () => {
     delete: jest.fn(),
     deleteByAccountId: jest.fn(),
     clearCategoryReferences: jest.fn(),
+    summarize: jest.fn(),
   };
   const accountRepository = {
     findById: jest.fn(),

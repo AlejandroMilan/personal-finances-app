@@ -1,7 +1,7 @@
 ---
 id: 0001-dashboard-de-inicio-en-la-aplicacion
 title: Dashboard de inicio en la aplicación
-status: no implementado
+status: en proceso
 created: 2026-08-20
 updated: 2026-08-20
 tasks: [T-0001, T-0002, T-0003, T-0004, T-0005, T-0006, T-0007, T-0008, T-0009]
@@ -11,7 +11,7 @@ tasks: [T-0001, T-0002, T-0003, T-0004, T-0005, T-0006, T-0007, T-0008, T-0009]
 
 ## Estado
 
-`no implementado`
+`en proceso`
 
 ## Descripción
 
@@ -76,6 +76,7 @@ Comportamiento esperado:
 | Gráficas con **Chart.js + vue-chartjs** | SVG propio; ApexCharts | Decisión del usuario: librería madura y peso intermedio (~200 KB) frente al control total del SVG a medida |
 | La línea ofrece **ritmo y acumulado** con un toggle | Solo ritmo; solo acumulado | Decisión del usuario: cubre tanto "¿qué días gasté más?" como "¿voy ganando o perdiendo en el periodo?" |
 | El backend devuelve `categoryId` y totales; **el nombre y el color los resuelve el frontend** | Que el backend haga `$lookup` contra categorías | Evita acoplar el módulo `transactions` con `categories`; el frontend ya tiene ambos datos en su store de categorías |
+| Los buckets se alinean a una **zona IANA** (`timeZone` en `SummaryQuery`) | Truncar en UTC | Truncar en UTC agruparía los "días" de 18:00 a 18:00 para un usuario en UTC-6; la Descripción exige hora local. Amplía la firma del AC-1 de T-0001 |
 | La **granularidad viaja como parámetro** validado del endpoint | Que el backend la infiera del rango | Mantiene el caso de uso explícito y testeable, y deja la decisión de presentación en el frontend |
 
 ## Tareas enlazadas
@@ -84,7 +85,7 @@ Comportamiento esperado:
 
 | ID | Título | Status | Implementada |
 | --- | --- | --- | --- |
-| T-0001 | Add summary aggregation to the transactions repository port | `pendiente` | — |
+| T-0001 | Add summary aggregation to the transactions repository port | `completada` | 2026-08-20 |
 | T-0002 | Expose GET /transactions/summary endpoint | `pendiente` | — |
 | T-0003 | Add period calculation utilities | `pendiente` | — |
 | T-0004 | Add summary types, service method and dashboard store | `pendiente` | — |
@@ -108,3 +109,7 @@ Comportamiento esperado:
 | 2026-08-20 | Tarea T-0007 creada: Build the category donut card with centered total. |
 | 2026-08-20 | Tarea T-0008 creada: Build the income vs expense line card with ritmo/acumulado toggle. |
 | 2026-08-20 | Tarea T-0009 creada: Replace HomeView with the dashboard layout. |
+| 2026-08-20 | Tarea T-0001: `pendiente` → `en proceso`. |
+| 2026-08-20 | Status: `no implementado` → `en proceso`. |
+| 2026-08-20 | T-0001: se añade `timeZone` a `SummaryQuery` para alinear los buckets al calendario local (ver Decisiones). |
+| 2026-08-20 | Tarea T-0001: `en proceso` → `completada`. |

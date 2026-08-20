@@ -1,50 +1,64 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T07:22:34.380Z",
+  "updatedAt": "2026-08-20T07:34:33.260Z",
   "tasks": [
     {
       "id": "T-0001",
       "title": "Add summary aggregation to the transactions repository port",
       "description": "Nuevo método summarize en TransactionRepository y su adaptador de Mongo: agrega por tipo, por categoría y por bucket temporal en una sola consulta.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-20T07:22:04.176Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-20T07:34:33.259Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "El port TransactionRepository expone summarize(userId, { from, to, granularity }) y el adaptador de Mongo lo implementa con aggregate, sin traer documentos a memoria",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.690Z",
+          "note": "port transaction.repository.ts summarize(); el adaptador usa model.aggregate con $facet; test 'aggregates in the database' comprueba que find() NO se llama. Ampliacion: la firma incluye ademas timeZone"
         },
         {
           "id": "AC-2",
           "text": "La agregación filtra siempre por el userId recibido y por timestamp >= from y <= to",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.724Z",
+          "note": "pipeline[0] = { $match: { userId, timestamp: { $gte: from, $lte: to } } }; test 'aggregates in the database filtering by user and date range'"
         },
         {
           "id": "AC-3",
           "text": "Devuelve totales por tipo (income/expense), totales por categoryId dentro de cada tipo, y una serie de buckets con income y expense por bucket",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.756Z",
+          "note": "TransactionsSummary { totals, byCategory.income/expense, series }; test 'returns totals per type and per category, sorted by amount'"
         },
         {
           "id": "AC-4",
           "text": "Las transacciones con categoryId null se agrupan bajo la clave null y no se descartan",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.787Z",
+          "note": "ifNull categoryId->null en el group + test 'keeps uncategorised transactions under a null category'"
         },
         {
           "id": "AC-5",
           "text": "Los buckets sin movimientos aparecen en la serie con income 0 y expense 0, en orden cronológico",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.819Z",
+          "note": "toSeries() rellena con buildBucketSequence; test 'fills the intervals without movements with zeros, in chronological order': 3 buckets, el del medio en 0"
         },
         {
           "id": "AC-6",
           "text": "granularity acepta hour, day y month y agrupa por ese intervalo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.857Z",
+          "note": "dateTrunc unit=granularity; 15 tests en bucket-range.util.spec.ts cubren hour/day/month incluido cambio de horario de verano en Europe/Madrid"
         },
         {
           "id": "AC-7",
           "text": "pnpm --filter backend test:coverage pasa con >= 80% en branches, functions, lines y statements",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-20T07:34:18.895Z",
+          "note": "pnpm --filter backend test:coverage: 33 suites, 156 tests, global 98.83/93.04/96.44/98.85"
         }
       ],
       "spec": "0001-dashboard-de-inicio-en-la-aplicacion"

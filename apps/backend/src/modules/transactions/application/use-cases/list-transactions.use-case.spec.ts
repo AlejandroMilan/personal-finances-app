@@ -13,6 +13,7 @@ describe('ListTransactionsUseCase', () => {
     delete: jest.fn(),
     deleteByAccountId: jest.fn(),
     clearCategoryReferences: jest.fn(),
+    summarize: jest.fn(),
   };
   let useCase: ListTransactionsUseCase;
 

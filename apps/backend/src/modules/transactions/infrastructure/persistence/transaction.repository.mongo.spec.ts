@@ -31,6 +31,7 @@ describe('MongoTransactionRepository', () => {
     deleteMany: jest.Mock;
     updateMany: jest.Mock;
     findOneAndUpdate: jest.Mock;
+    aggregate: jest.Mock;
   };
 
   beforeEach(() => {
@@ -57,8 +58,17 @@ describe('MongoTransactionRepository', () => {
       findOneAndUpdate: jest
         .fn()
         .mockReturnValue({ exec: jest.fn().mockResolvedValue(doc) }),
+      aggregate: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([{ byCategory: [], series: [] }]),
+      }),
     };
   });
+
+  const withFacets = (facets: unknown[]): void => {
+    modelMock.aggregate.mockReturnValue({
+      exec: jest.fn().mockResolvedValue(facets),
+    });
+  };
 
   const repo = () =>
     new MongoTransactionRepository(
@@ -201,5 +211,162 @@ describe('MongoTransactionRepository', () => {
       { categoryId: 'c1' },
       { $set: { categoryId: null } },
     );
+  });
+
+  describe('summarize', () => {
+    const query = {
+      from: new Date('2026-08-01T06:00:00.000Z'),
+      to: new Date('2026-08-04T05:59:59.999Z'),
+      granularity: 'day' as const,
+      timeZone: 'America/Mexico_City',
+    };
+
+    it('aggregates in the database filtering by user and date range', async () => {
+      await repo().summarize('u1', query);
+
+      const pipeline = modelMock.aggregate.mock.calls[0][0] as Array<
+        Record<string, unknown>
+      >;
+      expect(pipeline[0]).toEqual({
+        $match: {
+          userId: 'u1',
+          timestamp: { $gte: query.from, $lte: query.to },
+        },
+      });
+      expect(pipeline[1]).toHaveProperty('$facet');
+      expect(modelMock.find).not.toHaveBeenCalled();
+    });
+
+    it('truncates the series buckets with the requested granularity and time zone', async () => {
+      await repo().summarize('u1', { ...query, granularity: 'month' });
+
+      const pipeline = modelMock.aggregate.mock.calls[0][0] as Array<{
+        $facet?: { series: Array<{ $group: { _id: { bucket: unknown } } }> };
+      }>;
+      expect(pipeline[1].$facet?.series[0].$group._id.bucket).toEqual({
+        $dateTrunc: {
+          date: '$timestamp',
+          unit: 'month',
+          timezone: 'America/Mexico_City',
+        },
+      });
+    });
+
+    it('returns totals per type and per category, sorted by amount', async () => {
+      withFacets([
+        {
+          byCategory: [
+            { _id: { type: 'expense', categoryId: 'c1' }, total: 30.5 },
+            { _id: { type: 'expense', categoryId: 'c2' }, total: 120 },
+            { _id: { type: 'income', categoryId: 'c3' }, total: 200 },
+          ],
+          series: [],
+        },
+      ]);
+
+      const summary = await repo().summarize('u1', query);
+
+      expect(summary.totals).toEqual({ income: 200, expense: 150.5 });
+      expect(summary.byCategory.expense).toEqual([
+        { categoryId: 'c2', total: 120 },
+        { categoryId: 'c1', total: 30.5 },
+      ]);
+      expect(summary.byCategory.income).toEqual([
+        { categoryId: 'c3', total: 200 },
+      ]);
+    });
+
+    it('keeps uncategorised transactions under a null category', async () => {
+      withFacets([
+        {
+          byCategory: [
+            { _id: { type: 'expense', categoryId: null }, total: 40 },
+          ],
+          series: [],
+        },
+      ]);
+
+      const summary = await repo().summarize('u1', query);
+
+      expect(summary.byCategory.expense).toEqual([
+        { categoryId: null, total: 40 },
+      ]);
+      expect(summary.totals.expense).toBe(40);
+    });
+
+    it('fills the intervals without movements with zeros, in chronological order', async () => {
+      withFacets([
+        {
+          byCategory: [],
+          series: [
+            {
+              _id: { bucket: new Date('2026-08-03T06:00:00.000Z'), type: 'income' },
+              total: 500,
+            },
+            {
+              _id: { bucket: new Date('2026-08-01T06:00:00.000Z'), type: 'expense' },
+              total: 25,
+            },
+          ],
+        },
+      ]);
+
+      const summary = await repo().summarize('u1', query);
+
+      expect(summary.series).toEqual([
+        {
+          bucket: new Date('2026-08-01T06:00:00.000Z'),
+          income: 0,
+          expense: 25,
+        },
+        {
+          bucket: new Date('2026-08-02T06:00:00.000Z'),
+          income: 0,
+          expense: 0,
+        },
+        {
+          bucket: new Date('2026-08-03T06:00:00.000Z'),
+          income: 500,
+          expense: 0,
+        },
+      ]);
+    });
+
+    it('adds up income and expense that fall in the same bucket', async () => {
+      withFacets([
+        {
+          byCategory: [],
+          series: [
+            {
+              _id: { bucket: new Date('2026-08-01T06:00:00.000Z'), type: 'income' },
+              total: 0.1,
+            },
+            {
+              _id: { bucket: new Date('2026-08-01T06:00:00.000Z'), type: 'expense' },
+              total: 0.2,
+            },
+          ],
+        },
+      ]);
+
+      const summary = await repo().summarize('u1', query);
+
+      expect(summary.series[0]).toEqual({
+        bucket: new Date('2026-08-01T06:00:00.000Z'),
+        income: 0.1,
+        expense: 0.2,
+      });
+    });
+
+    it('returns an empty summary when the aggregation yields no facets', async () => {
+      withFacets([]);
+
+      const summary = await repo().summarize('u1', query);
+
+      expect(summary.totals).toEqual({ income: 0, expense: 0 });
+      expect(summary.byCategory).toEqual({ income: [], expense: [] });
+      expect(summary.series).toHaveLength(3);
+      expect(summary.series.every((point) => point.income === 0)).toBe(true);
+    });
   });
 });

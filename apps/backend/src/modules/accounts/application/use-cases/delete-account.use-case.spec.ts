@@ -25,6 +25,7 @@ describe('DeleteAccountUseCase', () => {
     delete: jest.fn(),
     deleteByAccountId: jest.fn(),
     clearCategoryReferences: jest.fn(),
+    summarize: jest.fn(),
   };
   let useCase: DeleteAccountUseCase;
 
