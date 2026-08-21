@@ -94,6 +94,7 @@ describe('HomeView', () => {
       {
         id: 's1',
         accountId: 'a1',
+        destinationAccountId: null,
         categoryId: 'c1',
         type: 'expense',
         title: 'Renta',

@@ -17,6 +17,7 @@ const scheduled = (
 ): ScheduledTransactionView => ({
   id: 's1',
   accountId: 'a1',
+  destinationAccountId: null,
   categoryId: 'c1',
   type: 'expense',
   title: 'Rent',

@@ -5,6 +5,7 @@ export type ScheduledTransactionStatus = 'pending' | 'executed' | 'cancelled';
 export interface ScheduledTransactionView {
   id: string;
   accountId: string;
+  destinationAccountId: string | null;
   categoryId: string | null;
   type: TransactionType;
   title: string;
@@ -21,6 +22,7 @@ export interface CreateScheduledTransactionPayload {
   amount: number;
   type: TransactionType;
   accountId: string;
+  destinationAccountId?: string;
   categoryId?: string;
   scheduledFor: string;
   recurring?: boolean;
@@ -32,6 +34,7 @@ export interface UpdateScheduledTransactionPayload {
   amount?: number;
   type?: TransactionType;
   accountId?: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   scheduledFor?: string;
   recurring?: boolean;
@@ -42,6 +45,7 @@ export interface ExecuteScheduledTransactionPayload {
   amount?: number;
   timestamp?: string;
   accountId?: string;
+  destinationAccountId?: string;
   categoryId?: string | null;
   /** Pide reagendar; sin `rescheduleFor` el backend usa un mes después. */
   reschedule?: boolean;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useAccountsStore } from '../../stores/accounts';
 import { useCategoriesStore } from '../../stores/categories';
 import type {
@@ -9,6 +9,10 @@ import type {
 } from '../../types/scheduled-transaction';
 import type { TransactionType } from '../../types/transaction';
 import { fromDateInputValue, toDateInputValue } from '../../utils/schedule';
+import {
+  getDestinationAccountOptions,
+  transactionTypeOptions,
+} from '../../utils/transaction';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -30,6 +34,7 @@ const categoriesStore = useCategoriesStore();
 const form = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null);
 const accountId = ref('');
 const type = ref<TransactionType>('expense');
+const destinationAccountId = ref<string | null>(null);
 const title = ref('');
 const amount = ref(0);
 const categoryId = ref<string | null>(null);
@@ -38,10 +43,17 @@ const recurring = ref(false);
 const tags = ref<string[]>([]);
 const saving = ref(false);
 
-const typeOptions: { value: TransactionType; label: string }[] = [
-  { value: 'expense', label: 'Gasto' },
-  { value: 'income', label: 'Ingreso' },
-];
+const isTransfer = computed(() => type.value === 'transfer');
+const destinationAccounts = computed(() =>
+  getDestinationAccountOptions(accountsStore.accounts, accountId.value),
+);
+const canSave = computed(
+  () =>
+    !isTransfer.value ||
+    (!!destinationAccountId.value && destinationAccountId.value !== accountId.value),
+);
+
+const typeOptions = transactionTypeOptions;
 
 const titleRules = [(value: string) => !!value.trim() || 'El título es obligatorio'];
 const amountRules = [
@@ -49,6 +61,12 @@ const amountRules = [
     (Number.isFinite(value) && value > 0) || 'El monto debe ser mayor que cero',
 ];
 const accountRules = [(value: string) => !!value || 'La cuenta es obligatoria'];
+const destinationRules = [
+  (value: string | null) =>
+    !isTransfer.value ||
+    (!!value && value !== accountId.value) ||
+    'La cuenta destino es obligatoria',
+];
 const dateRules = [(value: string) => !!value || 'La fecha es obligatoria'];
 
 watch(
@@ -58,6 +76,7 @@ watch(
     if (props.scheduled) {
       accountId.value = props.scheduled.accountId;
       type.value = props.scheduled.type;
+      destinationAccountId.value = props.scheduled.destinationAccountId;
       title.value = props.scheduled.title;
       amount.value = props.scheduled.amount;
       categoryId.value = props.scheduled.categoryId;
@@ -69,6 +88,7 @@ watch(
     } else {
       accountId.value = accountsStore.accounts[0]?.id ?? '';
       type.value = 'expense';
+      destinationAccountId.value = null;
       title.value = '';
       amount.value = 0;
       categoryId.value = null;
@@ -79,9 +99,22 @@ watch(
   },
 );
 
+watch(accountId, (sourceAccountId) => {
+  if (destinationAccountId.value === sourceAccountId) {
+    destinationAccountId.value = null;
+  }
+});
+
+watch(type, (transactionType) => {
+  if (transactionType !== 'transfer') {
+    destinationAccountId.value = null;
+  }
+});
+
 async function save(): Promise<void> {
   const result = form.value ? await form.value.validate() : { valid: true };
   if (!result.valid) return;
+  if (!canSave.value) return;
 
   saving.value = true;
   try {
@@ -90,7 +123,9 @@ async function save(): Promise<void> {
       amount: amount.value,
       type: type.value,
       accountId: accountId.value,
-      categoryId: categoryId.value ?? undefined,
+      ...(isTransfer.value
+        ? { destinationAccountId: destinationAccountId.value ?? undefined }
+        : { categoryId: categoryId.value ?? undefined }),
       scheduledFor: fromDateInputValue(scheduledFor.value).toISOString(),
       recurring: recurring.value,
       tags: tags.value,
@@ -123,6 +158,7 @@ function close(): void {
           :items="typeOptions"
           item-title="label"
           item-value="value"
+          :disabled="scheduled !== null"
           prepend-icon="mdi-swap-horizontal"
         />
         <v-text-field
@@ -148,6 +184,19 @@ function close(): void {
           prepend-icon="mdi-wallet"
         />
         <v-select
+          v-if="isTransfer"
+          v-model="destinationAccountId"
+          label="Destination account"
+          :items="destinationAccounts"
+          item-title="name"
+          item-value="id"
+          :rules="destinationRules"
+          clearable
+          prepend-icon="mdi-wallet-plus"
+          data-test="destination-field"
+        />
+        <v-select
+          v-if="!isTransfer"
           v-model="categoryId"
           label="Categoría"
           :items="categoriesStore.categories"
@@ -183,7 +232,12 @@ function close(): void {
 
         <div class="d-flex justify-end mt-4">
           <v-btn variant="text" class="mr-2" @click="close">Cancelar</v-btn>
-          <v-btn color="primary" type="submit" :loading="saving">
+          <v-btn
+            color="primary"
+            type="submit"
+            :loading="saving"
+            :disabled="!canSave"
+          >
             {{ scheduled ? 'Guardar cambios' : 'Agendar' }}
           </v-btn>
         </div>

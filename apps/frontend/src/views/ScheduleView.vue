@@ -44,6 +44,9 @@ const isEmpty = computed(
 const accountName = (id: string): string | undefined =>
   accountsStore.accounts.find((account) => account.id === id)?.name;
 
+const destinationName = (id: string | null): string | undefined =>
+  id ? accountName(id) : undefined;
+
 const categoryName = (id: string | null): string | undefined =>
   id
     ? categoriesStore.categories.find((category) => category.id === id)?.name
@@ -198,6 +201,7 @@ function message(caught: unknown, fallback: string): string {
             <ScheduledTransactionCard
               :scheduled="item"
               :account-name="accountName(item.accountId)"
+              :destination-name="destinationName(item.destinationAccountId)"
               :category-name="categoryName(item.categoryId)"
               @execute="openExecute(item)"
               @cancel="cancel(item)"
@@ -217,6 +221,7 @@ function message(caught: unknown, fallback: string): string {
             <ScheduledTransactionCard
               :scheduled="item"
               :account-name="accountName(item.accountId)"
+              :destination-name="destinationName(item.destinationAccountId)"
               :category-name="categoryName(item.categoryId)"
               @execute="openExecute(item)"
               @cancel="cancel(item)"

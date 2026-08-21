@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ScheduledTransactionView } from '../../types/scheduled-transaction';
-import { formatCurrency } from '../../utils/money';
 import { isOverdue } from '../../utils/schedule';
+import { getTransactionAmountLabel } from '../../utils/transaction';
 
 const props = defineProps<{
   scheduled: ScheduledTransactionView;
   accountName?: string;
+  destinationName?: string;
   categoryName?: string;
   /** En modo compacto solo se ofrecen confirmar y cancelar. */
   compact?: boolean;
@@ -17,10 +18,13 @@ defineEmits<{ execute: []; cancel: []; edit: []; delete: [] }>();
 const overdue = computed(() => isOverdue(props.scheduled));
 const isPending = computed(() => props.scheduled.status === 'pending');
 const isIncome = computed(() => props.scheduled.type === 'income');
+const isTransfer = computed(() => props.scheduled.type === 'transfer');
 
-const signedAmount = computed(
-  () =>
-    `${isIncome.value ? '+' : '-'}${formatCurrency(props.scheduled.amount)}`,
+const amountLabel = computed(() => getTransactionAmountLabel(props.scheduled));
+const accountLabel = computed(() =>
+  isTransfer.value
+    ? `${props.accountName ?? 'Unknown account'} → ${props.destinationName ?? 'Unknown account'}`
+    : props.accountName,
 );
 
 const statusLabels: Record<ScheduledTransactionView['status'], string> = {
@@ -53,8 +57,14 @@ const scheduledDate = computed(() =>
     <div class="d-flex align-center justify-space-between">
       <div class="d-flex align-center">
         <v-icon
-          :icon="isIncome ? 'mdi-arrow-down-bold-circle' : 'mdi-arrow-up-bold-circle'"
-          :color="isIncome ? 'success' : 'warning'"
+          :icon="
+            isTransfer
+              ? 'mdi-swap-horizontal-circle'
+              : isIncome
+                ? 'mdi-arrow-down-bold-circle'
+                : 'mdi-arrow-up-bold-circle'
+          "
+          :color="isTransfer ? 'secondary' : isIncome ? 'success' : 'warning'"
           size="22"
           class="mr-3"
         />
@@ -63,8 +73,8 @@ const scheduledDate = computed(() =>
             {{ props.scheduled.title }}
           </div>
           <div class="text-caption text-medium-emphasis">
-            <span v-if="props.accountName">{{ props.accountName }}</span>
-            <span v-if="props.categoryName"> · {{ props.categoryName }}</span>
+            <span v-if="accountLabel">{{ accountLabel }}</span>
+            <span v-if="!isTransfer && props.categoryName"> · {{ props.categoryName }}</span>
             <span v-if="props.scheduled.recurring"> · Recurrente</span>
           </div>
         </div>
@@ -73,9 +83,9 @@ const scheduledDate = computed(() =>
       <div class="text-right">
         <div
           class="text-subtitle-1 font-weight-medium"
-          :class="isIncome ? 'text-success' : 'text-warning'"
+          :class="isTransfer ? 'text-secondary' : isIncome ? 'text-success' : 'text-warning'"
         >
-          {{ signedAmount }}
+          {{ amountLabel }}
         </div>
         <div class="text-caption" :class="overdue && isPending ? 'text-error' : 'text-medium-emphasis'">
           {{ scheduledDate }}

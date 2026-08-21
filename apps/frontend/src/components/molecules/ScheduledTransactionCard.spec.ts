@@ -9,6 +9,7 @@ const scheduled = (
 ): ScheduledTransactionView => ({
   id: 's1',
   accountId: 'a1',
+  destinationAccountId: null,
   categoryId: 'c1',
   type: 'expense',
   title: 'Renta',
@@ -59,6 +60,28 @@ describe('ScheduledTransactionCard', () => {
     const wrapper = mountCard(scheduled({ type: 'income', amount: 25000 }));
 
     expect(wrapper.text()).toContain('+$25,000.00');
+  });
+
+  it('shows a transfer from source to destination with a neutral amount', () => {
+    const wrapper = mountCard(
+      scheduled({
+        type: 'transfer',
+        destinationAccountId: 'a2',
+        categoryId: null,
+        amount: 125,
+      }),
+      {
+        accountName: 'Checking',
+        destinationName: 'Savings',
+        categoryName: 'Ignored category',
+      },
+    );
+
+    expect(wrapper.text()).toContain('Checking → Savings');
+    expect(wrapper.text()).toContain('$125.00');
+    expect(wrapper.text()).not.toContain('+$125.00');
+    expect(wrapper.text()).not.toContain('-$125.00');
+    expect(wrapper.text()).not.toContain('Ignored category');
   });
 
   it('marks a pending scheduled transaction with a past date as overdue', () => {

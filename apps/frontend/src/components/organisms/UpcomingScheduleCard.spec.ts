@@ -22,10 +22,23 @@ vi.mock('../../services/categories', () => ({
 }));
 
 import { scheduledTransactionsService } from '../../services/scheduled-transactions';
+import { accountsService } from '../../services/accounts';
+import { categoriesService } from '../../services/categories';
 import router from '../../router';
+import { useAccountsStore } from '../../stores/accounts';
 import { vuetify } from '../../test-utils/vuetify';
+import type { AccountView } from '../../types/account';
 import type { ScheduledTransactionView } from '../../types/scheduled-transaction';
 import UpcomingScheduleCard from './UpcomingScheduleCard.vue';
+
+const account = (id: string, name: string): AccountView => ({
+  id,
+  name,
+  balance: 0,
+  color: '#2E6B4F',
+  type: 'cash',
+  creditCard: null,
+});
 
 const daysFromNow = (days: number): string => {
   const date = new Date();
@@ -50,6 +63,7 @@ const scheduled = (
 ): ScheduledTransactionView => ({
   id: 's1',
   accountId: 'a1',
+  destinationAccountId: null,
   categoryId: 'c1',
   type: 'expense',
   title: 'Renta',
@@ -85,6 +99,8 @@ describe('UpcomingScheduleCard', () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.mocked(scheduledTransactionsService.list).mockResolvedValue([]);
+    vi.mocked(accountsService.list).mockResolvedValue([]);
+    vi.mocked(categoriesService.list).mockResolvedValue([]);
   });
 
   it('shows the overdue ones and the ones of the current month, grouped', async () => {
@@ -120,6 +136,29 @@ describe('UpcomingScheduleCard', () => {
     const wrapper = await mountCard();
 
     expect(wrapper.text()).not.toContain('Ya ejecutada');
+  });
+
+  it('shows a transfer from source to destination with a neutral amount', async () => {
+    useAccountsStore().accounts = [
+      account('a1', 'Checking'),
+      account('a2', 'Savings'),
+    ];
+    vi.mocked(scheduledTransactionsService.list).mockResolvedValue([
+      scheduled({
+        type: 'transfer',
+        destinationAccountId: 'a2',
+        categoryId: null,
+        amount: 125,
+      }),
+    ]);
+
+    const wrapper = await mountCard();
+    const text = wrapper.text();
+
+    expect(text).toContain('Checking → Savings');
+    expect(text).toContain('$125.00');
+    expect(text).not.toContain('+$125.00');
+    expect(text).not.toContain('-$125.00');
   });
 
   it('confirms from the dashboard and refreshes without reloading', async () => {

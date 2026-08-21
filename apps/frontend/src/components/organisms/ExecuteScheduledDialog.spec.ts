@@ -21,15 +21,27 @@ vi.mock('../../services/categories', () => ({
 }));
 
 import { mountOptions } from '../../test-utils/vuetify';
+import { useAccountsStore } from '../../stores/accounts';
+import type { AccountView } from '../../types/account';
 import type { ScheduledTransactionView } from '../../types/scheduled-transaction';
 import { toDateInputValue } from '../../utils/schedule';
 import ExecuteScheduledDialog from './ExecuteScheduledDialog.vue';
+
+const account = (id: string, name: string): AccountView => ({
+  id,
+  name,
+  balance: 0,
+  color: '#2E6B4F',
+  type: 'cash',
+  creditCard: null,
+});
 
 const scheduled = (
   overrides: Partial<ScheduledTransactionView> = {},
 ): ScheduledTransactionView => ({
   id: 's1',
   accountId: 'a1',
+  destinationAccountId: null,
   categoryId: 'c1',
   type: 'expense',
   title: 'Renta',
@@ -40,6 +52,15 @@ const scheduled = (
   status: 'pending',
   transactionId: null,
   ...overrides,
+});
+
+const transferScheduled = scheduled({
+  accountId: 'a1',
+  destinationAccountId: 'a2',
+  categoryId: null,
+  type: 'transfer',
+  title: 'Move money',
+  amount: 125,
 });
 
 const mountDialog = (item: ScheduledTransactionView) =>
@@ -60,6 +81,9 @@ const vm = (wrapper: ReturnType<typeof mountDialog>) =>
     close: () => void;
     reschedule: boolean;
     amount: number;
+    accountId: string;
+    destinationAccountId: string | null;
+    destinationAccounts: AccountView[];
   };
 
 const confirmed = (wrapper: ReturnType<typeof mountDialog>) =>
@@ -86,6 +110,45 @@ describe('ExecuteScheduledDialog', () => {
     expect(String(confirmed(wrapper)?.timestamp)).toContain(
       toDateInputValue(new Date()),
     );
+  });
+
+  it('shows the source and destination for a transfer and keeps the reschedule flow', async () => {
+    useAccountsStore().accounts = [
+      account('a1', 'Checking'),
+      account('a2', 'Savings'),
+      account('a3', 'Cash'),
+    ];
+    const wrapper = mountDialog(transferScheduled);
+
+    await open(wrapper);
+
+    expect(document.body.textContent).toContain('Checking');
+    expect(document.body.textContent).toContain('Savings');
+    expect(vm(wrapper).accountId).toBe('a1');
+    expect(vm(wrapper).destinationAccountId).toBe('a2');
+    expect(vm(wrapper).destinationAccounts.map((item) => item.id)).toEqual([
+      'a2',
+      'a3',
+    ]);
+    expect(
+      document.body.querySelector('[data-test="destination-field"]'),
+    ).not.toBeNull();
+    expect(
+      document.body.querySelector('[data-test="category-field"]'),
+    ).toBeNull();
+    expect(
+      document.body.querySelector('[data-test="reschedule-switch"]'),
+    ).not.toBeNull();
+
+    await vm(wrapper).confirm();
+
+    expect(confirmed(wrapper)).toMatchObject({
+      amount: 125,
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+    });
+    expect(confirmed(wrapper)).not.toHaveProperty('categoryId');
+    expect(String(confirmed(wrapper)?.rescheduleFor)).toContain('2026-10-01');
   });
 
   it('lets the four fields be edited before confirming', async () => {

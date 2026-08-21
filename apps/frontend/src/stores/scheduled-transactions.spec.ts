@@ -31,6 +31,7 @@ const scheduled = (
 ): ScheduledTransactionView => ({
   id: 's1',
   accountId: 'a1',
+  destinationAccountId: null,
   categoryId: 'c1',
   type: 'expense',
   title: 'Rent',
@@ -63,6 +64,45 @@ describe('scheduled transactions store', () => {
     expect(store.pending).toHaveLength(1);
     expect(store.loading).toBe(false);
     expect(store.error).toBeNull();
+  });
+
+  it('ignores a delayed response from an invalidated session', async () => {
+    let resolvePrevious: (value: ScheduledTransactionView[]) => void = () => undefined;
+    const previousResponse = new Promise<ScheduledTransactionView[]>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    vi.mocked(scheduledTransactionsService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce([scheduled({ id: 'current', title: 'Current' })]);
+    const store = useScheduledTransactionsStore();
+
+    const previousFetch = store.fetchScheduled();
+    store.clear();
+    const currentFetch = store.fetchScheduled();
+    resolvePrevious([scheduled({ id: 'previous', title: 'Previous' })]);
+
+    await Promise.all([previousFetch, currentFetch]);
+
+    expect(store.items.map((item) => item.title)).toEqual(['Current']);
+  });
+
+  it('keeps the newest response when same-session requests finish out of order', async () => {
+    let resolvePrevious: (value: ScheduledTransactionView[]) => void = () => undefined;
+    const previousResponse = new Promise<ScheduledTransactionView[]>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    vi.mocked(scheduledTransactionsService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce([scheduled({ id: 'current', title: 'Current' })]);
+    const store = useScheduledTransactionsStore();
+
+    const previousFetch = store.fetchScheduled();
+    const currentFetch = store.fetchScheduled();
+    await currentFetch;
+    resolvePrevious([scheduled({ id: 'previous', title: 'Previous' })]);
+    await previousFetch;
+
+    expect(store.items.map((item) => item.title)).toEqual(['Current']);
   });
 
   it('exposes the items sorted by scheduled date', async () => {

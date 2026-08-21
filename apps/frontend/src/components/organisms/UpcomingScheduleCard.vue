@@ -27,6 +27,9 @@ const isEmpty = computed(
 const accountName = (id: string): string | undefined =>
   accountsStore.accounts.find((account) => account.id === id)?.name;
 
+const destinationName = (id: string | null): string | undefined =>
+  id ? accountName(id) : undefined;
+
 const categoryName = (id: string | null): string | undefined =>
   id
     ? categoriesStore.categories.find((category) => category.id === id)?.name
@@ -34,6 +37,12 @@ const categoryName = (id: string | null): string | undefined =>
 
 onMounted(() => {
   void scheduleStore.fetchScheduled();
+  if (accountsStore.accounts.length === 0) {
+    void accountsStore.fetchAccounts();
+  }
+  if (categoriesStore.categories.length === 0) {
+    void categoriesStore.fetchCategories();
+  }
 });
 
 function openExecute(scheduled: ScheduledTransactionView): void {
@@ -110,6 +119,7 @@ function message(caught: unknown, fallback: string): string {
             <ScheduledTransactionCard
               :scheduled="item"
               :account-name="accountName(item.accountId)"
+              :destination-name="destinationName(item.destinationAccountId)"
               :category-name="categoryName(item.categoryId)"
               compact
               @execute="openExecute(item)"
@@ -128,6 +138,7 @@ function message(caught: unknown, fallback: string): string {
             <ScheduledTransactionCard
               :scheduled="item"
               :account-name="accountName(item.accountId)"
+              :destination-name="destinationName(item.destinationAccountId)"
               :category-name="categoryName(item.categoryId)"
               compact
               @execute="openExecute(item)"
