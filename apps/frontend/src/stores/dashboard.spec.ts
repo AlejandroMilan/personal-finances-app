@@ -64,6 +64,30 @@ describe('dashboard store', () => {
     expect(store.error).toBeNull();
   });
 
+  it('keeps the newest summary when requests finish out of order', async () => {
+    let resolvePrevious: (value: TransactionsSummaryView) => void = () => undefined;
+    const previousResponse = new Promise<TransactionsSummaryView>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    const currentSummary = {
+      ...summary,
+      totals: { income: 0, expense: 800 },
+    };
+    vi.mocked(transactionsService.summary)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce(currentSummary);
+    const store = useDashboardStore();
+
+    const previousFetch = store.fetchSummary();
+    const currentFetch = store.selectPreset('year');
+    await currentFetch;
+    resolvePrevious(summary);
+    await previousFetch;
+
+    expect(store.summary).toEqual(currentSummary);
+    expect(store.period.kind).toBe('year');
+  });
+
   it('changing the preset triggers exactly one request and updates the period', async () => {
     const store = useDashboardStore();
 

@@ -37,6 +37,45 @@ describe('categories store', () => {
     expect(store.loading).toBe(false);
   });
 
+  it('ignores a delayed response from an invalidated session', async () => {
+    let resolvePrevious: (value: CategoryView[]) => void = () => undefined;
+    const previousResponse = new Promise<CategoryView[]>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    vi.mocked(categoriesService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce([{ ...category, id: 'c2', name: 'Transport' }]);
+    const store = useCategoriesStore();
+
+    const previousFetch = store.fetchCategories();
+    store.clear();
+    const currentFetch = store.fetchCategories();
+    resolvePrevious([category]);
+
+    await Promise.all([previousFetch, currentFetch]);
+
+    expect(store.categories.map((entry) => entry.name)).toEqual(['Transport']);
+  });
+
+  it('keeps the newest response when same-session requests finish out of order', async () => {
+    let resolvePrevious: (value: CategoryView[]) => void = () => undefined;
+    const previousResponse = new Promise<CategoryView[]>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    vi.mocked(categoriesService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce([{ ...category, id: 'c2', name: 'Transport' }]);
+    const store = useCategoriesStore();
+
+    const previousFetch = store.fetchCategories();
+    const currentFetch = store.fetchCategories();
+    await currentFetch;
+    resolvePrevious([category]);
+    await previousFetch;
+
+    expect(store.categories.map((entry) => entry.name)).toEqual(['Transport']);
+  });
+
   it('creates a category prepending it to the list', async () => {
     vi.mocked(categoriesService.create).mockResolvedValue(category);
     const store = useCategoriesStore();

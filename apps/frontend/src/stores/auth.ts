@@ -2,6 +2,11 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { authService } from '../services/auth';
 import type { User } from '../types/auth';
+import { useAccountsStore } from './accounts';
+import { useCategoriesStore } from './categories';
+import { useDashboardStore } from './dashboard';
+import { useScheduledTransactionsStore } from './scheduled-transactions';
+import { useTransactionsStore } from './transactions';
 
 const TOKEN_KEY = 'auth-token';
 const USER_KEY = 'auth-user';
@@ -16,10 +21,19 @@ function readStoredUser(): User | null {
   }
 }
 
+function clearUserData(): void {
+  useScheduledTransactionsStore().clear();
+  useAccountsStore().clear();
+  useCategoriesStore().clear();
+  useTransactionsStore().clear();
+  useDashboardStore().clear();
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));
   const user = ref<User | null>(readStoredUser());
   const isAuthenticated = computed(() => token.value !== null);
+  let authOperation = 0;
 
   function persist(): void {
     if (token.value) localStorage.setItem(TOKEN_KEY, token.value);
@@ -27,8 +41,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email: string, password: string): Promise<void> {
+    const operation = ++authOperation;
     const response = await authService.login({ email, password });
+    if (operation !== authOperation) return;
     if (!response.token) throw new Error('No token returned');
+    clearUserData();
     token.value = response.token;
     user.value = response.user;
     persist();
@@ -39,6 +56,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout(): void {
+    authOperation += 1;
+    clearUserData();
     token.value = null;
     user.value = null;
     localStorage.removeItem(TOKEN_KEY);

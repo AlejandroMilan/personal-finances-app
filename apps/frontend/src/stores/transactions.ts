@@ -14,15 +14,41 @@ export const useTransactionsStore = defineStore('transactions', () => {
   const total = ref(0);
   const loading = ref(false);
   const filters = ref<TransactionFilters>({ page: 1, limit: 20 });
+  let sessionGeneration = 0;
+  let requestId = 0;
+
+  function isCurrentRequest(generation: number, request: number): boolean {
+    return generation === sessionGeneration && request === requestId;
+  }
+
+  function isCurrentSession(generation: number): boolean {
+    return generation === sessionGeneration;
+  }
+
+  function clear(): void {
+    sessionGeneration += 1;
+    requestId += 1;
+    items.value = [];
+    total.value = 0;
+    loading.value = false;
+    filters.value = { page: 1, limit: 20 };
+  }
 
   async function fetchTransactions(): Promise<void> {
+    const generation = sessionGeneration;
+    const request = ++requestId;
+    const requestFilters = filters.value;
     loading.value = true;
     try {
-      const result = await transactionsService.list(filters.value);
-      items.value = result.items;
-      total.value = result.total;
+      const result = await transactionsService.list(requestFilters);
+      if (isCurrentRequest(generation, request)) {
+        items.value = result.items;
+        total.value = result.total;
+      }
     } finally {
-      loading.value = false;
+      if (isCurrentRequest(generation, request)) {
+        loading.value = false;
+      }
     }
   }
 
@@ -37,25 +63,38 @@ export const useTransactionsStore = defineStore('transactions', () => {
   }
 
   async function createTransaction(payload: CreateTransactionPayload): Promise<void> {
+    const generation = sessionGeneration;
+    requestId += 1;
+    loading.value = false;
     await transactionsService.create(payload);
-    await refreshAffected();
+    if (!isCurrentSession(generation)) return;
+    await refreshAffected(generation);
   }
 
   async function updateTransaction(
     id: string,
     payload: UpdateTransactionPayload,
   ): Promise<void> {
+    const generation = sessionGeneration;
+    requestId += 1;
+    loading.value = false;
     await transactionsService.update(id, payload);
-    await refreshAffected();
+    if (!isCurrentSession(generation)) return;
+    await refreshAffected(generation);
   }
 
   async function deleteTransaction(id: string): Promise<void> {
+    const generation = sessionGeneration;
+    requestId += 1;
+    loading.value = false;
     await transactionsService.remove(id);
-    await refreshAffected();
+    if (!isCurrentSession(generation)) return;
+    await refreshAffected(generation);
   }
 
-  async function refreshAffected(): Promise<void> {
+  async function refreshAffected(generation: number): Promise<void> {
     await fetchTransactions();
+    if (!isCurrentSession(generation)) return;
     const accountsStore = useAccountsStore();
     await accountsStore.fetchAccounts();
   }
@@ -65,6 +104,7 @@ export const useTransactionsStore = defineStore('transactions', () => {
     total,
     loading,
     filters,
+    clear,
     fetchTransactions,
     setPage,
     applyFilters,

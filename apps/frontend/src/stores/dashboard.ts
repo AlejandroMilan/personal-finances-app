@@ -14,6 +14,20 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const summary = ref<TransactionsSummaryView | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  let sessionGeneration = 0;
+  let requestId = 0;
+
+  function isCurrentRequest(generation: number, request: number): boolean {
+    return generation === sessionGeneration && request === requestId;
+  }
+
+  function clear(): void {
+    sessionGeneration += 1;
+    requestId += 1;
+    summary.value = null;
+    loading.value = false;
+    error.value = null;
+  }
 
   const hasData = computed(
     () =>
@@ -22,23 +36,32 @@ export const useDashboardStore = defineStore('dashboard', () => {
   );
 
   async function fetchSummary(): Promise<void> {
+    const generation = sessionGeneration;
+    const request = ++requestId;
+    const selectedPeriod = period.value;
     loading.value = true;
     error.value = null;
     try {
-      summary.value = await transactionsService.summary({
-        from: period.value.from,
-        to: period.value.to,
-        granularity: period.value.granularity,
+      const loadedSummary = await transactionsService.summary({
+        from: selectedPeriod.from,
+        to: selectedPeriod.to,
+        granularity: selectedPeriod.granularity,
         timeZone: currentTimeZone(),
       });
+      if (isCurrentRequest(generation, request)) {
+        summary.value = loadedSummary;
+      }
     } catch (caught) {
+      if (!isCurrentRequest(generation, request)) return;
       // Descartamos el resumen anterior: mostrarlo bajo el periodo nuevo
       // haría creer al usuario que esos son los datos del periodo elegido.
       summary.value = null;
       error.value =
         caught instanceof Error ? caught.message : 'No se pudo cargar el resumen';
     } finally {
-      loading.value = false;
+      if (isCurrentRequest(generation, request)) {
+        loading.value = false;
+      }
     }
   }
 
@@ -57,6 +80,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     summary,
     loading,
     error,
+    clear,
     hasData,
     fetchSummary,
     selectPreset,

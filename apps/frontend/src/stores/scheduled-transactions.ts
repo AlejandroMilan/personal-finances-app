@@ -18,6 +18,25 @@ export const useScheduledTransactionsStore = defineStore(
     const status = ref<ScheduledTransactionStatus>('pending');
     const loading = ref(false);
     const error = ref<string | null>(null);
+    let sessionGeneration = 0;
+    let requestId = 0;
+
+    function isCurrentRequest(generation: number, request: number): boolean {
+      return generation === sessionGeneration && request === requestId;
+    }
+
+    function isCurrentSession(generation: number): boolean {
+      return generation === sessionGeneration;
+    }
+
+    function clear(): void {
+      sessionGeneration += 1;
+      requestId += 1;
+      items.value = [];
+      status.value = 'pending';
+      loading.value = false;
+      error.value = null;
+    }
 
     const sorted = computed(() => sortByScheduledFor(items.value));
     const pending = computed(() =>
@@ -26,20 +45,28 @@ export const useScheduledTransactionsStore = defineStore(
     const buckets = computed(() => splitPendingSchedule(items.value));
 
     async function fetchScheduled(): Promise<void> {
+      const generation = sessionGeneration;
+      const request = ++requestId;
       loading.value = true;
       error.value = null;
       try {
-        items.value = await scheduledTransactionsService.list({
+        const loadedItems = await scheduledTransactionsService.list({
           status: status.value,
         });
+        if (isCurrentRequest(generation, request)) {
+          items.value = loadedItems;
+        }
       } catch (caught) {
+        if (!isCurrentRequest(generation, request)) return;
         items.value = [];
         error.value =
           caught instanceof Error
             ? caught.message
             : 'No se pudo cargar la agenda';
       } finally {
-        loading.value = false;
+        if (isCurrentRequest(generation, request)) {
+          loading.value = false;
+        }
       }
     }
 
@@ -51,7 +78,11 @@ export const useScheduledTransactionsStore = defineStore(
     async function createScheduled(
       payload: CreateScheduledTransactionPayload,
     ): Promise<void> {
+      const generation = sessionGeneration;
+      requestId += 1;
+      loading.value = false;
       await scheduledTransactionsService.create(payload);
+      if (!isCurrentSession(generation)) return;
       await fetchScheduled();
     }
 
@@ -59,12 +90,20 @@ export const useScheduledTransactionsStore = defineStore(
       id: string,
       payload: UpdateScheduledTransactionPayload,
     ): Promise<void> {
+      const generation = sessionGeneration;
+      requestId += 1;
+      loading.value = false;
       await scheduledTransactionsService.update(id, payload);
+      if (!isCurrentSession(generation)) return;
       await fetchScheduled();
     }
 
     async function deleteScheduled(id: string): Promise<void> {
+      const generation = sessionGeneration;
+      requestId += 1;
+      loading.value = false;
       await scheduledTransactionsService.remove(id);
+      if (!isCurrentSession(generation)) return;
       await fetchScheduled();
     }
 
@@ -72,18 +111,27 @@ export const useScheduledTransactionsStore = defineStore(
       id: string,
       payload: ExecuteScheduledTransactionPayload = {},
     ): Promise<void> {
+      const generation = sessionGeneration;
+      requestId += 1;
+      loading.value = false;
       await scheduledTransactionsService.execute(id, payload);
+      if (!isCurrentSession(generation)) return;
       // Ejecutar crea una transacción real: el saldo de la cuenta cambió.
-      await refreshAffected();
+      await refreshAffected(generation);
     }
 
     async function cancelScheduled(id: string): Promise<void> {
+      const generation = sessionGeneration;
+      requestId += 1;
+      loading.value = false;
       await scheduledTransactionsService.cancel(id);
+      if (!isCurrentSession(generation)) return;
       await fetchScheduled();
     }
 
-    async function refreshAffected(): Promise<void> {
+    async function refreshAffected(generation: number): Promise<void> {
       await fetchScheduled();
+      if (!isCurrentSession(generation)) return;
       const accountsStore = useAccountsStore();
       await accountsStore.fetchAccounts();
     }
@@ -93,6 +141,7 @@ export const useScheduledTransactionsStore = defineStore(
       status,
       loading,
       error,
+      clear,
       sorted,
       pending,
       buckets,

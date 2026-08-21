@@ -40,6 +40,45 @@ describe('accounts store', () => {
     expect(store.loading).toBe(false);
   });
 
+  it('ignores a delayed response from an invalidated session', async () => {
+    let resolvePrevious: (value: AccountView[]) => void = () => undefined;
+    const previousResponse = new Promise<AccountView[]>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    vi.mocked(accountsService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce([{ ...account, id: 'a2', name: 'Current' }]);
+    const store = useAccountsStore();
+
+    const previousFetch = store.fetchAccounts();
+    store.clear();
+    const currentFetch = store.fetchAccounts();
+    resolvePrevious([account]);
+
+    await Promise.all([previousFetch, currentFetch]);
+
+    expect(store.accounts.map((entry) => entry.name)).toEqual(['Current']);
+  });
+
+  it('keeps the newest response when same-session requests finish out of order', async () => {
+    let resolvePrevious: (value: AccountView[]) => void = () => undefined;
+    const previousResponse = new Promise<AccountView[]>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    vi.mocked(accountsService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce([{ ...account, id: 'a2', name: 'Current' }]);
+    const store = useAccountsStore();
+
+    const previousFetch = store.fetchAccounts();
+    const currentFetch = store.fetchAccounts();
+    await currentFetch;
+    resolvePrevious([account]);
+    await previousFetch;
+
+    expect(store.accounts.map((entry) => entry.name)).toEqual(['Current']);
+  });
+
   it('creates an account prepending it to the list', async () => {
     vi.mocked(accountsService.create).mockResolvedValue(account);
     const store = useAccountsStore();
