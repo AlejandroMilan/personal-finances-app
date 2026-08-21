@@ -33,6 +33,11 @@ export class CreateScheduledTransactionDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  destinationAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   categoryId?: string;
 
   @IsDateString()

@@ -27,6 +27,20 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     createdAt: new Date('2026-08-20T00:00:00.000Z'),
   });
 
+  const transfer = Transaction.restore({
+    id: 't2',
+    userId: 'u1',
+    accountId: 'a1',
+    destinationAccountId: 'a2',
+    categoryId: null,
+    type: TransactionType.TRANSFER,
+    title: 'Move money',
+    amount: 12000,
+    timestamp: new Date('2026-08-20T00:00:00.000Z'),
+    tags: ['home'],
+    createdAt: new Date('2026-08-20T00:00:00.000Z'),
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     useCase = new ExecuteScheduledTransactionUseCase(
@@ -48,6 +62,7 @@ describe('ExecuteScheduledTransactionUseCase', () => {
       {
         userId: string;
         accountId: string;
+        destinationAccountId: string | null;
         categoryId: string | null;
         type: TransactionType;
         title: string;
@@ -58,6 +73,7 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     ];
     expect(payload.userId).toBe('u1');
     expect(payload.accountId).toBe('a1');
+    expect(payload.destinationAccountId).toBeNull();
     expect(payload.categoryId).toBe('c1');
     expect(payload.type).toBe(TransactionType.EXPENSE);
     expect(payload.title).toBe('Rent');
@@ -96,6 +112,69 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     );
   });
 
+  it('executes a scheduled transfer with its destination and no category', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+    createTransaction.execute.mockResolvedValue(transfer);
+
+    const result = await useCase.execute(input);
+
+    expect(createTransaction.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: 'a1',
+        destinationAccountId: 'a2',
+        categoryId: null,
+        type: TransactionType.TRANSFER,
+      }),
+    );
+    expect(result.transaction.destinationAccountId).toBe('a2');
+  });
+
+  it('uses the confirmed destination when executing a scheduled transfer', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+    createTransaction.execute.mockResolvedValue(transfer);
+
+    await useCase.execute({ ...input, destinationAccountId: 'a3' });
+
+    expect(createTransaction.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ destinationAccountId: 'a3' }),
+    );
+  });
+
+  it('does not mark or reschedule when transaction creation rejects a foreign destination', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+    createTransaction.execute.mockRejectedValue(
+      new NotFoundException('Destination account not found'),
+    );
+
+    await expect(
+      useCase.execute({
+        ...input,
+        destinationAccountId: 'other-account',
+        reschedule: true,
+        rescheduleFor: new Date('2026-10-01T00:00:00.000Z'),
+      }),
+    ).rejects.toThrow(NotFoundException);
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
   it('marks the scheduled transaction as executed with the created transaction id', async () => {
     const result = await useCase.execute(input);
 
@@ -125,6 +204,23 @@ describe('ExecuteScheduledTransactionUseCase', () => {
     expect(result.next?.accountId).toBe('a1');
     expect(result.next?.categoryId).toBe('c1');
     expect(result.next?.id).not.toBe('s1');
+  });
+
+  it('preserves both accounts when rescheduling a transfer', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+    createTransaction.execute.mockResolvedValue(transfer);
+
+    const result = await useCase.execute({ ...input, reschedule: true });
+
+    expect(result.next?.accountId).toBe('a1');
+    expect(result.next?.destinationAccountId).toBe('a2');
+    expect(result.next?.categoryId).toBeNull();
   });
 
   it('schedules the next occurrence one month later when only the flag comes', async () => {

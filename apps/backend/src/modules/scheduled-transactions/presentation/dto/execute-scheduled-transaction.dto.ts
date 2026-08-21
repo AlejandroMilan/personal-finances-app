@@ -24,6 +24,11 @@ export class ExecuteScheduledTransactionDto {
   @IsNotEmpty()
   accountId?: string;
 
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  destinationAccountId?: string;
+
   @ValidateIf((_, value) => value !== null)
   @IsOptional()
   @IsString()

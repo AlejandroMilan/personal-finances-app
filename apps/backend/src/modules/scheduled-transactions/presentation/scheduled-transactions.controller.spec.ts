@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TOKEN_SERVICE } from '../../auth/application/ports/token-service';
@@ -31,12 +32,16 @@ describe('ScheduledTransactionsController', () => {
       id: string;
       status: ScheduledTransactionStatus;
       transactionId: string | null;
+      destinationAccountId: string | null;
+      categoryId: string | null;
+      type: TransactionType;
     }> = {},
   ) =>
     ScheduledTransaction.restore({
       id: 's1',
       userId: 'u1',
       accountId: 'a1',
+      destinationAccountId: null,
       categoryId: 'c1',
       type: TransactionType.EXPENSE,
       title: 'Rent',
@@ -124,6 +129,7 @@ describe('ScheduledTransactionsController', () => {
       amount: 12000,
       type: TransactionType.EXPENSE,
       accountId: 'a1',
+      destinationAccountId: undefined,
       categoryId: 'c1',
       scheduledFor: '2026-09-01T00:00:00.000Z',
       recurring: true,
@@ -133,6 +139,7 @@ describe('ScheduledTransactionsController', () => {
     expect(createScheduled.execute).toHaveBeenCalledWith({
       userId: 'u1',
       accountId: 'a1',
+      destinationAccountId: undefined,
       categoryId: 'c1',
       type: TransactionType.EXPENSE,
       title: 'Rent',
@@ -144,6 +151,7 @@ describe('ScheduledTransactionsController', () => {
     expect(response).toEqual({
       id: 's1',
       accountId: 'a1',
+      destinationAccountId: null,
       categoryId: 'c1',
       type: TransactionType.EXPENSE,
       title: 'Rent',
@@ -154,6 +162,84 @@ describe('ScheduledTransactionsController', () => {
       status: ScheduledTransactionStatus.PENDING,
       transactionId: null,
     });
+  });
+
+  it('creates a scheduled transfer propagating its destination', async () => {
+    createScheduled.execute.mockResolvedValue(
+      scheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+
+    const response = await controller.create(user, {
+      title: 'Move money',
+      amount: 75,
+      type: TransactionType.TRANSFER,
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+      scheduledFor: '2026-09-01T00:00:00.000Z',
+    });
+
+    expect(createScheduled.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        accountId: 'a1',
+        destinationAccountId: 'a2',
+        type: TransactionType.TRANSFER,
+      }),
+    );
+    expect(response).toEqual(
+      expect.objectContaining({
+        type: TransactionType.TRANSFER,
+        accountId: 'a1',
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+  });
+
+  it.each([TransactionType.INCOME, TransactionType.EXPENSE])(
+    'serializes a null destination for a scheduled %s',
+    async (type) => {
+      createScheduled.execute.mockResolvedValue(
+        scheduled({ type, destinationAccountId: null }),
+      );
+
+      const response = await controller.create(user, {
+        title: type === TransactionType.INCOME ? 'Salary' : 'Rent',
+        amount: 12000,
+        type,
+        accountId: 'a1',
+        scheduledFor: '2026-09-01T00:00:00.000Z',
+      });
+
+      expect(response.destinationAccountId).toBeNull();
+    },
+  );
+
+  it('propagates BadRequestException when a transfer is missing its destination', async () => {
+    const error = new BadRequestException(
+      'Transfer scheduled transactions require a destination account',
+    );
+    createScheduled.execute.mockRejectedValue(error);
+
+    await expect(
+      controller.create(user, {
+        title: 'Move money',
+        amount: 75,
+        type: TransactionType.TRANSFER,
+        accountId: 'a1',
+        scheduledFor: '2026-09-01T00:00:00.000Z',
+      }),
+    ).rejects.toBe(error);
+    expect(createScheduled.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: undefined,
+      }),
+    );
   });
 
   it('lists the scheduled transactions applying the filters', async () => {
@@ -202,6 +288,7 @@ describe('ScheduledTransactionsController', () => {
       userId: 'u1',
       scheduledTransactionId: 's1',
       accountId: undefined,
+      destinationAccountId: undefined,
       categoryId: undefined,
       type: undefined,
       title: 'New rent',
@@ -210,6 +297,47 @@ describe('ScheduledTransactionsController', () => {
       recurring: false,
       tags: undefined,
     });
+  });
+
+  it('propagates a transfer destination on update', async () => {
+    updateScheduled.execute.mockResolvedValue(
+      scheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+
+    await controller.update(user, 's1', {
+      type: TransactionType.TRANSFER,
+      destinationAccountId: 'a2',
+    });
+
+    expect(updateScheduled.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+      }),
+    );
+  });
+
+  it('propagates BadRequestException when an updated transfer has no destination', async () => {
+    const error = new BadRequestException(
+      'Transfer scheduled transactions require a destination account',
+    );
+    updateScheduled.execute.mockRejectedValue(error);
+
+    await expect(
+      controller.update(user, 's1', {
+        type: TransactionType.TRANSFER,
+      }),
+    ).rejects.toBe(error);
+    expect(updateScheduled.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: undefined,
+      }),
+    );
   });
 
   it('deletes a scheduled transaction', async () => {
@@ -236,6 +364,7 @@ describe('ScheduledTransactionsController', () => {
       amount: 12500,
       timestamp: '2026-08-20T00:00:00.000Z',
       accountId: 'a2',
+      destinationAccountId: 'a3',
       categoryId: 'c2',
       reschedule: true,
       rescheduleFor: '2026-10-01T00:00:00.000Z',
@@ -247,6 +376,7 @@ describe('ScheduledTransactionsController', () => {
       amount: 12500,
       timestamp: new Date('2026-08-20T00:00:00.000Z'),
       accountId: 'a2',
+      destinationAccountId: 'a3',
       categoryId: 'c2',
       reschedule: true,
       rescheduleFor: new Date('2026-10-01T00:00:00.000Z'),
@@ -283,6 +413,9 @@ describe('ScheduledTransactionsController', () => {
     });
     executeScheduled.execute.mockResolvedValue({
       scheduled: scheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
         status: ScheduledTransactionStatus.EXECUTED,
         transactionId: 't2',
       }),
@@ -320,6 +453,7 @@ describe('ScheduledTransactionsController', () => {
       amount: undefined,
       timestamp: undefined,
       accountId: undefined,
+      destinationAccountId: undefined,
       categoryId: undefined,
       reschedule: undefined,
       rescheduleFor: undefined,

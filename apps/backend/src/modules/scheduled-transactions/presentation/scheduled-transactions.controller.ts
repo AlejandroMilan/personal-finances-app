@@ -55,6 +55,7 @@ export class ScheduledTransactionsController {
     const scheduled = await this.createScheduled.execute({
       userId: user.id,
       accountId: dto.accountId,
+      destinationAccountId: dto.destinationAccountId,
       categoryId: dto.categoryId,
       type: dto.type,
       title: dto.title,
@@ -90,6 +91,7 @@ export class ScheduledTransactionsController {
       userId: user.id,
       scheduledTransactionId: id,
       accountId: dto.accountId,
+      destinationAccountId: dto.destinationAccountId,
       categoryId: dto.categoryId,
       type: dto.type,
       title: dto.title,
@@ -126,6 +128,7 @@ export class ScheduledTransactionsController {
       amount: dto.amount,
       timestamp: dto.timestamp ? new Date(dto.timestamp) : undefined,
       accountId: dto.accountId,
+      destinationAccountId: dto.destinationAccountId,
       categoryId: dto.categoryId,
       reschedule: dto.reschedule,
       rescheduleFor: dto.rescheduleFor
@@ -157,6 +160,7 @@ export class ScheduledTransactionsController {
     return {
       id: scheduled.id,
       accountId: scheduled.accountId,
+      destinationAccountId: scheduled.destinationAccountId,
       categoryId: scheduled.categoryId,
       type: scheduled.type,
       title: scheduled.title,

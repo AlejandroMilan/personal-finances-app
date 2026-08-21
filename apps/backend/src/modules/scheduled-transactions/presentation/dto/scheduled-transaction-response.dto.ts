@@ -5,6 +5,7 @@ import { ScheduledTransactionStatus } from '../../domain/scheduled-transaction-s
 export interface ScheduledTransactionView {
   id: string;
   accountId: string;
+  destinationAccountId: string | null;
   categoryId: string | null;
   type: TransactionType;
   title: string;

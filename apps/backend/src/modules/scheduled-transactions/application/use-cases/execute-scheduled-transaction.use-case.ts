@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateTransactionUseCase } from '../../../transactions/application/use-cases/create-transaction.use-case';
 import { Transaction } from '../../../transactions/domain/entities/transaction.entity';
+import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
 import { nextScheduledDate } from '../../domain/next-scheduled-date.util';
 import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
@@ -21,6 +22,7 @@ export interface ExecuteScheduledTransactionInput {
   amount?: number;
   timestamp?: Date;
   accountId?: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   /** Pide agendar la siguiente ocurrencia; sin fecha, un mes después. */
   reschedule?: boolean;
@@ -60,11 +62,20 @@ export class ExecuteScheduledTransactionUseCase {
 
     // Las reglas de saldo, crédito y pertenencia viven en el módulo de
     // transacciones: aquí sólo se delega con los datos confirmados.
+    const destinationAccountId =
+      input.destinationAccountId === undefined
+        ? existing.destinationAccountId
+        : input.destinationAccountId;
     const transaction = await this.createTransaction.execute({
       userId: input.userId,
       accountId: input.accountId ?? existing.accountId,
+      destinationAccountId,
       categoryId:
-        input.categoryId === undefined ? existing.categoryId : input.categoryId,
+        existing.type === TransactionType.TRANSFER
+          ? null
+          : input.categoryId === undefined
+            ? existing.categoryId
+            : input.categoryId,
       type: existing.type,
       title: existing.title,
       amount: input.amount ?? existing.amount,
@@ -111,6 +122,7 @@ export class ExecuteScheduledTransactionUseCase {
       ScheduledTransaction.create({
         userId: existing.userId,
         accountId: existing.accountId,
+        destinationAccountId: existing.destinationAccountId,
         categoryId: existing.categoryId,
         type: existing.type,
         title: existing.title,

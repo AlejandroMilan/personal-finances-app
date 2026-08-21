@@ -70,6 +70,21 @@ describe('UpdateScheduledTransactionUseCase', () => {
     expect(categories.findById).not.toHaveBeenCalled();
   });
 
+  it('keeps the scheduled destination when it is not provided', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+
+    const result = await useCase.execute(base);
+
+    expect(result.destinationAccountId).toBe('a2');
+    expect(accounts.findById).not.toHaveBeenCalled();
+  });
+
   it('clears the category when null is provided', async () => {
     const result = await useCase.execute({ ...base, categoryId: null });
 
@@ -127,6 +142,76 @@ describe('UpdateScheduledTransactionUseCase', () => {
     expect(result.categoryId).toBe('c2');
     expect(accounts.findById).toHaveBeenCalledWith('a2');
     expect(categories.findById).toHaveBeenCalledWith('c2');
+  });
+
+  it('accepts a new owned destination for a transfer', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+
+    const result = await useCase.execute({
+      ...base,
+      destinationAccountId: 'a3',
+    });
+
+    expect(result.destinationAccountId).toBe('a3');
+    expect(accounts.findById).toHaveBeenCalledWith('a3');
+  });
+
+  it('rejects a transfer destination owned by another user without saving', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+    accounts.findById.mockResolvedValue(anAccount('other'));
+
+    await expect(
+      useCase.execute({ ...base, destinationAccountId: 'a3' }),
+    ).rejects.toThrow(NotFoundException);
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a transfer without a destination before saving', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({ type: TransactionType.TRANSFER, categoryId: null }),
+    );
+
+    await expect(
+      useCase.execute({ ...base, destinationAccountId: null }),
+    ).rejects.toThrow(BadRequestException);
+    expect(accounts.findById).not.toHaveBeenCalled();
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a transfer whose destination is its source before saving', async () => {
+    scheduled.findById.mockResolvedValue(
+      aScheduled({
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+        categoryId: null,
+      }),
+    );
+
+    await expect(
+      useCase.execute({ ...base, destinationAccountId: 'a1' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(accounts.findById).not.toHaveBeenCalled();
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a destination on a regular scheduled transaction before saving', async () => {
+    await expect(
+      useCase.execute({ ...base, destinationAccountId: 'a2' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(accounts.findById).not.toHaveBeenCalled();
+    expect(scheduled.save).not.toHaveBeenCalled();
   });
 
   it.each([0, -5])('rejects an amount of %p', async (amount) => {

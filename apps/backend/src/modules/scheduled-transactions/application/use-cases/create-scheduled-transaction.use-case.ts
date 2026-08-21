@@ -22,6 +22,7 @@ import {
 export interface CreateScheduledTransactionInput {
   userId: string;
   accountId: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   type: TransactionType;
   title: string;
@@ -51,6 +52,17 @@ export class CreateScheduledTransactionUseCase {
       input.userId,
     );
 
+    if (
+      input.type === TransactionType.TRANSFER &&
+      input.destinationAccountId
+    ) {
+      await assertAccountOwnership(
+        this.accountRepository,
+        input.destinationAccountId,
+        input.userId,
+      );
+    }
+
     if (input.categoryId) {
       await assertCategoryOwnership(
         this.categoryRepository,
@@ -64,6 +76,7 @@ export class CreateScheduledTransactionUseCase {
       scheduled = ScheduledTransaction.create({
         userId: input.userId,
         accountId: input.accountId,
+        destinationAccountId: input.destinationAccountId,
         categoryId: input.categoryId ?? null,
         type: input.type,
         title: input.title,

@@ -15,6 +15,7 @@ import {
 } from '../../../categories/application/ports/category.repository';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
+import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
 import {
   SCHEDULED_TRANSACTION_REPOSITORY,
   ScheduledTransactionRepository,
@@ -28,6 +29,7 @@ export interface UpdateScheduledTransactionInput {
   userId: string;
   scheduledTransactionId: string;
   accountId?: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   type?: TransactionType;
   title?: string;
@@ -65,10 +67,29 @@ export class UpdateScheduledTransactionUseCase {
     }
 
     const accountId = input.accountId ?? existing.accountId;
+    const type = input.type ?? existing.type;
+    const destinationAccountId =
+      input.destinationAccountId === undefined
+        ? existing.destinationAccountId
+        : input.destinationAccountId;
+
+    this.assertDestination(accountId, type, destinationAccountId);
+
     if (accountId !== existing.accountId) {
       await assertAccountOwnership(
         this.accountRepository,
         accountId,
+        input.userId,
+      );
+    }
+
+    if (
+      destinationAccountId &&
+      destinationAccountId !== existing.destinationAccountId
+    ) {
+      await assertAccountOwnership(
+        this.accountRepository,
+        destinationAccountId,
         input.userId,
       );
     }
@@ -96,8 +117,9 @@ export class UpdateScheduledTransactionUseCase {
       id: existing.id,
       userId: existing.userId,
       accountId,
+      destinationAccountId,
       categoryId,
-      type: input.type ?? existing.type,
+      type,
       title,
       amount,
       tags: input.tags
@@ -112,5 +134,24 @@ export class UpdateScheduledTransactionUseCase {
     });
 
     return this.scheduledRepository.save(updated);
+  }
+
+  private assertDestination(
+    accountId: string,
+    type: TransactionType,
+    destinationAccountId: string | null,
+  ): void {
+    try {
+      ScheduledTransaction.assertDestination({
+        accountId,
+        type,
+        destinationAccountId,
+      });
+    } catch (error) {
+      if (error instanceof ScheduledTransactionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 }

@@ -52,6 +52,7 @@ export const aScheduled = (
     id: string;
     userId: string;
     accountId: string;
+    destinationAccountId: string | null;
     categoryId: string | null;
     type: TransactionType;
     title: string;
@@ -68,6 +69,7 @@ export const aScheduled = (
     id: 's1',
     userId: 'u1',
     accountId: 'a1',
+    destinationAccountId: null,
     categoryId: 'c1',
     type: TransactionType.EXPENSE,
     title: 'Rent',

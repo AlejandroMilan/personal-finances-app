@@ -36,11 +36,34 @@ describe('CreateScheduledTransactionDto', () => {
     expect(
       validate(CreateScheduledTransactionDto, {
         ...valid,
+        destinationAccountId: 'a2',
         categoryId: 'c1',
         recurring: true,
         tags: ['home'],
       }),
     ).toHaveLength(0);
+  });
+
+  it('rejects an empty destination account id', () => {
+    expect(
+      properties(
+        validate(CreateScheduledTransactionDto, {
+          ...valid,
+          destinationAccountId: '',
+        }),
+      ),
+    ).toContain('destinationAccountId');
+  });
+
+  it('rejects a destination account id that is not a string', () => {
+    expect(
+      properties(
+        validate(CreateScheduledTransactionDto, {
+          ...valid,
+          destinationAccountId: 42,
+        }),
+      ),
+    ).toContain('destinationAccountId');
   });
 
   it.each([0, -1])('rejects an amount of %p', (amount) => {
@@ -118,6 +141,28 @@ describe('UpdateScheduledTransactionDto', () => {
     ).toHaveLength(0);
   });
 
+  it('accepts a non-empty destination account id', () => {
+    expect(
+      validate(UpdateScheduledTransactionDto, {
+        destinationAccountId: 'a2',
+      }),
+    ).toHaveLength(0);
+  });
+
+  it('accepts an explicit null destination so the use case can enforce transfer invariants', () => {
+    expect(
+      validate(UpdateScheduledTransactionDto, { destinationAccountId: null }),
+    ).toHaveLength(0);
+  });
+
+  it('rejects an empty destination account id', () => {
+    expect(
+      properties(
+        validate(UpdateScheduledTransactionDto, { destinationAccountId: '' }),
+      ),
+    ).toContain('destinationAccountId');
+  });
+
   it('rejects an amount that is not positive', () => {
     expect(
       properties(validate(UpdateScheduledTransactionDto, { amount: -1 })),
@@ -173,10 +218,21 @@ describe('ExecuteScheduledTransactionDto', () => {
         amount: 12500,
         timestamp: '2026-08-20T00:00:00.000Z',
         accountId: 'a2',
+        destinationAccountId: 'a3',
         categoryId: 'c2',
         rescheduleFor: '2026-10-01T00:00:00.000Z',
       }),
     ).toHaveLength(0);
+  });
+
+  it('rejects an empty confirmed destination account id', () => {
+    expect(
+      properties(
+        validate(ExecuteScheduledTransactionDto, {
+          destinationAccountId: '',
+        }),
+      ),
+    ).toContain('destinationAccountId');
   });
 
   it('accepts clearing the category with null', () => {

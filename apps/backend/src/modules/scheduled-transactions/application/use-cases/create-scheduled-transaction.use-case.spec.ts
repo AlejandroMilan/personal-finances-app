@@ -51,6 +51,23 @@ describe('CreateScheduledTransactionUseCase', () => {
     expect(scheduled.save).toHaveBeenCalledTimes(1);
   });
 
+  it('creates a transfer with an owned destination and no category', async () => {
+    const result = await useCase.execute({
+      ...input,
+      categoryId: 'c1',
+      type: TransactionType.TRANSFER,
+      destinationAccountId: 'a2',
+    });
+
+    expect(result.type).toBe(TransactionType.TRANSFER);
+    expect(result.destinationAccountId).toBe('a2');
+    expect(result.categoryId).toBeNull();
+    expect(accounts.findById).toHaveBeenNthCalledWith(2, 'a2');
+    expect(accounts.findById.mock.invocationCallOrder[1]).toBeLessThan(
+      scheduled.save.mock.invocationCallOrder[0],
+    );
+  });
+
   it('defaults recurring to false and tags to empty', async () => {
     const result = await useCase.execute({
       userId: 'u1',
@@ -78,6 +95,65 @@ describe('CreateScheduledTransactionUseCase', () => {
     accounts.findById.mockResolvedValue(anAccount('other'));
 
     await expect(useCase.execute(input)).rejects.toThrow(NotFoundException);
+  });
+
+  it('throws NotFoundException when a transfer destination belongs to another user', async () => {
+    accounts.findById
+      .mockResolvedValueOnce(anAccount())
+      .mockResolvedValueOnce(anAccount('other'));
+
+    await expect(
+      useCase.execute({
+        ...input,
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+      }),
+    ).rejects.toThrow(NotFoundException);
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('throws NotFoundException when a transfer destination does not exist', async () => {
+    accounts.findById
+      .mockResolvedValueOnce(anAccount())
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      useCase.execute({
+        ...input,
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a2',
+      }),
+    ).rejects.toThrow(NotFoundException);
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('maps a transfer without a destination to BadRequestException', async () => {
+    await expect(
+      useCase.execute({
+        ...input,
+        type: TransactionType.TRANSFER,
+        destinationAccountId: null,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('maps an invalid scheduled destination to BadRequestException', async () => {
+    await expect(
+      useCase.execute({
+        ...input,
+        type: TransactionType.TRANSFER,
+        destinationAccountId: 'a1',
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(scheduled.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a destination on a regular scheduled transaction', async () => {
+    await expect(
+      useCase.execute({ ...input, destinationAccountId: 'a2' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(scheduled.save).not.toHaveBeenCalled();
   });
 
   it('throws BadRequestException when the category does not exist', async () => {

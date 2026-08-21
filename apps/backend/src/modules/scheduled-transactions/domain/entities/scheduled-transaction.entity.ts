@@ -86,8 +86,11 @@ export class ScheduledTransaction {
     });
   }
 
-  private static assertDestination(
-    input: CreateScheduledTransactionInput,
+  static assertDestination(
+    input: Pick<
+      CreateScheduledTransactionInput,
+      'accountId' | 'type' | 'destinationAccountId'
+    >,
   ): void {
     if (input.type === TransactionType.TRANSFER) {
       if (!input.destinationAccountId) {
