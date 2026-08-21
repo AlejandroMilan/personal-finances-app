@@ -1,8 +1,9 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export interface TransactionView {
   id: string;
   accountId: string;
+  destinationAccountId: string | null;
   categoryId: string | null;
   type: TransactionType;
   title: string;
@@ -16,6 +17,7 @@ export interface CreateTransactionPayload {
   amount: number;
   type: TransactionType;
   accountId: string;
+  destinationAccountId?: string;
   categoryId?: string;
   timestamp?: string;
   tags?: string[];
@@ -26,6 +28,7 @@ export interface UpdateTransactionPayload {
   amount?: number;
   type?: TransactionType;
   accountId?: string;
+  destinationAccountId?: string | null;
   categoryId?: string | null;
   timestamp?: string;
   tags?: string[];

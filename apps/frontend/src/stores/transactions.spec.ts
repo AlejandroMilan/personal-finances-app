@@ -27,6 +27,7 @@ import { useTransactionsStore } from './transactions';
 const transaction: TransactionView = {
   id: 't1',
   accountId: 'a1',
+  destinationAccountId: null,
   categoryId: 'c1',
   type: 'expense',
   title: 'Lunch',
@@ -58,6 +59,27 @@ describe('transactions store', () => {
     expect(store.items).toHaveLength(1);
     expect(store.total).toBe(1);
     expect(store.loading).toBe(false);
+  });
+
+  it('keeps the newest response when requests finish out of order', async () => {
+    let resolvePrevious: (value: PaginatedTransactions) => void = () => undefined;
+    const previousResponse = new Promise<PaginatedTransactions>((resolve) => {
+      resolvePrevious = resolve;
+    });
+    const currentTransaction = { ...transaction, id: 't2', title: 'Current' };
+    vi.mocked(transactionsService.list)
+      .mockReturnValueOnce(previousResponse)
+      .mockResolvedValueOnce({ ...page, items: [currentTransaction] });
+    const store = useTransactionsStore();
+
+    const previousFetch = store.fetchTransactions();
+    const currentFetch = store.setPage(2);
+    await currentFetch;
+    resolvePrevious(page);
+    await previousFetch;
+
+    expect(store.items.map((item) => item.title)).toEqual(['Current']);
+    expect(store.filters.page).toBe(2);
   });
 
   it('changes the page and refetches', async () => {
@@ -103,6 +125,23 @@ describe('transactions store', () => {
     });
     expect(transactionsService.list).toHaveBeenCalled();
     expect(accountsService.list).toHaveBeenCalled();
+  });
+
+  it('forwards the destination account when creating a transfer', async () => {
+    vi.mocked(transactionsService.list).mockResolvedValue(page);
+    vi.mocked(accountsService.list).mockResolvedValue([]);
+    const store = useTransactionsStore();
+    const payload = {
+      title: 'Move money',
+      amount: 125,
+      type: 'transfer' as const,
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+    };
+
+    await store.createTransaction(payload);
+
+    expect(transactionsService.create).toHaveBeenCalledWith(payload);
   });
 
   it('updates a transaction refreshing the list and the account balances', async () => {

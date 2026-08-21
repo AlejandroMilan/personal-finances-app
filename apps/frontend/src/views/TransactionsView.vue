@@ -10,7 +10,14 @@ import type {
   TransactionView,
   UpdateTransactionPayload,
 } from '../types/transaction';
-import { formatCurrency } from '../utils/money';
+import {
+  getAccountName,
+  getTransactionAmountLabel,
+  getTransactionTypeColor,
+  getTransactionTypeLabel,
+  getTransferLabel,
+  transactionTypeOptions,
+} from '../utils/transaction';
 
 const transactionsStore = useTransactionsStore();
 const accountsStore = useAccountsStore();
@@ -51,10 +58,7 @@ const headers = [
   { title: '', key: 'actions', align: 'end' as const, sortable: false },
 ];
 
-const typeOptions: { value: TransactionType; label: string }[] = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-];
+const typeOptions = transactionTypeOptions;
 
 onMounted(() => {
   void transactionsStore.fetchTransactions();
@@ -89,7 +93,11 @@ function clearFilters(): void {
 }
 
 function accountName(transaction: TransactionView): string {
-  return accountsStore.accounts.find((account) => account.id === transaction.accountId)?.name ?? 'Unknown account';
+  return getAccountName(accountsStore.accounts, transaction.accountId);
+}
+
+function transferLabel(transaction: TransactionView): string {
+  return getTransferLabel(transaction, accountsStore.accounts);
 }
 
 function categoryLabel(transaction: TransactionView): string {
@@ -110,8 +118,7 @@ function formatDate(iso: string): string {
 }
 
 function amountLabel(transaction: TransactionView): string {
-  const sign = transaction.type === 'income' ? '+' : '-';
-  return `${sign}${formatCurrency(transaction.amount)}`;
+  return getTransactionAmountLabel(transaction);
 }
 
 function openCreate(): void {
@@ -252,7 +259,8 @@ async function confirmDelete(): Promise<void> {
         <span class="font-weight-medium">{{ item.title }}</span>
       </template>
       <template #[`item.accountId`]="{ item }">
-        {{ accountName(item) }}
+        <span v-if="item.type === 'transfer'">{{ transferLabel(item) }}</span>
+        <span v-else>{{ accountName(item) }}</span>
       </template>
       <template #[`item.categoryId`]="{ item }">
         <v-chip
@@ -281,15 +289,19 @@ async function confirmDelete(): Promise<void> {
         <v-chip
           size="small"
           variant="tonal"
-          :color="item.type === 'income' ? 'success' : 'error'"
+          :color="getTransactionTypeColor(item.type)"
         >
-          {{ item.type === 'income' ? 'Income' : 'Expense' }}
+          {{ getTransactionTypeLabel(item.type) }}
         </v-chip>
       </template>
       <template #[`item.amount`]="{ item }">
         <span
           class="font-weight-medium"
-          :class="item.type === 'income' ? 'text-success' : 'text-error'"
+          :class="{
+            'text-success': item.type === 'income',
+            'text-error': item.type === 'expense',
+            'text-primary': item.type === 'transfer',
+          }"
         >
           {{ amountLabel(item) }}
         </span>

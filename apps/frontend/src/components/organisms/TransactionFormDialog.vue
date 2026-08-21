@@ -8,6 +8,10 @@ import type {
   TransactionView,
   UpdateTransactionPayload,
 } from '../../types/transaction';
+import {
+  getDestinationAccountOptions,
+  transactionTypeOptions,
+} from '../../utils/transaction';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -25,6 +29,7 @@ const categoriesStore = useCategoriesStore();
 const form = ref<{ validate: () => Promise<string[]> } | null>(null);
 const accountId = ref('');
 const type = ref<TransactionType>('expense');
+const destinationAccountId = ref<string | null>(null);
 const title = ref('');
 const amount = ref(0);
 const categoryId = ref<string | null>(null);
@@ -33,14 +38,20 @@ const tags = ref<string[]>([]);
 const saving = ref(false);
 const error = ref('');
 
-const typeOptions: { value: TransactionType; label: string }[] = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-];
+const isTransfer = computed(() => type.value === 'transfer');
+const destinationAccounts = computed(() =>
+  getDestinationAccountOptions(accountsStore.accounts, accountId.value),
+);
+const canSave = computed(() => !isTransfer.value || !!destinationAccountId.value);
+
+const typeOptions = transactionTypeOptions;
 
 const titleRules = [(value: string) => !!value.trim() || 'Title is required'];
 const amountRules = [(value: number) => Number.isFinite(value) && value > 0 || 'Amount must be greater than zero'];
 const accountRules = [(value: string) => !!value || 'Account is required'];
+const destinationRules = [
+  (value: string | null) => !isTransfer.value || !!value || 'Destination account is required',
+];
 
 function toDateTimeLocal(date: Date): string {
   const offset = date.getTimezoneOffset();
@@ -56,6 +67,7 @@ watch(
     if (props.transaction) {
       accountId.value = props.transaction.accountId;
       type.value = props.transaction.type;
+      destinationAccountId.value = props.transaction.destinationAccountId;
       title.value = props.transaction.title;
       amount.value = props.transaction.amount;
       categoryId.value = props.transaction.categoryId;
@@ -64,6 +76,7 @@ watch(
     } else {
       accountId.value = accountsStore.accounts[0]?.id ?? '';
       type.value = 'expense';
+      destinationAccountId.value = null;
       title.value = '';
       amount.value = 0;
       categoryId.value = null;
@@ -73,16 +86,31 @@ watch(
   },
 );
 
+watch(accountId, (sourceAccountId) => {
+  if (destinationAccountId.value === sourceAccountId) {
+    destinationAccountId.value = null;
+  }
+});
+
+watch(type, (transactionType) => {
+  if (transactionType !== 'transfer') {
+    destinationAccountId.value = null;
+  }
+});
+
 async function save(): Promise<void> {
   const errors = form.value ? await form.value.validate() : [];
   if (errors.length > 0) return;
+  if (isTransfer.value && !destinationAccountId.value) return;
 
   const payload = {
     title: title.value,
     amount: amount.value,
     type: type.value,
     accountId: accountId.value,
-    categoryId: categoryId.value ?? undefined,
+    ...(isTransfer.value
+      ? { destinationAccountId: destinationAccountId.value ?? undefined }
+      : { categoryId: categoryId.value ?? undefined }),
     timestamp: new Date(timestamp.value).toISOString(),
     tags: tags.value,
   };
@@ -116,6 +144,7 @@ function close(): void {
           :items="typeOptions"
           item-title="label"
           item-value="value"
+          :disabled="transaction !== null"
           prepend-icon="mdi-swap-horizontal"
         />
         <v-text-field v-model="title" label="Title" :rules="titleRules" prepend-icon="mdi-format-title" />
@@ -136,6 +165,18 @@ function close(): void {
           prepend-icon="mdi-wallet"
         />
         <v-select
+          v-if="isTransfer"
+          v-model="destinationAccountId"
+          label="Destination account"
+          :items="destinationAccounts"
+          item-title="name"
+          item-value="id"
+          :rules="destinationRules"
+          clearable
+          prepend-icon="mdi-wallet-plus"
+        />
+        <v-select
+          v-if="!isTransfer"
           v-model="categoryId"
           label="Category"
           :items="categoriesStore.categories"
@@ -163,7 +204,7 @@ function close(): void {
 
         <div class="d-flex justify-end mt-4">
           <v-btn variant="text" class="mr-2" @click="close">Cancel</v-btn>
-          <v-btn color="primary" type="submit" :loading="saving">
+          <v-btn color="primary" type="submit" :loading="saving" :disabled="!canSave">
             {{ transaction ? 'Save changes' : 'Create transaction' }}
           </v-btn>
         </div>

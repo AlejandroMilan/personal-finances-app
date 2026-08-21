@@ -4,6 +4,7 @@ vi.mock('./api', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from './api';
 import { transactionsService } from './transactions';
+import type { CreateTransactionPayload, UpdateTransactionPayload } from '../types/transaction';
 
 describe('transactionsService.summary', () => {
   beforeEach(() => {
@@ -40,5 +41,52 @@ describe('transactionsService.summary', () => {
     expect(apiFetch).toHaveBeenCalledTimes(1);
     // Sin segundo argumento: ni headers ni token construidos a mano.
     expect(vi.mocked(apiFetch).mock.calls[0][1]).toBeUndefined();
+  });
+});
+
+describe('transactionsService transfer payloads and filters', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(apiFetch).mockResolvedValue(undefined as never);
+  });
+
+  it('includes the destination account when creating a transfer', async () => {
+    const payload: CreateTransactionPayload = {
+      title: 'Move money',
+      amount: 125,
+      type: 'transfer',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+    };
+
+    await transactionsService.create(payload);
+
+    expect(apiFetch).toHaveBeenCalledWith('/transactions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  });
+
+  it('includes the destination account when updating a transfer', async () => {
+    const payload: UpdateTransactionPayload = {
+      type: 'transfer',
+      accountId: 'a1',
+      destinationAccountId: 'a2',
+    };
+
+    await transactionsService.update('t1', payload);
+
+    expect(apiFetch).toHaveBeenCalledWith('/transactions/t1', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  });
+
+  it('serializes the transfer type in the transaction list filter', async () => {
+    await transactionsService.list({ page: 1, limit: 20, type: 'transfer' });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/transactions?page=1&limit=20&type=transfer',
+    );
   });
 });
