@@ -24,6 +24,21 @@ const input = (
   ...overrides,
 });
 
+const manyItems = (count: number, note?: string): BudgetItem[] =>
+  Array.from({ length: count }, (_, index) =>
+    item({ categoryId: `c${index}`, note }),
+  );
+
+const restoredProps = (overrides: Partial<BudgetProps> = {}): BudgetProps => ({
+  id: 'b1',
+  userId: 'u1',
+  month: '2026-08',
+  items: [item()],
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-15T00:00:00.000Z'),
+  ...overrides,
+});
+
 describe('Budget', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -123,6 +138,59 @@ describe('Budget', () => {
         }),
       ),
     ).toThrow(BudgetError);
+  });
+
+  it('rejects more than 100 items when creating a budget', () => {
+    expect(() => Budget.create(input({ items: manyItems(101) }))).toThrow(
+      BudgetError,
+    );
+  });
+
+  it('rejects more than 100 items when restoring a budget', () => {
+    expect(() =>
+      Budget.restore(restoredProps({ items: manyItems(101) })),
+    ).toThrow(BudgetError);
+  });
+
+  it('rejects a note longer than 500 characters when creating a budget', () => {
+    expect(() =>
+      Budget.create(input({ items: [item({ note: 'x'.repeat(501) })] })),
+    ).toThrow(BudgetError);
+  });
+
+  it('rejects a note longer than 500 characters when restoring a budget', () => {
+    expect(() =>
+      Budget.restore(
+        restoredProps({ items: [item({ note: 'x'.repeat(501) })] }),
+      ),
+    ).toThrow(BudgetError);
+  });
+
+  it('accepts exactly 100 items when creating a budget', () => {
+    const budget = Budget.create(input({ items: manyItems(100) }));
+
+    expect(budget.items).toHaveLength(100);
+  });
+
+  it('accepts exactly 100 items when restoring a budget', () => {
+    const items = manyItems(100);
+    const budget = Budget.restore(restoredProps({ items }));
+
+    expect(budget.items).toBe(items);
+  });
+
+  it('accepts a note with exactly 500 characters when creating a budget', () => {
+    const note = 'x'.repeat(500);
+    const budget = Budget.create(input({ items: [item({ note })] }));
+
+    expect(budget.items[0].note).toHaveLength(500);
+  });
+
+  it('accepts a note with exactly 500 characters when restoring a budget', () => {
+    const note = 'x'.repeat(500);
+    const budget = Budget.restore(restoredProps({ items: [item({ note })] }));
+
+    expect(budget.items[0].note).toHaveLength(500);
   });
 
   it('restores every persisted budget property without regenerating metadata', () => {

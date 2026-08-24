@@ -5,8 +5,10 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  MaxLength,
 } from 'class-validator';
 import { BudgetItemType } from '../../domain/budget-item-type.enum';
+import { MAX_BUDGET_NOTE_LENGTH } from '../../domain/budget-limits';
 
 export class BudgetItemDto {
   @IsString()
@@ -22,5 +24,6 @@ export class BudgetItemDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(MAX_BUDGET_NOTE_LENGTH)
   note?: string;
 }

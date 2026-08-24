@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsString, Matches, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsString,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
+import { MAX_BUDGET_ITEMS } from '../../domain/budget-limits';
 import { BUDGET_MONTH_PATTERN } from './budget-month-param.dto';
 import { BudgetItemDto } from './budget-item.dto';
 
@@ -9,6 +16,7 @@ export class CreateBudgetDto {
   month: string;
 
   @IsArray()
+  @ArrayMaxSize(MAX_BUDGET_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => BudgetItemDto)
   items: BudgetItemDto[];

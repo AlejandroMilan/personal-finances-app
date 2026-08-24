@@ -14,16 +14,23 @@ const validate = (payload: Record<string, unknown>) => {
   return { instance, errors };
 };
 
+const validItem = {
+  categoryId: 'c1',
+  type: BudgetItemType.EXPENSE,
+  amount: 250,
+};
+
+const manyItems = (count: number, note?: string) =>
+  Array.from({ length: count }, (_, index) => ({
+    ...validItem,
+    categoryId: `c${index}`,
+    ...(note === undefined ? {} : { note }),
+  }));
+
 describe('CreateBudgetDto', () => {
   const valid = {
     month: '2026-08',
-    items: [
-      {
-        categoryId: 'c1',
-        type: BudgetItemType.EXPENSE,
-        amount: 250,
-      },
-    ],
+    items: [validItem],
   };
 
   it('accepts a valid monthly budget payload', () => {
@@ -50,6 +57,21 @@ describe('CreateBudgetDto', () => {
     expect(errors[0].children?.[0].children?.map((error) => error.property)).toContain(
       'type',
     );
+  });
+
+  it('rejects a budget with more than 100 items', () => {
+    const { errors } = validate({ ...valid, items: manyItems(101) });
+
+    expect(errors.map((error) => error.property)).toContain('items');
+  });
+
+  it('accepts 100 items with a 500-character nested note', () => {
+    const { errors } = validate({
+      ...valid,
+      items: manyItems(100, 'x'.repeat(500)),
+    });
+
+    expect(errors).toHaveLength(0);
   });
 
   it('transforms nested items and removes userId from the request body', () => {

@@ -1,8 +1,12 @@
 import { Model } from 'mongoose';
 import { Budget, BudgetItemType, type BudgetItem, type BudgetProps } from '../../domain/entities/budget.entity';
 import { BUDGET_REPOSITORY } from '../../application/ports/budget.repository';
-import { BudgetModel, BudgetSchema } from './budget.schema';
+import { BudgetItemSchema, BudgetModel, BudgetSchema } from './budget.schema';
 import { BudgetMongoRepository } from './budget.repository.mongo';
+import {
+  MAX_BUDGET_ITEMS,
+  MAX_BUDGET_NOTE_LENGTH,
+} from '../../domain/budget-limits';
 
 describe('BudgetMongoRepository', () => {
   const createdAt = new Date('2026-01-01T00:00:00.000Z');
@@ -112,6 +116,44 @@ describe('BudgetMongoRepository', () => {
         ],
       ]),
     );
+  });
+
+  it('declares matching maximum validators for items and notes', () => {
+    const itemsPath = BudgetSchema.path('items') as unknown as {
+      options: {
+        validate?: {
+          validator: (items: unknown[]) => boolean;
+        };
+      };
+    };
+    const notePath = BudgetItemSchema.path('note');
+    const itemValidator = itemsPath.options.validate?.validator;
+
+    expect(itemValidator).toBeDefined();
+    expect(itemValidator?.(new Array(MAX_BUDGET_ITEMS).fill({}))).toBe(true);
+    expect(itemValidator?.(new Array(MAX_BUDGET_ITEMS + 1).fill({}))).toBe(
+      false,
+    );
+    expect(notePath.options.maxlength).toBe(MAX_BUDGET_NOTE_LENGTH);
+  });
+
+  it('enables validators for findOneAndUpdate upserts', async () => {
+    const query = { setOptions: jest.fn() };
+    const hooks = (BudgetSchema as unknown as {
+      s: {
+        hooks: {
+          execPre: (
+            name: string,
+            context: unknown,
+            args: unknown[],
+          ) => Promise<unknown[]>;
+        };
+      };
+    }).s.hooks;
+
+    await hooks.execPre('findOneAndUpdate', query, []);
+
+    expect(query.setOptions).toHaveBeenCalledWith({ runValidators: true });
   });
 
   it('returns a Budget entity with every embedded field when found by user and month', async () => {

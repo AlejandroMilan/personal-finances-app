@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { BudgetError } from '../budget.error';
 import { BudgetItemType } from '../budget-item-type.enum';
+import {
+  MAX_BUDGET_ITEMS,
+  MAX_BUDGET_NOTE_LENGTH,
+} from '../budget-limits';
 import type { BudgetItem } from '../budget-item.type';
 
 export type { BudgetItem } from '../budget-item.type';
@@ -41,6 +45,7 @@ export class Budget {
   }
 
   static restore(props: BudgetProps): Budget {
+    Budget.assertItemBounds(props.items);
     return new Budget(props);
   }
 
@@ -83,6 +88,8 @@ export class Budget {
   }
 
   private static assertItems(items: BudgetItem[]): void {
+    Budget.assertItemBounds(items);
+
     const categoriesByType = new Map<string, Set<BudgetItemType>>();
 
     for (const item of items) {
@@ -103,6 +110,26 @@ export class Budget {
   private static assertItemAmount(amount: number): void {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BudgetError('Budget item amount must be greater than zero');
+    }
+  }
+
+  private static assertItemBounds(items: BudgetItem[]): void {
+    if (items.length > MAX_BUDGET_ITEMS) {
+      throw new BudgetError(
+        `A budget cannot contain more than ${MAX_BUDGET_ITEMS} items`,
+      );
+    }
+
+    for (const item of items) {
+      if (
+        item.note !== undefined &&
+        (typeof item.note !== 'string' ||
+          item.note.length > MAX_BUDGET_NOTE_LENGTH)
+      ) {
+        throw new BudgetError(
+          `A budget item note cannot exceed ${MAX_BUDGET_NOTE_LENGTH} characters`,
+        );
+      }
     }
   }
 

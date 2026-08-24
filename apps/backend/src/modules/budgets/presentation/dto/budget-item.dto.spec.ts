@@ -45,6 +45,18 @@ describe('BudgetItemDto', () => {
     expect(errors.map((error) => error.property)).toContain('categoryId');
   });
 
+  it('rejects a note longer than 500 characters', () => {
+    const { errors } = validate({ ...valid, note: 'x'.repeat(501) });
+
+    expect(errors.map((error) => error.property)).toContain('note');
+  });
+
+  it('accepts a note with exactly 500 characters', () => {
+    const { errors } = validate({ ...valid, note: 'x'.repeat(500) });
+
+    expect(errors).toHaveLength(0);
+  });
+
   it('removes undeclared fields with the whitelist validation option', () => {
     const { instance } = validate({
       ...valid,
