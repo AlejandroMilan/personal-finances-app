@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
+import { BudgetsModule } from './modules/budgets/budgets.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ScheduledTransactionsModule } from './modules/scheduled-transactions/scheduled-transactions.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
@@ -23,6 +24,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
     }),
     AuthModule,
     AccountsModule,
+    BudgetsModule,
     CategoriesModule,
     TransactionsModule,
     ScheduledTransactionsModule,
