@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
+  BUDGET_LIST_DEFAULT_LIMIT,
+  BUDGET_LIST_MAX_LIMIT,
+} from '../../application/budget-list-limits';
+import {
   BudgetFilters,
   BudgetRepository,
 } from '../../application/ports/budget.repository';
@@ -33,6 +37,7 @@ export class BudgetMongoRepository implements BudgetRepository {
     const docs = await this.model
       .find(this.buildQuery(userId, filters))
       .sort({ month: 1 })
+      .limit(this.resolveListLimit(filters.limit))
       .exec();
     return docs.map((doc) => this.toEntity(doc));
   }
@@ -75,6 +80,14 @@ export class BudgetMongoRepository implements BudgetRepository {
     }
 
     return query;
+  }
+
+  private resolveListLimit(limit: number | undefined): number {
+    if (limit === undefined || !Number.isInteger(limit) || limit < 1) {
+      return BUDGET_LIST_DEFAULT_LIMIT;
+    }
+
+    return Math.min(limit, BUDGET_LIST_MAX_LIMIT);
   }
 
   private toEntity(doc: BudgetDocument): Budget {

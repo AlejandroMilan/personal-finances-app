@@ -42,11 +42,13 @@ describe('BudgetMongoRepository', () => {
   };
   let execMock: jest.Mock;
   let sortMock: jest.Mock;
+  let limitMock: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     execMock = jest.fn().mockResolvedValue(doc);
-    sortMock = jest.fn().mockReturnValue({ exec: execMock });
+    limitMock = jest.fn().mockReturnValue({ exec: execMock });
+    sortMock = jest.fn().mockReturnValue({ limit: limitMock });
     modelMock = {
       findOne: jest.fn().mockReturnValue({ exec: execMock }),
       find: jest.fn().mockReturnValue({ sort: sortMock }),
@@ -88,11 +90,9 @@ describe('BudgetMongoRepository', () => {
         );
       });
 
-      sortMock = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue(
-          matching.sort((left, right) => left.month.localeCompare(right.month)),
-        ),
-      });
+      execMock.mockResolvedValue(
+        matching.sort((left, right) => left.month.localeCompare(right.month)),
+      );
       return { sort: sortMock };
     });
   };
@@ -174,6 +174,7 @@ describe('BudgetMongoRepository', () => {
 
     expect(modelMock.find).toHaveBeenCalledWith({ userId: 'u1' });
     expect(sortMock).toHaveBeenCalledWith({ month: 1 });
+    expect(limitMock).toHaveBeenCalledWith(20);
     expect(budgets.map((budget) => budget.id)).toEqual(['b-august', 'b-september']);
     expect(budgets.every((budget) => budget.userId === 'u1')).toBe(true);
     expect(budgets.every((budget) => budget instanceof Budget)).toBe(true);
@@ -189,6 +190,7 @@ describe('BudgetMongoRepository', () => {
     const budgets = await repo().list('u1', {
       from: '2026-08',
       to: '2026-09',
+      limit: 2,
     });
 
     expect(modelMock.find).toHaveBeenCalledWith({
@@ -196,11 +198,34 @@ describe('BudgetMongoRepository', () => {
       month: { $gte: '2026-08', $lte: '2026-09' },
     });
     expect(sortMock).toHaveBeenCalledWith({ month: 1 });
+    expect(limitMock).toHaveBeenCalledWith(2);
     expect(budgets.map((budget) => budget.month)).toEqual([
       '2026-08',
       '2026-09',
     ]);
   });
+
+  it(
+    'caps a repository limit above the maximum instead of allowing an unbounded query',
+    async () => {
+      execMock.mockResolvedValue([]);
+
+      await repo().list('u1', { limit: 101 });
+
+      expect(limitMock).toHaveBeenCalledWith(100);
+    },
+  );
+
+  it.each([0, -1, 1.5, NaN, Infinity])(
+    'uses the default limit for an invalid repository limit: %p',
+    async (limit) => {
+      execMock.mockResolvedValue([]);
+
+      await repo().list('u1', { limit });
+
+      expect(limitMock).toHaveBeenCalledWith(20);
+    },
+  );
 
   it.each([
     ['from', { from: '2026-08' }, { $gte: '2026-08' }],

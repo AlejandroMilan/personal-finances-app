@@ -3,6 +3,7 @@ import { Budget } from '../../domain/entities/budget.entity';
 export interface BudgetFilters {
   from?: string;
   to?: string;
+  limit?: number;
 }
 
 export interface BudgetRepository {

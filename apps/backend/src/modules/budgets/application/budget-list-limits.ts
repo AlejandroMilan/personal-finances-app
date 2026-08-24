@@ -1,0 +1,2 @@
+export const BUDGET_LIST_DEFAULT_LIMIT = 20;
+export const BUDGET_LIST_MAX_LIMIT = 100;
