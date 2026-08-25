@@ -111,11 +111,11 @@ function close(): void {
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="760"
+    max-width="520"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <v-card color="surface" class="pa-6" data-test="budget-form-dialog">
-      <v-card-title class="text-h5 font-weight-bold pa-0 pb-1">
+      <v-card-title class="text-h5 font-weight-bold pa-0 pb-4">
         {{ items.length > 0 ? 'Edit budget' : 'New budget' }}
       </v-card-title>
       <div class="text-body-2 text-medium-emphasis mb-4">{{ month }}</div>
@@ -125,83 +125,59 @@ function close(): void {
           No proposed items for this month.
         </div>
 
-        <v-card
-          v-for="(item, index) in items"
-          :key="item.key"
-          variant="tonal"
-          color="surface"
-          class="pa-3 mb-3"
-          data-test="budget-item-row"
-        >
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-subtitle-2 font-weight-medium">Item {{ index + 1 }}</span>
-            <v-btn
-              icon="mdi-delete-outline"
-              variant="text"
-              size="small"
-              color="error"
-              aria-label="Remove item"
-              data-test="remove-budget-item"
-              @click="removeItem(item.key)"
+        <template v-for="(item, index) in items" :key="item.key">
+          <v-divider v-if="index > 0" class="my-4" />
+          <div data-test="budget-item-row">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-subtitle-1 font-weight-medium">Item {{ index + 1 }}</span>
+              <v-btn
+                icon="mdi-delete-outline"
+                variant="text"
+                size="small"
+                color="error"
+                aria-label="Remove item"
+                data-test="remove-budget-item"
+                @click="removeItem(item.key)"
+              />
+            </div>
+
+            <v-select
+              v-model="item.categoryId"
+              label="Category"
+              :items="categories"
+              item-title="name"
+              item-value="id"
+              :rules="categoryRules"
+              prepend-icon="mdi-tag-multiple"
+              data-test="budget-item-category"
+            />
+            <v-select
+              v-model="item.type"
+              label="Type"
+              :items="typeOptions"
+              item-title="label"
+              item-value="value"
+              prepend-icon="mdi-swap-vertical"
+              data-test="budget-item-type"
+            />
+            <v-text-field
+              v-model.number="item.amount"
+              label="Planned amount"
+              type="number"
+              :rules="amountRules"
+              prepend-icon="mdi-currency-usd"
+              data-test="budget-item-amount"
+            />
+            <v-text-field
+              v-model="item.note"
+              label="Note"
+              prepend-icon="mdi-note-text-outline"
+              data-test="budget-item-note"
             />
           </div>
+        </template>
 
-          <v-row dense>
-            <v-col cols="12" sm="6">
-              <v-select
-                v-model="item.categoryId"
-                label="Category"
-                :items="categories"
-                item-title="name"
-                item-value="id"
-                :rules="categoryRules"
-                variant="outlined"
-                color="primary"
-                base-color="primary"
-                prepend-icon="mdi-tag-multiple"
-                data-test="budget-item-category"
-              />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-select
-                v-model="item.type"
-                label="Type"
-                :items="typeOptions"
-                item-title="label"
-                item-value="value"
-                variant="outlined"
-                color="primary"
-                base-color="primary"
-                prepend-icon="mdi-swap-vertical"
-                data-test="budget-item-type"
-              />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                v-model.number="item.amount"
-                label="Planned amount"
-                type="number"
-                :rules="amountRules"
-                variant="outlined"
-                color="primary"
-                base-color="primary"
-                prepend-icon="mdi-currency-usd"
-                data-test="budget-item-amount"
-              />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="item.note"
-                label="Note"
-                variant="outlined"
-                color="primary"
-                base-color="primary"
-                prepend-icon="mdi-note-text-outline"
-                data-test="budget-item-note"
-              />
-            </v-col>
-          </v-row>
-        </v-card>
+        <v-divider v-if="items.length > 0" class="my-4" />
 
         <v-btn
           variant="tonal"

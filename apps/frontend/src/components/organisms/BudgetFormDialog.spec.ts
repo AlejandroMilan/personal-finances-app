@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { mountOptions } from '../../test-utils/vuetify';
+import type { AccountView } from '../../types/account';
 import type { CategoryView } from '../../types/category';
 import type { BudgetItem, CreateBudgetPayload } from '../../types/budget';
+import AccountFormDialog from './AccountFormDialog.vue';
 import BudgetFormDialog from './BudgetFormDialog.vue';
 
 const categories: CategoryView[] = [
@@ -24,6 +26,8 @@ const foodItem: BudgetItem = {
 };
 
 const dialogStub = {
+  name: 'VDialog',
+  props: ['modelValue', 'maxWidth'],
   template: '<div data-test="dialog-shell"><slot /></div>',
 };
 
@@ -42,6 +46,19 @@ const mountDialog = (
       month: '2026-09',
       items,
       categories: categoryList,
+    },
+  });
+
+const mountAccountDialog = (account: AccountView | null = null) =>
+  mount(AccountFormDialog, {
+    ...mountOptions,
+    global: {
+      ...mountOptions.global,
+      stubs: { VDialog: dialogStub },
+    },
+    props: {
+      modelValue: true,
+      account,
     },
   });
 
@@ -99,26 +116,86 @@ describe('BudgetFormDialog', () => {
     ).toBe('primary');
   });
 
-  it('renders every budget field with an outlined primary visual treatment', () => {
-    const wrapper = mountDialog();
-    const fields = [
-      ...wrapper.findAllComponents({ name: 'VSelect' }),
-      ...wrapper
-        .findAllComponents({ name: 'VTextField' })
-      .filter((field) => !field.classes().includes('v-select')),
-    ];
-    const labels = ['Category', 'Type', 'Planned amount', 'Note'];
+  it('matches the account dialog layout and default field treatment', () => {
+    const wrapper = mountDialog([rentItem, foodItem]);
+    const accountWrapper = mountAccountDialog();
 
-    expect(fields.map((field) => field.props('label'))).toEqual(labels);
+    expect(wrapper.findComponent({ name: 'VDialog' }).props('maxWidth')).toBe(
+      accountWrapper.findComponent({ name: 'VDialog' }).props('maxWidth'),
+    );
+    expect(wrapper.findComponent({ name: 'VCard' }).props('color')).toBe(
+      accountWrapper.findComponent({ name: 'VCard' }).props('color'),
+    );
+    expect(wrapper.findComponent({ name: 'VCard' }).classes()).toEqual(
+      accountWrapper.findComponent({ name: 'VCard' }).classes(),
+    );
+    expect(wrapper.findComponent({ name: 'VCard' }).classes()).toContain('pa-6');
+    expect(wrapper.findComponent({ name: 'VCardTitle' }).classes()).toEqual(
+      accountWrapper.findComponent({ name: 'VCardTitle' }).classes(),
+    );
+    expect(wrapper.findComponent({ name: 'VCardTitle' }).classes()).toContain('pb-4');
+    expect(wrapper.findComponent({ name: 'VForm' }).exists()).toBe(true);
 
-    fields.forEach((field, index) => {
-      expect(field.props('variant')).toBe('outlined');
-      expect(field.props('color')).toBe('primary');
-      expect(field.props('baseColor')).toBe('primary');
-      expect(field.find('.v-field--variant-outlined').exists()).toBe(true);
-      expect(field.find('.v-field__outline').exists()).toBe(true);
-      expect(field.find('label').text()).toContain(labels[index]);
-    });
+    const accountSelect = accountWrapper.findComponent({ name: 'VSelect' });
+    const accountTextField = accountWrapper.findComponent({ name: 'VTextField' });
+    const budgetSelects = wrapper.findAllComponents({ name: 'VSelect' });
+    const budgetTextFields = wrapper
+      .findAllComponents({ name: 'VTextField' })
+      .filter((field) => !field.classes().includes('v-select'));
+
+    expect(budgetSelects).toHaveLength(4);
+    expect(budgetTextFields).toHaveLength(4);
+    expect(budgetSelects.map((field) => field.props('variant'))).toEqual([
+      accountSelect.props('variant'),
+      accountSelect.props('variant'),
+      accountSelect.props('variant'),
+      accountSelect.props('variant'),
+    ]);
+    expect(budgetSelects.map((field) => field.props('color'))).toEqual([
+      accountSelect.props('color'),
+      accountSelect.props('color'),
+      accountSelect.props('color'),
+      accountSelect.props('color'),
+    ]);
+    expect(budgetSelects.map((field) => field.props('baseColor'))).toEqual([
+      accountSelect.props('baseColor'),
+      accountSelect.props('baseColor'),
+      accountSelect.props('baseColor'),
+      accountSelect.props('baseColor'),
+    ]);
+    expect(budgetTextFields.map((field) => field.props('variant'))).toEqual([
+      accountTextField.props('variant'),
+      accountTextField.props('variant'),
+      accountTextField.props('variant'),
+      accountTextField.props('variant'),
+    ]);
+    expect(budgetTextFields.map((field) => field.props('color'))).toEqual([
+      accountTextField.props('color'),
+      accountTextField.props('color'),
+      accountTextField.props('color'),
+      accountTextField.props('color'),
+    ]);
+    expect(budgetTextFields.map((field) => field.props('baseColor'))).toEqual([
+      accountTextField.props('baseColor'),
+      accountTextField.props('baseColor'),
+      accountTextField.props('baseColor'),
+      accountTextField.props('baseColor'),
+    ]);
+
+    const budgetFooter = wrapper.find('.d-flex.justify-end.mt-4');
+    const accountFooter = accountWrapper.find('.d-flex.justify-end.mt-4');
+    const budgetFooterButtons = budgetFooter.findAllComponents({ name: 'VBtn' });
+    const accountFooterButtons = accountFooter.findAllComponents({ name: 'VBtn' });
+    expect(budgetFooter.classes()).toEqual(accountFooter.classes());
+    expect(budgetFooterButtons).toHaveLength(2);
+    expect(accountFooterButtons).toHaveLength(2);
+    expect(budgetFooterButtons[0].classes()).toEqual(accountFooterButtons[0].classes());
+    expect(budgetFooterButtons[0].props('variant')).toBe(accountFooterButtons[0].props('variant'));
+    expect(budgetFooterButtons[1].props('color')).toBe(accountFooterButtons[1].props('color'));
+
+    const dividers = wrapper.findAllComponents({ name: 'VDivider' });
+    expect(dividers).toHaveLength(2);
+    expect(dividers.every((divider) => divider.classes().includes('my-4'))).toBe(true);
   });
 
   it('shows English empty-state and validation copy for a new budget', async () => {
@@ -200,6 +277,22 @@ describe('BudgetFormDialog', () => {
         },
       ],
     });
+  });
+
+  it('omits whitespace-only notes from the saved payload', async () => {
+    const wrapper = mountDialog([foodItem]);
+
+    await wrapper.find('[data-test="budget-item-note"] input').setValue('   ');
+    await vm(wrapper).save();
+
+    expect(wrapper.emitted('save')).toEqual([
+      [
+        {
+          month: '2026-09',
+          items: [{ categoryId: 'c2', type: 'expense', amount: 500 }],
+        },
+      ],
+    ]);
   });
 
   it('saves an added row with edited controls while preserving the remaining payload rows', async () => {
