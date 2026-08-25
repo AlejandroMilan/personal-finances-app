@@ -8,6 +8,7 @@ import type {
 } from '../types/budget';
 
 export const useBudgetsStore = defineStore('budgets', () => {
+  const budgets = ref<Budget[]>([]);
   const month = ref<string | null>(null);
   const budget = ref<Budget | null>(null);
   const template = ref<BudgetItem[]>([]);
@@ -23,11 +24,36 @@ export const useBudgetsStore = defineStore('budgets', () => {
   function clear(): void {
     sessionGeneration += 1;
     requestId += 1;
+    budgets.value = [];
     month.value = null;
     budget.value = null;
     template.value = [];
     loading.value = false;
     error.value = null;
+  }
+
+  async function fetchBudgets(): Promise<void> {
+    const generation = sessionGeneration;
+    const request = ++requestId;
+    loading.value = true;
+    error.value = null;
+    try {
+      const loadedBudgets = await budgetsService.list();
+      if (isCurrentRequest(generation, request)) {
+        budgets.value = loadedBudgets;
+      }
+    } catch (caught) {
+      if (!isCurrentRequest(generation, request)) return;
+      budgets.value = [];
+      error.value =
+        caught instanceof Error
+          ? caught.message
+          : 'No se pudieron cargar los presupuestos';
+    } finally {
+      if (isCurrentRequest(generation, request)) {
+        loading.value = false;
+      }
+    }
   }
 
   async function fetchForMonth(selectedMonth: string): Promise<void> {
@@ -95,6 +121,14 @@ export const useBudgetsStore = defineStore('budgets', () => {
       if (isCurrentRequest(generation, request)) {
         month.value = payload.month;
         budget.value = savedBudget;
+        const index = budgets.value.findIndex(
+          (storedBudget) => storedBudget.month === savedBudget.month,
+        );
+        if (index === -1) {
+          budgets.value.push(savedBudget);
+        } else {
+          budgets.value[index] = savedBudget;
+        }
       }
     } catch (caught) {
       if (isCurrentRequest(generation, request)) {
@@ -112,11 +146,13 @@ export const useBudgetsStore = defineStore('budgets', () => {
   }
 
   return {
+    budgets,
     month,
     budget,
     template,
     loading,
     error,
+    fetchBudgets,
     fetchForMonth,
     fetchTemplate,
     save,

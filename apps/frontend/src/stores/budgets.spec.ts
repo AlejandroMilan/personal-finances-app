@@ -58,11 +58,46 @@ describe('budgets store', () => {
   it('starts with no selected month, budget, or template', () => {
     const store = useBudgetsStore();
 
+    expect(store.budgets).toEqual([]);
     expect(store.month).toBeNull();
     expect(store.budget).toBeNull();
     expect(store.template).toEqual([]);
     expect(store.loading).toBe(false);
     expect(store.error).toBeNull();
+  });
+
+  it('fetches and stores the list of budgets for the selector', async () => {
+    vi.mocked(budgetsService.list).mockResolvedValue([augustBudget, septemberBudget]);
+    const store = useBudgetsStore();
+
+    await store.fetchBudgets();
+
+    expect(budgetsService.list).toHaveBeenCalledWith();
+    expect(store.budgets).toEqual([augustBudget, septemberBudget]);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+  });
+
+  it('clears the budget list and exposes an Error message when listing fails', async () => {
+    vi.mocked(budgetsService.list).mockRejectedValue(new Error('List unavailable'));
+    const store = useBudgetsStore();
+    store.budgets = [augustBudget];
+
+    await store.fetchBudgets();
+
+    expect(store.budgets).toEqual([]);
+    expect(store.error).toBe('List unavailable');
+    expect(store.loading).toBe(false);
+  });
+
+  it('uses a generic message for a non-Error listing failure', async () => {
+    vi.mocked(budgetsService.list).mockRejectedValue('list failed');
+    const store = useBudgetsStore();
+
+    await store.fetchBudgets();
+
+    expect(store.error).toBe('No se pudieron cargar los presupuestos');
+    expect(store.loading).toBe(false);
   });
 
   it('fetches and stores the budget for the selected month', async () => {
@@ -160,6 +195,7 @@ describe('budgets store', () => {
     expect(budgetsService.update).not.toHaveBeenCalled();
     expect(store.month).toBe('2026-08');
     expect(store.budget).toEqual(augustBudget);
+    expect(store.budgets).toEqual([augustBudget]);
     expect(store.loading).toBe(false);
     expect(store.error).toBeNull();
   });
@@ -176,6 +212,7 @@ describe('budgets store', () => {
     });
     expect(budgetsService.create).not.toHaveBeenCalled();
     expect(store.budget).toEqual(septemberBudget);
+    expect(store.budgets).toEqual([septemberBudget]);
     expect(store.loading).toBe(false);
   });
 

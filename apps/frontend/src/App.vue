@@ -62,6 +62,12 @@ function logout(): void {
           @click="drawer = false"
         />
         <v-list-item
+          to="/budgets"
+          prepend-icon="mdi-chart-box-outline"
+          title="Budgets"
+          @click="drawer = false"
+        />
+        <v-list-item
           to="/transactions"
           prepend-icon="mdi-swap-horizontal"
           title="Transactions"
