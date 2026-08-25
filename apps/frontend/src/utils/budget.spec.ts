@@ -8,6 +8,7 @@ import {
   monthKey,
   monthsInPeriod,
   parseMonthKey,
+  sumBudgetItems,
 } from './budget';
 
 const makeBudget = (
@@ -419,5 +420,53 @@ describe('availableCategories', () => {
 
     expect(categories).toHaveLength(3);
     expect(items).toHaveLength(2);
+  });
+});
+
+describe('sumBudgetItems', () => {
+  it('adds the planned amounts by type and returns the balance', () => {
+    expect(
+      sumBudgetItems([
+        { type: 'expense', amount: 1200 },
+        { type: 'expense', amount: 500.5 },
+        { type: 'income', amount: 3000 },
+      ]),
+    ).toEqual({ expense: 1700.5, income: 3000, balance: 1299.5 });
+  });
+
+  it('returns zeros for an empty list', () => {
+    expect(sumBudgetItems([])).toEqual({ expense: 0, income: 0, balance: 0 });
+  });
+
+  it.each([0, -10, Number.NaN, Number.POSITIVE_INFINITY])(
+    'ignores the invalid amount %p',
+    (amount) => {
+      expect(
+        sumBudgetItems([
+          { type: 'expense', amount: 100 },
+          { type: 'expense', amount },
+          { type: 'income', amount },
+        ]),
+      ).toEqual({ expense: 100, income: 0, balance: -100 });
+    },
+  );
+
+  it('rounds the totals to two decimals', () => {
+    expect(
+      sumBudgetItems([
+        { type: 'expense', amount: 0.1 },
+        { type: 'expense', amount: 0.2 },
+        { type: 'income', amount: 0.30001 },
+      ]),
+    ).toEqual({ expense: 0.3, income: 0.3, balance: 0 });
+  });
+
+  it('reports a negative balance when expenses exceed income', () => {
+    expect(
+      sumBudgetItems([
+        { type: 'expense', amount: 900 },
+        { type: 'income', amount: 400 },
+      ]).balance,
+    ).toBe(-500);
   });
 });

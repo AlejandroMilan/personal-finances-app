@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-25T21:37:48.788Z",
+  "updatedAt": "2026-08-25T21:39:51.749Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -2560,34 +2560,44 @@
       "id": "T-0053",
       "title": "Show a pinned budget total while editing items",
       "description": "Función pura de totales del editor y panel fijo en BudgetFormDialog con gasto presupuestado, ingreso presupuestado y balance.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-25T21:29:35.905Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-25T21:39:51.748Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "utils/budget.ts expone una función pura que devuelve el total de gastos, el total de ingresos y el balance (ingresos - gastos) de una lista de partidas, redondeados a dos decimales",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:39:44.881Z",
+          "note": "utils/budget.ts:101 sumBudgetItems devuelve {expense, income, balance} con roundMoney; tests 'adds the planned amounts by type and returns the balance' y 'rounds the totals to two decimals'"
         },
         {
           "id": "AC-2",
           "text": "La función ignora las partidas con importe no finito o <= 0 y devuelve ceros para una lista vacía",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:39:44.918Z",
+          "note": "Filtro !Number.isFinite || <= 0; tests it.each([0,-10,NaN,Infinity]) y 'returns zeros for an empty list'"
         },
         {
           "id": "AC-3",
           "text": "El diálogo muestra esos tres totales con formato de moneda en un bloque que permanece visible al hacer scroll por las partidas",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:39:44.952Z",
+          "note": "BudgetFormDialog.vue bloque .budget-totals (position: sticky; top: 0) fuera del v-form; tests 'shows the running budget totals in a pinned block' y 'keeps the totals block outside the scrollable item list'"
         },
         {
           "id": "AC-4",
           "text": "Añadir, editar el importe o eliminar una partida actualiza los totales mostrados sin guardar el presupuesto",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:39:44.987Z",
+          "note": "totals es computed sobre items; test 'updates the totals when adding, editing or removing items' comprueba además que no se emite save"
         },
         {
           "id": "AC-5",
           "text": "pnpm test:coverage pasa con >= 80% en utils/budget.ts y en BudgetFormDialog",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:39:45.021Z",
+          "note": "vitest run --coverage: 423 tests en verde, utils/budget.ts 100% statements/functions/lines, branches globales 99.18%"
         }
       ],
       "spec": "0008-correcciones-de-la-vista-de-presupuestos"

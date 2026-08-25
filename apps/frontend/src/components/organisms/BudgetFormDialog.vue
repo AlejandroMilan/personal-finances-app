@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { CategoryView } from '../../types/category';
 import type {
   BudgetItem,
   BudgetItemType,
   CreateBudgetPayload,
 } from '../../types/budget';
-import { availableCategories } from '../../utils/budget';
+import { availableCategories, sumBudgetItems } from '../../utils/budget';
+import { formatCurrency } from '../../utils/money';
 
 interface EditableBudgetItem {
   key: number;
@@ -37,6 +38,8 @@ const typeOptions: { value: BudgetItemType; label: string }[] = [
   { value: 'expense', label: 'Expense' },
   { value: 'income', label: 'Income' },
 ];
+
+const totals = computed(() => sumBudgetItems(items.value));
 
 const categoryRules = [
   (value: string) => !!value || 'Category is required',
@@ -128,6 +131,30 @@ function close(): void {
       </v-card-title>
       <div class="text-body-2 text-medium-emphasis mb-4">{{ month }}</div>
 
+      <div class="budget-totals" data-test="budget-totals">
+        <div class="d-flex justify-space-between text-body-2">
+          <span>Budgeted expenses</span>
+          <span class="font-weight-medium" data-test="budget-total-expense">
+            {{ formatCurrency(totals.expense) }}
+          </span>
+        </div>
+        <div class="d-flex justify-space-between text-body-2">
+          <span>Budgeted income</span>
+          <span class="font-weight-medium" data-test="budget-total-income">
+            {{ formatCurrency(totals.income) }}
+          </span>
+        </div>
+        <div class="d-flex justify-space-between text-body-2 font-weight-bold">
+          <span>Balance</span>
+          <span
+            :class="totals.balance < 0 ? 'text-error' : 'text-success'"
+            data-test="budget-total-balance"
+          >
+            {{ formatCurrency(totals.balance) }}
+          </span>
+        </div>
+      </div>
+
       <v-form ref="form" @submit.prevent="save">
         <div v-if="items.length === 0" class="text-body-2 text-medium-emphasis py-4 text-center">
           No proposed items for this month.
@@ -208,3 +235,15 @@ function close(): void {
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+.budget-totals {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.2);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+</style>

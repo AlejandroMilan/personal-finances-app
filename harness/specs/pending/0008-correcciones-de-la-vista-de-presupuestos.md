@@ -82,7 +82,7 @@ Este spec corrige esas cuatro cosas, en términos de lo que el usuario observa:
 | T-0050 | Add a visual month and year picker molecule | `completada` | 2026-08-25 |
 | T-0051 | Wire the visual month picker into the budgets view | `completada` | 2026-08-25 |
 | T-0052 | Exclude already budgeted categories from the item selector | `completada` | 2026-08-25 |
-| T-0053 | Show a pinned budget total while editing items | `pendiente` | — |
+| T-0053 | Show a pinned budget total while editing items | `completada` | 2026-08-25 |
 | T-0054 | Compare budgeted and actual totals on the dashboard card | `pendiente` | — |
 
 ## Historial de cambios
@@ -102,3 +102,5 @@ Este spec corrige esas cuatro cosas, en términos de lo que el usuario observa:
 | 2026-08-25 | Tarea T-0051: `en proceso` → `completada`. |
 | 2026-08-25 | Tarea T-0052: `pendiente` → `en proceso`. |
 | 2026-08-25 | Tarea T-0052: `en proceso` → `completada`. |
+| 2026-08-25 | Tarea T-0053: `pendiente` → `en proceso`. |
+| 2026-08-25 | Tarea T-0053: `en proceso` → `completada`. |

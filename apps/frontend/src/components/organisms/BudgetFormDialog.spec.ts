@@ -450,4 +450,98 @@ describe('BudgetFormDialog', () => {
       ['c1', 'c2', 'c3'],
     ]);
   });
+  it('shows the running budget totals in a pinned block', () => {
+    const wrapper = mountDialog([
+      rentItem,
+      foodItem,
+      { categoryId: 'c1', type: 'income', amount: 3000 },
+    ]);
+
+    const totals = wrapper.find('[data-test="budget-totals"]');
+    expect(totals.exists()).toBe(true);
+    expect(totals.text()).toContain('Budgeted expenses');
+    expect(totals.text()).toContain('Budgeted income');
+    expect(totals.text()).toContain('Balance');
+    expect(wrapper.find('[data-test="budget-total-expense"]').text()).toBe(
+      '$1,700.00',
+    );
+    expect(wrapper.find('[data-test="budget-total-income"]').text()).toBe(
+      '$3,000.00',
+    );
+    expect(wrapper.find('[data-test="budget-total-balance"]').text()).toBe(
+      '$1,300.00',
+    );
+  });
+
+  it('keeps the totals block outside the scrollable item list', () => {
+    const wrapper = mountDialog([rentItem, foodItem]);
+    const totals = wrapper.find('[data-test="budget-totals"]');
+
+    expect(totals.classes()).toContain('budget-totals');
+    expect(totals.element.closest('form')).toBeNull();
+    expect(
+      wrapper.find('[data-test="budget-item-row"]').element.contains(
+        totals.element,
+      ),
+    ).toBe(false);
+  });
+
+  it('updates the totals when adding, editing or removing items', async () => {
+    const wrapper = mountDialog([rentItem]);
+
+    expect(wrapper.find('[data-test="budget-total-expense"]').text()).toBe(
+      '$1,200.00',
+    );
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+    vm(wrapper).items[1].amount = 300;
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('[data-test="budget-total-expense"]').text()).toBe(
+      '$1,500.00',
+    );
+
+    vm(wrapper).items[1].type = 'income';
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('[data-test="budget-total-expense"]').text()).toBe(
+      '$1,200.00',
+    );
+    expect(wrapper.find('[data-test="budget-total-income"]').text()).toBe(
+      '$300.00',
+    );
+    expect(wrapper.find('[data-test="budget-total-balance"]').text()).toBe(
+      '-$900.00',
+    );
+
+    await wrapper.findAll('[data-test="remove-budget-item"]')[0].trigger('click');
+    expect(wrapper.find('[data-test="budget-total-expense"]').text()).toBe(
+      '$0.00',
+    );
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
+  it('ignores items without a valid amount in the totals', async () => {
+    const wrapper = mountDialog([rentItem]);
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-test="budget-total-expense"]').text()).toBe(
+      '$1,200.00',
+    );
+  });
+
+  it('paints a negative balance with the error colour', async () => {
+    const wrapper = mountDialog([rentItem]);
+
+    expect(
+      wrapper.find('[data-test="budget-total-balance"]').classes(),
+    ).toContain('text-error');
+
+    vm(wrapper).items[0].type = 'income';
+    await wrapper.vm.$nextTick();
+
+    expect(
+      wrapper.find('[data-test="budget-total-balance"]').classes(),
+    ).toContain('text-success');
+  });
 });

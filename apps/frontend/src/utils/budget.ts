@@ -82,6 +82,49 @@ export function monthsInPeriod(from: Date, to: Date): string[] {
   return months;
 }
 
+/** Totales planificados de un presupuesto en edición. */
+export interface BudgetPlannedTotals {
+  expense: number;
+  income: number;
+  balance: number;
+}
+
+interface PlannedAmount {
+  type: BudgetItemType;
+  amount: number;
+}
+
+/**
+ * Suma los importes válidos (finitos y mayores que cero) por tipo y devuelve el
+ * balance entre ingresos y gastos, todo redondeado a dos decimales.
+ */
+export function sumBudgetItems(
+  items: readonly PlannedAmount[],
+): BudgetPlannedTotals {
+  let expense = 0;
+  let income = 0;
+
+  items.forEach((item) => {
+    if (!Number.isFinite(item.amount) || item.amount <= 0) return;
+
+    if (item.type === 'income') {
+      income += item.amount;
+      return;
+    }
+
+    expense += item.amount;
+  });
+
+  const roundedExpense = roundMoney(expense);
+  const roundedIncome = roundMoney(income);
+
+  return {
+    expense: roundedExpense,
+    income: roundedIncome,
+    balance: roundMoney(roundedIncome - roundedExpense),
+  };
+}
+
 /** Partida en edición, reducida a lo que decide si una categoría está ocupada. */
 export interface BudgetItemSelection {
   categoryId: string;
