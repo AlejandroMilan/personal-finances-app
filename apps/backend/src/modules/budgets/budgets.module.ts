@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from '../auth/auth.module';
+import { ScheduledTransactionsModule } from '../scheduled-transactions/scheduled-transactions.module';
 import { BUDGET_REPOSITORY } from './application/ports/budget.repository';
 import { CreateBudgetUseCase } from './application/use-cases/create-budget.use-case';
 import { DeleteBudgetUseCase } from './application/use-cases/delete-budget.use-case';
+import { GetBudgetTemplateUseCase } from './application/use-cases/get-budget-template.use-case';
 import { GetBudgetUseCase } from './application/use-cases/get-budget.use-case';
 import { ListBudgetsUseCase } from './application/use-cases/list-budgets.use-case';
 import { UpdateBudgetUseCase } from './application/use-cases/update-budget.use-case';
@@ -17,6 +19,7 @@ import { BudgetsController } from './presentation/budgets.controller';
 @Module({
   imports: [
     AuthModule,
+    ScheduledTransactionsModule,
     MongooseModule.forFeature([
       { name: BudgetModel.name, schema: BudgetSchema },
     ]),
@@ -25,6 +28,7 @@ import { BudgetsController } from './presentation/budgets.controller';
   providers: [
     CreateBudgetUseCase,
     GetBudgetUseCase,
+    GetBudgetTemplateUseCase,
     ListBudgetsUseCase,
     UpdateBudgetUseCase,
     DeleteBudgetUseCase,

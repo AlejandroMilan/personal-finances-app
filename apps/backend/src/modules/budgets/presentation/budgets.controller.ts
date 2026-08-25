@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   Param,
   Patch,
   Post,
@@ -18,6 +19,7 @@ import {
 } from '../../auth/presentation/current-user.decorator';
 import { CreateBudgetUseCase } from '../application/use-cases/create-budget.use-case';
 import { DeleteBudgetUseCase } from '../application/use-cases/delete-budget.use-case';
+import { GetBudgetTemplateUseCase } from '../application/use-cases/get-budget-template.use-case';
 import { GetBudgetUseCase } from '../application/use-cases/get-budget.use-case';
 import { ListBudgetsUseCase } from '../application/use-cases/list-budgets.use-case';
 import { UpdateBudgetUseCase } from '../application/use-cases/update-budget.use-case';
@@ -42,6 +44,7 @@ export class BudgetsController {
     private readonly listBudgets: ListBudgetsUseCase,
     private readonly updateBudget: UpdateBudgetUseCase,
     private readonly deleteBudget: DeleteBudgetUseCase,
+    private readonly getBudgetTemplate?: GetBudgetTemplateUseCase,
   ) {}
 
   @Post()
@@ -70,6 +73,29 @@ export class BudgetsController {
       limit: dto.limit,
     });
     return budgets.map((budget) => this.toResponse(budget));
+  }
+
+  @Get(':month/template')
+  async template(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: BudgetMonthParamDto,
+  ): Promise<BudgetItemResponseDto[]> {
+    if (!this.getBudgetTemplate) {
+      throw new InternalServerErrorException(
+        'Budget template use case is not configured',
+      );
+    }
+
+    const items = await this.getBudgetTemplate.execute({
+      userId: user.id,
+      month: params.month,
+    });
+    return items.map((item): BudgetItemResponseDto => ({
+      categoryId: item.categoryId,
+      type: item.type,
+      amount: item.amount,
+      note: item.note,
+    }));
   }
 
   @Get(':month')
