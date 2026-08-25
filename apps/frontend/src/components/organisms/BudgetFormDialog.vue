@@ -155,6 +155,9 @@ function close(): void {
                 item-title="name"
                 item-value="id"
                 :rules="categoryRules"
+                variant="outlined"
+                color="primary"
+                base-color="primary"
                 prepend-icon="mdi-tag-multiple"
                 data-test="budget-item-category"
               />
@@ -166,6 +169,9 @@ function close(): void {
                 :items="typeOptions"
                 item-title="label"
                 item-value="value"
+                variant="outlined"
+                color="primary"
+                base-color="primary"
                 prepend-icon="mdi-swap-vertical"
                 data-test="budget-item-type"
               />
@@ -176,6 +182,9 @@ function close(): void {
                 label="Planned amount"
                 type="number"
                 :rules="amountRules"
+                variant="outlined"
+                color="primary"
+                base-color="primary"
                 prepend-icon="mdi-currency-usd"
                 data-test="budget-item-amount"
               />
@@ -184,6 +193,9 @@ function close(): void {
               <v-text-field
                 v-model="item.note"
                 label="Note"
+                variant="outlined"
+                color="primary"
+                base-color="primary"
                 prepend-icon="mdi-note-text-outline"
                 data-test="budget-item-note"
               />

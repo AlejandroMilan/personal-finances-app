@@ -99,6 +99,28 @@ describe('BudgetFormDialog', () => {
     ).toBe('primary');
   });
 
+  it('renders every budget field with an outlined primary visual treatment', () => {
+    const wrapper = mountDialog();
+    const fields = [
+      ...wrapper.findAllComponents({ name: 'VSelect' }),
+      ...wrapper
+        .findAllComponents({ name: 'VTextField' })
+      .filter((field) => !field.classes().includes('v-select')),
+    ];
+    const labels = ['Category', 'Type', 'Planned amount', 'Note'];
+
+    expect(fields.map((field) => field.props('label'))).toEqual(labels);
+
+    fields.forEach((field, index) => {
+      expect(field.props('variant')).toBe('outlined');
+      expect(field.props('color')).toBe('primary');
+      expect(field.props('baseColor')).toBe('primary');
+      expect(field.find('.v-field--variant-outlined').exists()).toBe(true);
+      expect(field.find('.v-field__outline').exists()).toBe(true);
+      expect(field.find('label').text()).toContain(labels[index]);
+    });
+  });
+
   it('shows English empty-state and validation copy for a new budget', async () => {
     const wrapper = mountDialog([], []);
 
@@ -111,6 +133,29 @@ describe('BudgetFormDialog', () => {
     expect(wrapper.emitted('save')).toBeUndefined();
     expect(wrapper.text()).toContain('Category is required');
     expect(wrapper.text()).toContain('Amount must be greater than zero');
+  });
+
+  it('keeps focus styling on every field and shows errors on invalid required fields', async () => {
+    const wrapper = mountDialog([], []);
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+    const [categoryField, typeField] = wrapper.findAllComponents({ name: 'VSelect' });
+    const [amountField, noteField] = wrapper.findAllComponents({ name: 'VTextField' });
+
+    for (const field of [categoryField, typeField, amountField, noteField]) {
+      const input = field.find('input');
+      expect(input.exists()).toBe(true);
+      await input.trigger('focus');
+      expect(field.find('.v-field--focused').exists()).toBe(true);
+      await input.trigger('blur');
+    }
+
+    await vm(wrapper).save();
+
+    expect(categoryField.find('.v-field--error').exists()).toBe(true);
+    expect(amountField.find('.v-field--error').exists()).toBe(true);
+    expect(typeField.find('.v-field--error').exists()).toBe(false);
+    expect(noteField.find('.v-field--error').exists()).toBe(false);
   });
 
   it('adds and removes rows locally without changing the input props', async () => {
@@ -157,6 +202,44 @@ describe('BudgetFormDialog', () => {
     });
   });
 
+  it('saves an added row with edited controls while preserving the remaining payload rows', async () => {
+    const wrapper = mountDialog([rentItem, foodItem]);
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+    const [addedCategory, addedType] = wrapper
+      .findAllComponents({ name: 'VSelect' })
+      .slice(-2);
+    await addedCategory.vm.$emit('update:modelValue', 'c2');
+    await addedType.vm.$emit('update:modelValue', 'income');
+    await wrapper.findAll('[data-test="budget-item-amount"]')
+      .slice(-1)[0]
+      .find('input')
+      .setValue('3000');
+    await wrapper.findAll('[data-test="budget-item-note"]')
+      .slice(-1)[0]
+      .find('input')
+      .setValue('  Bonus  ');
+    await wrapper.findAll('[data-test="remove-budget-item"]')[1].trigger('click');
+    await vm(wrapper).save();
+
+    expect(wrapper.emitted('save')).toEqual([
+      [
+        {
+          month: '2026-09',
+          items: [
+            rentItem,
+            {
+              categoryId: 'c2',
+              type: 'income',
+              amount: 3000,
+              note: 'Bonus',
+            },
+          ],
+        },
+      ],
+    ]);
+  });
+
   it('allows deleting every proposed row and sends an empty list', async () => {
     const wrapper = mountDialog([rentItem]);
 
@@ -168,10 +251,11 @@ describe('BudgetFormDialog', () => {
     ]);
   });
 
-  it('does not emit an invalid zero-amount row', async () => {
+  it.each([0, -1])('does not emit an invalid %s-amount row', async (amount) => {
     const wrapper = mountDialog([]);
 
     await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+    await wrapper.find('[data-test="budget-item-amount"] input').setValue(String(amount));
     await vm(wrapper).save();
 
     expect(wrapper.emitted('save')).toBeUndefined();
