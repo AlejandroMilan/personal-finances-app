@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import MonthYearPicker from '../components/molecules/MonthYearPicker.vue';
 import BudgetFormDialog from '../components/organisms/BudgetFormDialog.vue';
 import BudgetStatusCard from '../components/organisms/BudgetStatusCard.vue';
 import { useBudgetsStore } from '../stores/budgets';
@@ -14,6 +15,7 @@ const categoriesStore = useCategoriesStore();
 const dashboardStore = useDashboardStore();
 
 const selectedMonth = ref(monthKey(new Date()));
+const pickerOpen = ref(false);
 const formOpen = ref(false);
 const editorItems = ref<BudgetItem[]>([]);
 const actionError = ref('');
@@ -116,6 +118,11 @@ function selectMonth(month: string): void {
   selectedMonth.value = month;
 }
 
+function pickMonth(month: string): void {
+  pickerOpen.value = false;
+  selectMonth(month);
+}
+
 async function openEditor(): Promise<void> {
   const month = selectedMonth.value;
   if (!isMonth(month)) return;
@@ -202,15 +209,33 @@ onMounted(() => {
             <span class="text-subtitle-1 font-weight-bold">Choose month</span>
           </v-card-title>
 
-          <v-text-field
-            v-model="selectedMonth"
-            type="month"
-            label="Budget month"
-            hint="You can also choose a future month"
-            persistent-hint
-            prepend-icon="mdi-calendar-edit"
-            data-test="month-selector"
-          />
+          <div class="d-flex align-center ga-2">
+            <v-text-field
+              v-model="selectedMonth"
+              type="month"
+              label="Budget month"
+              hint="You can also choose a future month"
+              persistent-hint
+              prepend-icon="mdi-calendar-edit"
+              data-test="month-selector"
+            />
+            <v-menu v-model="pickerOpen" :close-on-content-click="false">
+              <template #activator="{ props: activatorProps }">
+                <v-btn
+                  v-bind="activatorProps"
+                  icon="mdi-calendar-cursor"
+                  variant="tonal"
+                  color="secondary"
+                  size="small"
+                  aria-label="Pick a month"
+                  data-test="open-month-picker"
+                />
+              </template>
+              <v-card color="surface" class="pa-3" min-width="280">
+                <MonthYearPicker :model-value="selectedMonth" @select="pickMonth" />
+              </v-card>
+            </v-menu>
+          </div>
 
           <v-divider class="my-4" />
           <div class="text-subtitle-2 font-weight-bold mb-2">Saved budgets</div>

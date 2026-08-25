@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-25T21:33:10.963Z",
+  "updatedAt": "2026-08-25T21:35:14.179Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -2447,39 +2447,51 @@
       "id": "T-0051",
       "title": "Wire the visual month picker into the budgets view",
       "description": "La vista de presupuestos ofrece el selector visual junto al campo de texto de mes, manteniendo ambos sincronizados y recargando los datos del mes elegido.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-25T21:29:35.843Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-25T21:35:14.178Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "La vista muestra un control que abre el selector visual de mes/año sin eliminar el campo de texto type=month existente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:35:08.008Z",
+          "note": "BudgetsView.vue:213-238 v-text-field type=month intacto + v-btn data-test=open-month-picker que abre el v-menu con MonthYearPicker; test 'offers a visual month picker next to the month text field'"
         },
         {
           "id": "AC-2",
           "text": "Elegir un mes en el selector actualiza el mes seleccionado y dispara la carga del presupuesto y del resumen de ese mes exactamente una vez",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:35:08.043Z",
+          "note": "pickMonth() (BudgetsView.vue:121) + watch(selectedMonth); test 'loads the budget and the summary of the month picked visually' verifica getByMonth y summary llamados 1 vez con el mes elegido"
         },
         {
           "id": "AC-3",
           "text": "Escribir un mes válido en el campo de texto deja el selector visual posicionado en ese mes y año al reabrirlo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:35:08.076Z",
+          "note": "MonthYearPicker recibe :model-value=selectedMonth; test 'positions the visual picker on the month typed in the text field' (2028-07 => visible-year 2028, mes 7 activo)"
         },
         {
           "id": "AC-4",
           "text": "Escribir un mes inválido no dispara ninguna carga ni rompe el selector visual",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:35:08.109Z",
+          "note": "watch descarta meses no válidos con isMonth(); test 'ignores an invalid typed month without breaking the visual picker' (sin getByMonth, 12 opciones renderizadas)"
         },
         {
           "id": "AC-5",
           "text": "Elegir un mes ya seleccionado no vuelve a disparar la carga",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:35:08.142Z",
+          "note": "watch corta si month === previousMonth; test 'does not reload when the picked month is the selected one'"
         },
         {
           "id": "AC-6",
           "text": "pnpm test:coverage pasa con >= 80% en apps/frontend",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:35:08.174Z",
+          "note": "vitest run --coverage en apps/frontend: 406 tests en verde, statements 100%, branches 99.09%, functions 100%, lines 100%; vue-tsc --noEmit sin errores"
         }
       ],
       "spec": "0008-correcciones-de-la-vista-de-presupuestos"

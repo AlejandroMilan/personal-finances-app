@@ -28,6 +28,7 @@ vi.mock('../services/transactions', () => ({
   },
 }));
 
+import MonthYearPicker from '../components/molecules/MonthYearPicker.vue';
 import BudgetFormDialog from '../components/organisms/BudgetFormDialog.vue';
 import { categoriesService } from '../services/categories';
 import { budgetsService } from '../services/budgets';
@@ -90,6 +91,30 @@ const mountView = async () => {
   await flushPromises();
   await wrapper.vm.$nextTick();
   return wrapper;
+};
+
+
+const menuStub = {
+  name: 'VMenu',
+  props: ['modelValue', 'closeOnContentClick'],
+  template:
+    '<div><slot name="activator" :props="{}" /><slot v-if="modelValue" /></div>',
+};
+
+const mountViewWithPicker = async () => {
+  const wrapper = mount(BudgetsView, {
+    ...mountOptions,
+    global: { ...mountOptions.global, stubs: { VMenu: menuStub } },
+  });
+  await flushPromises();
+  await wrapper.vm.$nextTick();
+  return wrapper;
+};
+
+const openPicker = async (wrapper: Awaited<ReturnType<typeof mountViewWithPicker>>) => {
+  (wrapper.vm as unknown as { pickerOpen: boolean }).pickerOpen = true;
+  await wrapper.vm.$nextTick();
+  return wrapper.findComponent(MonthYearPicker);
 };
 
 describe('BudgetsView', () => {
@@ -387,5 +412,79 @@ describe('BudgetsView', () => {
     expect(wrapper.find('[data-test="budget-action-error"]').text()).toBe(
       'Could not save the budget',
     );
+  });
+  it('offers a visual month picker next to the month text field', async () => {
+    const wrapper = await mountViewWithPicker();
+
+    expect(wrapper.find('[data-test="month-selector"] input').exists()).toBe(true);
+    expect(
+      wrapper
+        .find('[data-test="month-selector"] input')
+        .attributes('type'),
+    ).toBe('month');
+    expect(wrapper.find('[data-test="open-month-picker"]').exists()).toBe(true);
+  });
+
+  it('loads the budget and the summary of the month picked visually', async () => {
+    const wrapper = await mountViewWithPicker();
+    vi.mocked(budgetsService.getByMonth).mockClear();
+    vi.mocked(transactionsService.summary).mockClear();
+
+    const picker = await openPicker(wrapper);
+    await picker.find('[data-test="next-year"]').trigger('click');
+    await picker.find('[data-test="month-option-5"]').trigger('click');
+    await flushPromises();
+
+    const expected = `${new Date().getFullYear() + 1}-05`;
+    expect(budgetsService.getByMonth).toHaveBeenCalledTimes(1);
+    expect(budgetsService.getByMonth).toHaveBeenCalledWith(expected);
+    expect(transactionsService.summary).toHaveBeenCalledTimes(1);
+    expect(
+      (wrapper.vm as unknown as { pickerOpen: boolean }).pickerOpen,
+    ).toBe(false);
+  });
+
+  it('positions the visual picker on the month typed in the text field', async () => {
+    const wrapper = await mountViewWithPicker();
+
+    await wrapper.find('[data-test="month-selector"] input').setValue('2028-07');
+    await flushPromises();
+
+    const picker = await openPicker(wrapper);
+    expect(picker.props('modelValue')).toBe('2028-07');
+    expect(picker.find('[data-test="visible-year"]').text()).toBe('2028');
+    expect(
+      picker.find('[data-test="month-option-7"]').classes().join(' '),
+    ).toContain('v-btn--variant-flat');
+  });
+
+  it('ignores an invalid typed month without breaking the visual picker', async () => {
+    const wrapper = await mountViewWithPicker();
+    vi.mocked(budgetsService.getByMonth).mockClear();
+
+    await wrapper.find('[data-test="month-selector"] input').setValue('2028-13');
+    await flushPromises();
+
+    expect(budgetsService.getByMonth).not.toHaveBeenCalled();
+
+    const picker = await openPicker(wrapper);
+    expect(picker.exists()).toBe(true);
+    expect(picker.findAll('[data-test^="month-option-"]')).toHaveLength(12);
+  });
+
+  it('does not reload when the picked month is the selected one', async () => {
+    const wrapper = await mountViewWithPicker();
+    vi.mocked(budgetsService.getByMonth).mockClear();
+    vi.mocked(transactionsService.summary).mockClear();
+
+    const picker = await openPicker(wrapper);
+    const currentMonthNumber = new Date().getMonth() + 1;
+    await picker
+      .find(`[data-test="month-option-${currentMonthNumber}"]`)
+      .trigger('click');
+    await flushPromises();
+
+    expect(budgetsService.getByMonth).not.toHaveBeenCalled();
+    expect(transactionsService.summary).not.toHaveBeenCalled();
   });
 });
