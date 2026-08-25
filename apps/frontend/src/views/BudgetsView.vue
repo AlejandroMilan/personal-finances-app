@@ -31,7 +31,7 @@ function monthBounds(month: string): { from: Date; to: Date } {
 function monthLabel(month: string): string {
   if (!isMonth(month)) return month;
   const [year, monthNumber] = month.split('-').map(Number);
-  const label = new Intl.DateTimeFormat('es-MX', {
+  const label = new Intl.DateTimeFormat('en-US', {
     month: 'long',
     year: 'numeric',
   }).format(new Date(year, monthNumber - 1, 1));
@@ -84,12 +84,12 @@ const pageLoading = computed(
 function categoryName(categoryId: string): string {
   return (
     categoriesStore.categories.find((category) => category.id === categoryId)
-      ?.name ?? 'Categoría eliminada'
+      ?.name ?? 'Deleted category'
   );
 }
 
 function itemTypeLabel(type: BudgetItem['type']): string {
-  return type === 'income' ? 'Ingreso' : 'Gasto';
+  return type === 'income' ? 'Income' : 'Expense';
 }
 
 async function loadMonth(month: string): Promise<void> {
@@ -133,7 +133,7 @@ async function openEditor(): Promise<void> {
     if (selectedMonth.value !== month) return;
     formOpen.value = true;
   } catch (caught) {
-    actionError.value = message(caught, 'No se pudo preparar el presupuesto');
+    actionError.value = message(caught, 'Could not prepare the budget');
   }
 }
 
@@ -147,7 +147,7 @@ async function save(payload: CreateBudgetPayload): Promise<void> {
     await budgetsStore.save(payload);
     formOpen.value = false;
   } catch (caught) {
-    actionError.value = message(caught, 'No se pudo guardar el presupuesto');
+    actionError.value = message(caught, 'Could not save the budget');
   }
 }
 
@@ -164,9 +164,9 @@ onMounted(() => {
   <v-container class="py-6">
     <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-6">
       <div>
-        <h1 class="text-h4 font-weight-bold">Presupuestos</h1>
+        <h1 class="text-h4 font-weight-bold">Budgets</h1>
         <div class="text-body-2 text-medium-emphasis">
-          Planea tus ingresos y gastos por mes.
+          Plan your income and expenses by month.
         </div>
       </div>
       <v-btn
@@ -176,7 +176,7 @@ onMounted(() => {
         data-test="new-budget"
         @click="openCreate"
       >
-        {{ selectedBudget ? 'Editar presupuesto' : 'Crear presupuesto' }}
+        {{ selectedBudget ? 'Edit budget' : 'Create budget' }}
       </v-btn>
     </div>
 
@@ -199,21 +199,21 @@ onMounted(() => {
         <v-card color="surface" class="pa-4 h-100">
           <v-card-title class="d-flex align-center pa-0 pb-3">
             <v-icon icon="mdi-calendar-month" color="primary" size="20" class="mr-2" />
-            <span class="text-subtitle-1 font-weight-bold">Elegir mes</span>
+            <span class="text-subtitle-1 font-weight-bold">Choose month</span>
           </v-card-title>
 
           <v-text-field
             v-model="selectedMonth"
             type="month"
-            label="Mes del presupuesto"
-            hint="También puedes elegir un mes futuro"
+            label="Budget month"
+            hint="You can also choose a future month"
             persistent-hint
             prepend-icon="mdi-calendar-edit"
             data-test="month-selector"
           />
 
           <v-divider class="my-4" />
-          <div class="text-subtitle-2 font-weight-bold mb-2">Presupuestos guardados</div>
+          <div class="text-subtitle-2 font-weight-bold mb-2">Saved budgets</div>
 
           <v-list v-if="savedBudgets.length > 0" density="compact" class="pa-0" data-test="budget-list">
             <v-list-item
@@ -226,12 +226,12 @@ onMounted(() => {
             >
               <v-list-item-title>{{ monthLabel(budget.month) }}</v-list-item-title>
               <v-list-item-subtitle>
-                {{ budget.items.length }} {{ budget.items.length === 1 ? 'renglón' : 'renglones' }}
+                {{ budget.items.length }} {{ budget.items.length === 1 ? 'item' : 'items' }}
               </v-list-item-subtitle>
             </v-list-item>
           </v-list>
           <div v-else class="text-body-2 text-medium-emphasis" data-test="budget-list-empty">
-            Todavía no hay meses guardados.
+            No saved months yet.
           </div>
         </v-card>
       </v-col>
@@ -240,7 +240,7 @@ onMounted(() => {
         <v-card color="surface" class="pa-4 mb-6" data-test="selected-budget">
           <div class="d-flex flex-wrap align-center justify-space-between ga-3">
             <div>
-              <div class="text-overline text-medium-emphasis">Periodo seleccionado</div>
+              <div class="text-overline text-medium-emphasis">Selected period</div>
               <h2 class="text-h5 font-weight-bold">{{ monthLabel(selectedMonth) }}</h2>
             </div>
             <v-chip
@@ -248,7 +248,7 @@ onMounted(() => {
               variant="tonal"
               data-test="budget-state"
             >
-              {{ selectedBudget ? 'Presupuesto creado' : 'Sin presupuesto' }}
+              {{ selectedBudget ? 'Budget created' : 'No budget' }}
             </v-chip>
           </div>
 
@@ -273,11 +273,11 @@ onMounted(() => {
               </div>
             </div>
             <div v-else class="text-body-2 text-medium-emphasis py-2">
-              Este presupuesto no tiene renglones.
+              This budget has no items.
             </div>
           </template>
           <div v-else class="text-body-2 text-medium-emphasis">
-            Crea este presupuesto para recibir una propuesta basada en tu agenda.
+            Create this budget to get a proposal based on your schedule.
           </div>
 
           <div class="d-flex justify-end mt-4">
@@ -289,7 +289,7 @@ onMounted(() => {
               data-test="edit-budget"
               @click="openEditor"
             >
-              {{ selectedBudget ? 'Editar renglones' : 'Crear desde la agenda' }}
+              {{ selectedBudget ? 'Edit items' : 'Create from schedule' }}
             </v-btn>
           </div>
         </v-card>

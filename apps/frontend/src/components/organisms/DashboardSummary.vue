@@ -45,7 +45,7 @@ const points = computed(() => dashboard.summary?.series ?? []);
 const granularity = computed(() => dashboard.period.granularity);
 
 const periodLabel = computed(() => {
-  const format = new Intl.DateTimeFormat('es-MX', {
+  const format = new Intl.DateTimeFormat('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

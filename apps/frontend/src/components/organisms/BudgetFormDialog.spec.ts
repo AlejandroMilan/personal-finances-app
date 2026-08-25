@@ -27,7 +27,10 @@ const dialogStub = {
   template: '<div data-test="dialog-shell"><slot /></div>',
 };
 
-const mountDialog = (items: BudgetItem[] = [rentItem]) =>
+const mountDialog = (
+  items: BudgetItem[] = [rentItem],
+  categoryList: CategoryView[] = categories,
+) =>
   mount(BudgetFormDialog, {
     ...mountOptions,
     global: {
@@ -38,7 +41,7 @@ const mountDialog = (items: BudgetItem[] = [rentItem]) =>
       modelValue: true,
       month: '2026-09',
       items,
-      categories,
+      categories: categoryList,
     },
   });
 
@@ -64,7 +67,22 @@ describe('BudgetFormDialog', () => {
   it('opens with the selected month and agenda-derived notes prefilled', () => {
     const wrapper = mountDialog();
 
-    expect(wrapper.text()).toContain('Editar presupuesto');
+    expect(wrapper.text()).toContain('Edit budget');
+    expect(wrapper.text()).toContain('Item 1');
+    expect(wrapper.text()).toContain('Category');
+    expect(wrapper.text()).toContain('Type');
+    expect(wrapper.text()).toContain('Expense');
+    expect(wrapper.text()).toContain('Planned amount');
+    expect(wrapper.text()).toContain('Note');
+    expect(wrapper.text()).toContain('Add item');
+    expect(wrapper.text()).toContain('Cancel');
+    expect(wrapper.find('[data-test="remove-budget-item"]').attributes('aria-label')).toBe(
+      'Remove item',
+    );
+    expect(wrapper.findAllComponents({ name: 'VSelect' })[1].props('items')).toEqual([
+      { value: 'expense', label: 'Expense' },
+      { value: 'income', label: 'Income' },
+    ]);
     expect(wrapper.text()).toContain('2026-09');
     const noteInput = wrapper.find('[data-test="budget-item-note"] input')
       .element as HTMLInputElement;
@@ -77,8 +95,22 @@ describe('BudgetFormDialog', () => {
       buttons.find((button) => button.props('prependIcon') === 'mdi-plus')?.props('color'),
     ).toBe('secondary');
     expect(
-      buttons.find((button) => button.text().includes('Guardar presupuesto'))?.props('color'),
+      buttons.find((button) => button.text().includes('Save budget'))?.props('color'),
     ).toBe('primary');
+  });
+
+  it('shows English empty-state and validation copy for a new budget', async () => {
+    const wrapper = mountDialog([], []);
+
+    expect(wrapper.text()).toContain('New budget');
+    expect(wrapper.text()).toContain('No proposed items for this month.');
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+    await vm(wrapper).save();
+
+    expect(wrapper.emitted('save')).toBeUndefined();
+    expect(wrapper.text()).toContain('Category is required');
+    expect(wrapper.text()).toContain('Amount must be greater than zero');
   });
 
   it('adds and removes rows locally without changing the input props', async () => {
@@ -143,6 +175,7 @@ describe('BudgetFormDialog', () => {
     await vm(wrapper).save();
 
     expect(wrapper.emitted('save')).toBeUndefined();
+    expect(wrapper.text()).toContain('Amount must be greater than zero');
   });
 
   it('closes without saving', () => {

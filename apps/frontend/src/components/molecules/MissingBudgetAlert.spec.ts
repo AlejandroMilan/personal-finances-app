@@ -13,8 +13,10 @@ describe('MissingBudgetAlert', () => {
     const link = wrapper.findComponent({ name: 'VBtn' });
 
     expect(wrapper.find('[data-test="missing-budget-alert"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Monthly budget is missing');
+    expect(wrapper.text()).toContain("You haven't created a budget for 2026-08.");
     expect(wrapper.text()).toContain('2026-08');
-    expect(link.text()).toContain('Crear presupuesto');
+    expect(link.text()).toContain('Create budget');
     expect(link.props('to')).toBe('/budgets');
   });
 });

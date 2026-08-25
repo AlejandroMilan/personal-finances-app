@@ -33,16 +33,16 @@ const saving = ref(false);
 let nextKey = 0;
 
 const typeOptions: { value: BudgetItemType; label: string }[] = [
-  { value: 'expense', label: 'Gasto' },
-  { value: 'income', label: 'Ingreso' },
+  { value: 'expense', label: 'Expense' },
+  { value: 'income', label: 'Income' },
 ];
 
 const categoryRules = [
-  (value: string) => !!value || 'La categoría es obligatoria',
+  (value: string) => !!value || 'Category is required',
 ];
 const amountRules = [
   (value: number) =>
-    (Number.isFinite(value) && value > 0) || 'El monto debe ser mayor que cero',
+    (Number.isFinite(value) && value > 0) || 'Amount must be greater than zero',
 ];
 
 function cloneItems(source: BudgetItem[]): EditableBudgetItem[] {
@@ -116,13 +116,13 @@ function close(): void {
   >
     <v-card color="surface" class="pa-6" data-test="budget-form-dialog">
       <v-card-title class="text-h5 font-weight-bold pa-0 pb-1">
-        {{ items.length > 0 ? 'Editar presupuesto' : 'Nuevo presupuesto' }}
+        {{ items.length > 0 ? 'Edit budget' : 'New budget' }}
       </v-card-title>
       <div class="text-body-2 text-medium-emphasis mb-4">{{ month }}</div>
 
       <v-form ref="form" @submit.prevent="save">
         <div v-if="items.length === 0" class="text-body-2 text-medium-emphasis py-4 text-center">
-          No hay renglones propuestos para este mes.
+          No proposed items for this month.
         </div>
 
         <v-card
@@ -134,13 +134,13 @@ function close(): void {
           data-test="budget-item-row"
         >
           <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-subtitle-2 font-weight-medium">Renglón {{ index + 1 }}</span>
+            <span class="text-subtitle-2 font-weight-medium">Item {{ index + 1 }}</span>
             <v-btn
               icon="mdi-delete-outline"
               variant="text"
               size="small"
               color="error"
-              aria-label="Eliminar renglón"
+              aria-label="Remove item"
               data-test="remove-budget-item"
               @click="removeItem(item.key)"
             />
@@ -150,7 +150,7 @@ function close(): void {
             <v-col cols="12" sm="6">
               <v-select
                 v-model="item.categoryId"
-                label="Categoría"
+                label="Category"
                 :items="categories"
                 item-title="name"
                 item-value="id"
@@ -162,7 +162,7 @@ function close(): void {
             <v-col cols="12" sm="6">
               <v-select
                 v-model="item.type"
-                label="Tipo"
+                label="Type"
                 :items="typeOptions"
                 item-title="label"
                 item-value="value"
@@ -173,7 +173,7 @@ function close(): void {
             <v-col cols="12" sm="6">
               <v-text-field
                 v-model.number="item.amount"
-                label="Monto planeado"
+                label="Planned amount"
                 type="number"
                 :rules="amountRules"
                 prepend-icon="mdi-currency-usd"
@@ -183,7 +183,7 @@ function close(): void {
             <v-col cols="12" sm="6">
               <v-text-field
                 v-model="item.note"
-                label="Nota"
+                label="Note"
                 prepend-icon="mdi-note-text-outline"
                 data-test="budget-item-note"
               />
@@ -199,13 +199,13 @@ function close(): void {
           data-test="add-budget-item"
           @click="addItem"
         >
-          Agregar renglón
+          Add item
         </v-btn>
 
         <div class="d-flex justify-end mt-4">
-          <v-btn variant="text" class="mr-2" @click="close">Cancelar</v-btn>
+          <v-btn variant="text" class="mr-2" @click="close">Cancel</v-btn>
           <v-btn color="primary" type="submit" :loading="saving" data-test="save-budget">
-            Guardar presupuesto
+            Save budget
           </v-btn>
         </div>
       </v-form>

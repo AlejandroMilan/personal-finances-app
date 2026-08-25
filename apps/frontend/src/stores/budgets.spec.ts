@@ -109,7 +109,7 @@ describe('budgets store', () => {
 
     await store.fetchBudgets();
 
-    expect(store.error).toBe('No se pudieron cargar los presupuestos');
+    expect(store.error).toBe('Could not load budgets');
     expect(store.loading).toBe(false);
   });
 
@@ -158,7 +158,7 @@ describe('budgets store', () => {
 
     await store.fetchForMonth('2026-08');
 
-    expect(store.error).toBe('No se pudo cargar el presupuesto');
+    expect(store.error).toBe('Could not load the budget');
     expect(store.loading).toBe(false);
   });
 
@@ -194,7 +194,7 @@ describe('budgets store', () => {
 
     await expect(store.fetchTemplate('2026-08')).rejects.toBe('template failed');
 
-    expect(store.error).toBe('No se pudo cargar la plantilla del presupuesto');
+    expect(store.error).toBe('Could not load the budget template');
     expect(store.loading).toBe(false);
   });
 
@@ -246,7 +246,7 @@ describe('budgets store', () => {
 
     await expect(store.save(payload)).rejects.toBe('save failed');
 
-    expect(store.error).toBe('No se pudo guardar el presupuesto');
+    expect(store.error).toBe('Could not save the budget');
     expect(store.loading).toBe(false);
   });
 

@@ -145,13 +145,75 @@ describe('BudgetsView', () => {
     expect(budgetsService.list).toHaveBeenCalledTimes(1);
     expect(budgetsService.getByMonth).toHaveBeenCalledWith(current);
     expect(categoriesService.list).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('h1').text()).toBe('Budgets');
+    expect(wrapper.text()).toContain('Plan your income and expenses by month.');
     expect(wrapper.find('[data-test="selected-budget"]').text()).toContain(
-      'Presupuesto creado',
+      'Budget created',
     );
+    expect(wrapper.find('[data-test="new-budget"]').text()).toContain('Edit budget');
     expect(wrapper.find('[data-test="budget-status-card"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Vivienda');
     expect(wrapper.text()).toContain('75%');
-    expect(wrapper.text()).toContain('Remanente: $25.00');
+    expect(wrapper.text()).toContain('Remaining: $25.00');
+  });
+
+  it('renders English labels for saved item counts and budget details', async () => {
+    const current = monthAt(0);
+    const previous = monthAt(-1);
+    const saved = budget(current, [
+      item,
+      { categoryId: 'c2', type: 'income', amount: 2000, note: 'Salary' },
+      { categoryId: 'missing', type: 'expense', amount: 50, note: 'Orphaned' },
+    ]);
+    const previousBudget = budget(previous);
+    vi.mocked(budgetsService.list).mockResolvedValue([saved, previousBudget]);
+    vi.mocked(budgetsService.getByMonth).mockResolvedValue(saved);
+
+    const wrapper = await mountView();
+    const savedRows = wrapper.findAll('[data-test="saved-budget"]').map((row) => row.text());
+
+    expect(savedRows).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('1 item'),
+        expect.stringContaining('3 items'),
+      ]),
+    );
+    const details = wrapper.find('[data-test="budget-items-list"]').text();
+    expect(details).toContain('Expense · Renta');
+    expect(details).toContain('Income · Salary');
+    expect(details).toContain('Deleted category');
+    expect(wrapper.find('[data-test="edit-budget"]').text()).toContain('Edit items');
+  });
+
+  it('renders the English empty state for a saved budget without items', async () => {
+    const current = monthAt(0);
+    const saved = budget(current, []);
+    vi.mocked(budgetsService.list).mockResolvedValue([saved]);
+    vi.mocked(budgetsService.getByMonth).mockResolvedValue(saved);
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-test="budget-items-list"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="selected-budget"]').text()).toContain(
+      'This budget has no items.',
+    );
+  });
+
+  it('renders English copy for an unsaved month', async () => {
+    const wrapper = await mountView();
+
+    expect(wrapper.text()).toContain('Choose month');
+    expect(wrapper.text()).toContain('Budget month');
+    expect(wrapper.text()).toContain('You can also choose a future month');
+    expect(wrapper.text()).toContain('Saved budgets');
+    expect(wrapper.text()).toContain('No saved months yet.');
+    expect(wrapper.find('[data-test="new-budget"]').text()).toContain('Create budget');
+    expect(wrapper.text()).toContain('Selected period');
+    expect(wrapper.text()).toContain('No budget');
+    expect(wrapper.text()).toContain(
+      'Create this budget to get a proposal based on your schedule.',
+    );
+    expect(wrapper.text()).toContain('Create from schedule');
   });
 
   it('lets the user select a future month and loads its agenda template with notes', async () => {
@@ -170,7 +232,7 @@ describe('BudgetsView', () => {
 
     expect(budgetsService.getByMonth).toHaveBeenLastCalledWith(future);
     expect(wrapper.find('[data-test="budget-state"]').text()).toContain(
-      'Sin presupuesto',
+      'No budget',
     );
 
     await wrapper.find('[data-test="edit-budget"]').trigger('click');
@@ -246,7 +308,7 @@ describe('BudgetsView', () => {
 
     expect(budgetsService.create).toHaveBeenCalledWith(payload);
     expect(wrapper.find('[data-test="budget-state"]').text()).toContain(
-      'Presupuesto creado',
+      'Budget created',
     );
     expect(wrapper.findAll('[data-test="saved-budget"]')).toHaveLength(1);
   });
@@ -260,6 +322,28 @@ describe('BudgetsView', () => {
 
     expect(wrapper.find('[data-test="budget-action-error"]').text()).toContain(
       'Template down',
+    );
+  });
+
+  it('renders the English store fallback for a non-Error month failure', async () => {
+    vi.mocked(budgetsService.getByMonth).mockRejectedValue('Month down');
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-test="budget-load-error"]').text()).toBe(
+      'Could not load the budget',
+    );
+  });
+
+  it('uses the English fallback when preparing a budget fails with a non-Error', async () => {
+    vi.mocked(budgetsService.template).mockRejectedValue('Template down');
+
+    const wrapper = await mountView();
+    await wrapper.find('[data-test="edit-budget"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="budget-action-error"]').text()).toBe(
+      'Could not prepare the budget',
     );
   });
 
@@ -281,6 +365,27 @@ describe('BudgetsView', () => {
 
     expect(wrapper.find('[data-test="budget-action-error"]').text()).toContain(
       'Save down',
+    );
+  });
+
+  it('uses the English fallback when saving fails with a non-Error', async () => {
+    const current = monthAt(0);
+    const saved = budget(current);
+    vi.mocked(budgetsService.list).mockResolvedValue([saved]);
+    vi.mocked(budgetsService.getByMonth).mockResolvedValue(saved);
+    vi.mocked(budgetsService.update).mockRejectedValue('Save down');
+
+    const wrapper = await mountView();
+    await wrapper.find('[data-test="edit-budget"]').trigger('click');
+    const form = wrapper.findComponent(BudgetFormDialog);
+    form.vm.$emit('save', {
+      month: current,
+      items: [item],
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="budget-action-error"]').text()).toBe(
+      'Could not save the budget',
     );
   });
 });

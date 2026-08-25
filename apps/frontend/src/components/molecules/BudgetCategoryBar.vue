@@ -20,10 +20,10 @@ const progressColor = computed(() => {
 });
 
 const typeLabel = (type: BudgetItemType): string =>
-  type === 'income' ? 'Ingreso' : 'Gasto';
+  type === 'income' ? 'Income' : 'Expense';
 
 const remainingLabel = computed(() =>
-  props.row.remaining < 0 ? 'Exceso' : 'Remanente',
+  props.row.remaining < 0 ? 'Over budget' : 'Remaining',
 );
 </script>
 
@@ -46,12 +46,12 @@ const remainingLabel = computed(() =>
       :color="progressColor"
       height="8"
       rounded
-      aria-label="Progreso del presupuesto"
+      aria-label="Budget progress"
     />
 
     <div class="d-flex flex-wrap justify-space-between ga-2 mt-2 text-caption">
-      <span>Planeado: {{ formatCurrency(row.planned) }}</span>
-      <span>Real: {{ formatCurrency(row.actual) }}</span>
+      <span>Planned: {{ formatCurrency(row.planned) }}</span>
+      <span>Actual: {{ formatCurrency(row.actual) }}</span>
       <span :class="row.remaining < 0 ? 'text-error' : 'text-medium-emphasis'">
         {{ remainingLabel }}: {{ formatCurrency(Math.abs(row.remaining)) }}
       </span>

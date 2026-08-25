@@ -21,10 +21,10 @@ const expenseRows = computed(() =>
 );
 
 function categoryName(categoryId: string | null): string {
-  if (!categoryId) return 'Sin categoría';
+  if (!categoryId) return 'Uncategorized';
   return (
     props.categories.find((category) => category.id === categoryId)?.name ??
-    'Categoría eliminada'
+    'Deleted category'
   );
 }
 </script>
@@ -33,7 +33,7 @@ function categoryName(categoryId: string | null): string {
   <v-card color="surface" class="pa-4" data-test="budget-status-card">
     <v-card-title class="d-flex align-center pa-0 pb-2">
       <v-icon icon="mdi-chart-timeline-variant" color="primary" size="20" class="mr-2" />
-      <span class="text-subtitle-1 font-weight-bold">Avance del presupuesto</span>
+      <span class="text-subtitle-1 font-weight-bold">Budget progress</span>
       <span class="text-caption text-medium-emphasis ml-auto">
         {{ props.periodLabel ?? props.month }}
       </span>
@@ -52,11 +52,11 @@ function categoryName(categoryId: string | null): string {
           class="mb-3"
           data-test="budget-missing-months"
         >
-          Faltan presupuestos para: {{ status.missingMonths.join(', ') }}
+          Missing budgets for: {{ status.missingMonths.join(', ') }}
         </v-alert>
 
         <section v-if="incomeRows.length > 0" data-test="budget-income-status">
-          <div class="text-subtitle-2 font-weight-bold mb-1">Ingresos</div>
+          <div class="text-subtitle-2 font-weight-bold mb-1">Income</div>
           <BudgetCategoryBar
             v-for="row in incomeRows"
             :key="`${row.type}-${row.categoryId ?? 'uncategorized'}`"
@@ -68,7 +68,7 @@ function categoryName(categoryId: string | null): string {
         <v-divider v-if="incomeRows.length > 0 && expenseRows.length > 0" class="my-2" />
 
         <section v-if="expenseRows.length > 0" data-test="budget-expense-status">
-          <div class="text-subtitle-2 font-weight-bold mb-1">Gastos</div>
+          <div class="text-subtitle-2 font-weight-bold mb-1">Expenses</div>
           <BudgetCategoryBar
             v-for="row in expenseRows"
             :key="`${row.type}-${row.categoryId ?? 'uncategorized'}`"
@@ -78,12 +78,12 @@ function categoryName(categoryId: string | null): string {
         </section>
 
         <div v-if="status.rows.length === 0" class="text-body-2 text-medium-emphasis py-4 text-center">
-          Aún no hay movimientos reales ni renglones para comparar.
+          There are no actual transactions or budget items to compare yet.
         </div>
       </template>
 
       <div v-else class="text-body-2 text-medium-emphasis py-4 text-center">
-        No hay datos reales para este periodo.
+        No actual data for this period.
       </div>
     </v-card-text>
   </v-card>

@@ -76,19 +76,22 @@ describe('BudgetStatusCard', () => {
   it('separates income and expenses, shows missing months, and resolves category names', () => {
     const wrapper = mountCard();
 
+    expect(wrapper.text()).toContain('Budget progress');
     expect(wrapper.text()).toContain('2026-09');
     expect(wrapper.find('[data-test="budget-missing-months"]').text()).toContain(
-      'Faltan presupuestos para: 2026-09',
+      'Missing budgets for: 2026-09',
     );
     expect(wrapper.find('[data-test="budget-income-status"]').text()).toContain('Sueldo');
+    expect(wrapper.find('[data-test="budget-income-status"]').text()).toContain('Income');
     expect(wrapper.find('[data-test="budget-expense-status"]').text()).toContain(
       'Vivienda',
     );
+    expect(wrapper.find('[data-test="budget-expense-status"]').text()).toContain('Expenses');
     expect(wrapper.find('[data-test="budget-expense-status"]').text()).toContain(
-      'Sin categoría',
+      'Uncategorized',
     );
     expect(wrapper.find('[data-test="budget-expense-status"]').text()).toContain(
-      'Categoría eliminada',
+      'Deleted category',
     );
     expect(wrapper.findAll('[data-test="budget-category-bar"]')).toHaveLength(4);
   });
@@ -96,7 +99,7 @@ describe('BudgetStatusCard', () => {
   it('shows an empty state when there is no status for the selected period', () => {
     const wrapper = mountCard({ status: null });
 
-    expect(wrapper.text()).toContain('No hay datos reales para este periodo.');
+    expect(wrapper.text()).toContain('No actual data for this period.');
     expect(wrapper.find('[data-test="budget-category-bar"]').exists()).toBe(false);
   });
 
@@ -104,7 +107,7 @@ describe('BudgetStatusCard', () => {
     const wrapper = mountCard({ status: { rows: [], missingMonths: [] } });
 
     expect(wrapper.text()).toContain(
-      'Aún no hay movimientos reales ni renglones para comparar.',
+      'There are no actual transactions or budget items to compare yet.',
     );
   });
 

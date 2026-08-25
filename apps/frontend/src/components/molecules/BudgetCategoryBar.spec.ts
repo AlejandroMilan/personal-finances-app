@@ -26,11 +26,14 @@ describe('BudgetCategoryBar', () => {
     const wrapper = mountBar();
 
     expect(wrapper.text()).toContain('Vivienda');
-    expect(wrapper.text()).toContain('Gasto');
+    expect(wrapper.text()).toContain('Expense');
     expect(wrapper.text()).toContain('75%');
-    expect(wrapper.text()).toContain('Planeado: $100.00');
-    expect(wrapper.text()).toContain('Real: $75.00');
-    expect(wrapper.text()).toContain('Remanente: $25.00');
+    expect(wrapper.text()).toContain('Planned: $100.00');
+    expect(wrapper.text()).toContain('Actual: $75.00');
+    expect(wrapper.text()).toContain('Remaining: $25.00');
+    expect(wrapper.findComponent({ name: 'VProgressLinear' }).attributes('aria-label')).toBe(
+      'Budget progress',
+    );
 
     const progress = wrapper.findComponent({ name: 'VProgressLinear' });
     expect(progress.props('modelValue')).toBe(75);
@@ -46,7 +49,7 @@ describe('BudgetCategoryBar', () => {
       remaining: 100,
     });
 
-    expect(wrapper.text()).toContain('Ingreso');
+    expect(wrapper.text()).toContain('Income');
     expect(wrapper.text()).toContain('90%');
     expect(wrapper.findComponent({ name: 'VProgressLinear' }).props('color')).toBe(
       'info',
@@ -61,7 +64,7 @@ describe('BudgetCategoryBar', () => {
     });
 
     expect(wrapper.text()).toContain('100%');
-    expect(wrapper.text()).toContain('Exceso: $50.00');
+    expect(wrapper.text()).toContain('Over budget: $50.00');
     expect(wrapper.find('.text-error').exists()).toBe(true);
     expect(wrapper.findComponent({ name: 'VProgressLinear' }).props('modelValue')).toBe(
       100,
@@ -81,7 +84,7 @@ describe('BudgetCategoryBar', () => {
     });
 
     expect(wrapper.text()).toContain('0%');
-    expect(wrapper.text()).toContain('Exceso: $40.00');
+    expect(wrapper.text()).toContain('Over budget: $40.00');
     expect(wrapper.findComponent({ name: 'VProgressLinear' }).props('modelValue')).toBe(
       0,
     );

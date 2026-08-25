@@ -52,7 +52,7 @@ export const useBudgetsStore = defineStore('budgets', () => {
       error.value =
         caught instanceof Error
           ? caught.message
-          : 'No se pudieron cargar los presupuestos';
+          : 'Could not load budgets';
     } finally {
       if (isCurrentRequest(generation, request)) {
         loading.value = false;
@@ -77,7 +77,7 @@ export const useBudgetsStore = defineStore('budgets', () => {
       error.value =
         caught instanceof Error
           ? caught.message
-          : 'No se pudo cargar el presupuesto';
+          : 'Could not load the budget';
     } finally {
       if (isCurrentRequest(generation, request)) {
         loading.value = false;
@@ -102,7 +102,7 @@ export const useBudgetsStore = defineStore('budgets', () => {
       error.value =
         caught instanceof Error
           ? caught.message
-          : 'No se pudo cargar la plantilla del presupuesto';
+          : 'Could not load the budget template';
       throw caught;
     } finally {
       if (isCurrentRequest(generation, request)) {
@@ -139,7 +139,7 @@ export const useBudgetsStore = defineStore('budgets', () => {
         error.value =
           caught instanceof Error
             ? caught.message
-            : 'No se pudo guardar el presupuesto';
+            : 'Could not save the budget';
       }
       throw caught;
     } finally {

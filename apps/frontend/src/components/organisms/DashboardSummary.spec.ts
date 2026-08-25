@@ -142,7 +142,10 @@ describe('DashboardSummary', () => {
     const link = wrapper.findComponent({ name: 'VBtn' });
 
     expect(alert.exists()).toBe(true);
+    expect(alert.text()).toContain('Monthly budget is missing');
+    expect(alert.text()).toContain("You haven't created a budget for 2026-08.");
     expect(alert.text()).toContain('2026-08');
+    expect(alert.text()).toContain('Create budget');
     expect(link.props('to')).toBe('/budgets');
   });
 
@@ -162,6 +165,7 @@ describe('DashboardSummary', () => {
     expect(wrapper.text()).toContain('Gastos por categoría');
     expect(wrapper.text()).toContain('Ingresos por categoría');
     expect(wrapper.text()).toContain('Gastos vs Ingresos');
+    expect(wrapper.find('[data-test="period-label"]').text()).toContain('Aug');
     expect(wrapper.find('[data-test="preset-month"]').exists()).toBe(true);
     expect(wrapper.findAll('[data-test="donut-chart"]')).toHaveLength(2);
     expect(wrapper.find('[data-test="line-chart"]').exists()).toBe(true);
@@ -203,16 +207,21 @@ describe('DashboardSummary', () => {
 
     expect(income.exists()).toBe(true);
     expect(expenses.exists()).toBe(true);
+    expect(wrapper.find('[data-test="budget-status-card"]').text()).toContain(
+      'Budget progress',
+    );
+    expect(income.text()).toContain('Income');
+    expect(expenses.text()).toContain('Expenses');
     expect(wrapper.findAll('[data-test="budget-category-bar"]')).toHaveLength(3);
     expect(income.text()).toContain('Sueldo');
-    expect(income.text()).toContain('Planeado: $1,000.00');
-    expect(income.text()).toContain('Real: $900.00');
+    expect(income.text()).toContain('Planned: $1,000.00');
+    expect(income.text()).toContain('Actual: $900.00');
     expect(income.text()).toContain('90%');
     expect(expenses.text()).toContain('Comida');
-    expect(expenses.text()).toContain('Sin categoría');
-    expect(expenses.text()).toContain('Planeado: $100.00');
-    expect(expenses.text()).toContain('Real: $120.00');
-    expect(expenses.text()).toContain('Exceso: $20.00');
+    expect(expenses.text()).toContain('Uncategorized');
+    expect(expenses.text()).toContain('Planned: $100.00');
+    expect(expenses.text()).toContain('Actual: $120.00');
+    expect(expenses.text()).toContain('Over budget: $20.00');
     expect(expenses.find('.text-error').exists()).toBe(true);
   });
 
@@ -250,6 +259,9 @@ describe('DashboardSummary', () => {
     );
     expect(wrapper.find('[data-test="budget-missing-months"]').text()).toContain(
       '2026-02',
+    );
+    expect(wrapper.find('[data-test="budget-missing-months"]').text()).toContain(
+      'Missing budgets for: 2026-02',
     );
   });
 

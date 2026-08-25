@@ -14,9 +14,9 @@ defineProps<{
   >
     <div class="d-flex flex-wrap align-center justify-space-between ga-3 w-100">
       <div>
-        <div class="text-body-1 font-weight-medium">Falta el presupuesto del mes</div>
+        <div class="text-body-1 font-weight-medium">Monthly budget is missing</div>
         <div class="text-body-2 text-medium-emphasis">
-          No has creado un presupuesto para {{ month }}.
+          You haven't created a budget for {{ month }}.
         </div>
       </div>
       <v-btn
@@ -25,7 +25,7 @@ defineProps<{
         to="/budgets"
         data-test="missing-budget-link"
       >
-        Crear presupuesto
+        Create budget
       </v-btn>
     </div>
   </v-alert>
