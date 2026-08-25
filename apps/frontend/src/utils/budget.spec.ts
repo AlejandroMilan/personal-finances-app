@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Budget, BudgetItem } from '../types/budget';
 import type { CategoryTotalView, TransactionsSummaryView } from '../types/summary';
-import { buildBudgetStatus, monthKey, monthsInPeriod } from './budget';
+import {
+  buildBudgetStatus,
+  buildMonthKey,
+  monthKey,
+  monthsInPeriod,
+  parseMonthKey,
+} from './budget';
 
 const makeBudget = (
   month: string,
@@ -309,5 +315,44 @@ describe('buildBudgetStatus', () => {
 
     expect(status.missingMonths).toEqual(['2026-09', '2026-10']);
     expect(status.rows).toEqual([]);
+  });
+});
+
+describe('parseMonthKey', () => {
+  it('splits a valid month key into year and month', () => {
+    expect(parseMonthKey('2026-03')).toEqual({ year: 2026, month: 3 });
+    expect(parseMonthKey('2026-12')).toEqual({ year: 2026, month: 12 });
+  });
+
+  it.each(['', '2026', '2026-1', '2026-00', '2026-13', '26-08', '2026-08-01'])(
+    'returns null for the invalid value %p',
+    (value) => {
+      expect(parseMonthKey(value)).toBeNull();
+    },
+  );
+});
+
+describe('buildMonthKey', () => {
+  it('pads the year and the month', () => {
+    expect(buildMonthKey(2026, 3)).toBe('2026-03');
+    expect(buildMonthKey(7, 11)).toBe('0007-11');
+  });
+
+  it.each([0, 13, 1.5, Number.NaN])('rejects the invalid month %p', (month) => {
+    expect(() => buildMonthKey(2026, month)).toThrow(RangeError);
+  });
+
+  it.each([0, 10000, 2026.5, Number.NaN])(
+    'rejects the invalid year %p',
+    (year) => {
+      expect(() => buildMonthKey(year, 3)).toThrow(RangeError);
+    },
+  );
+
+  it('round-trips with parseMonthKey', () => {
+    expect(parseMonthKey(buildMonthKey(2026, 9))).toEqual({
+      year: 2026,
+      month: 9,
+    });
   });
 });

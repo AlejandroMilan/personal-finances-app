@@ -32,6 +32,34 @@ export function monthKey(date: Date): string {
   return `${year}-${month}`;
 }
 
+const MONTH_KEY_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+export interface MonthParts {
+  year: number;
+  month: number;
+}
+
+/** Descompone un identificador mensual `YYYY-MM`; devuelve `null` si no lo es. */
+export function parseMonthKey(value: string): MonthParts | null {
+  const match = MONTH_KEY_PATTERN.exec(value);
+  if (!match) return null;
+
+  return { year: Number(match[1]), month: Number(match[2]) };
+}
+
+/** Compone un identificador mensual a partir de un año y un mes 1..12. */
+export function buildMonthKey(year: number, month: number): string {
+  if (!Number.isInteger(year) || year < 1 || year > 9999) {
+    throw new RangeError('A month key needs a year between 1 and 9999');
+  }
+
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    throw new RangeError('A month key needs a month between 1 and 12');
+  }
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+}
+
 /** Devuelve todos los meses calendario tocados por un rango, incluidos ambos extremos. */
 export function monthsInPeriod(from: Date, to: Date): string[] {
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {

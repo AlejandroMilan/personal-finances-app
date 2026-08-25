@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-25T19:48:56.875Z",
+  "updatedAt": "2026-08-25T21:33:10.963Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -2389,6 +2389,223 @@
         }
       ],
       "spec": "0007-liquidez-actual-en-dashboard-y-cuentas"
+    },
+    {
+      "id": "T-0050",
+      "title": "Add a visual month and year picker molecule",
+      "description": "Nuevo componente molecule que muestra una rejilla de 12 meses con navegación de año y emite el mes elegido en formato YYYY-MM, sin llamar a stores ni servicios.",
+      "status": "completada",
+      "createdAt": "2026-08-25T21:29:35.807Z",
+      "implementedAt": "2026-08-25T21:33:10.962Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El componente renderiza 12 botones de mes y marca como activo el que corresponde al valor recibido en formato YYYY-MM",
+          "validated": true,
+          "validatedAt": "2026-08-25T21:33:04.698Z",
+          "note": "MonthYearPicker.vue:66-78 rejilla de 12 v-btn month-option-N + isActive(); test 'renders the twelve months' y 'marks the month of the received value'"
+        },
+        {
+          "id": "AC-2",
+          "text": "Al pulsar un mes emite un único evento con el valor YYYY-MM correspondiente al año mostrado (p.ej. año 2026 + marzo => '2026-03')",
+          "validated": true,
+          "validatedAt": "2026-08-25T21:33:04.733Z",
+          "note": "MonthYearPicker.vue:37-39 pick() emite buildMonthKey(visibleYear, month); tests 'emits the picked month', 'emits a single event per click' y 'emits the month of the year being browsed'"
+        },
+        {
+          "id": "AC-3",
+          "text": "Los controles de año anterior/siguiente cambian el año mostrado sin emitir ningún evento de selección",
+          "validated": true,
+          "validatedAt": "2026-08-25T21:33:04.765Z",
+          "note": "MonthYearPicker.vue:33-35 shiftYear(); test 'moves the visible year without emitting a selection' verifica emitted('select') undefined"
+        },
+        {
+          "id": "AC-4",
+          "text": "Recibir un valor inválido o vacío no rompe el render: no hay mes activo y el año mostrado es el actual",
+          "validated": true,
+          "validatedAt": "2026-08-25T21:33:04.796Z",
+          "note": "parseMonthKey devuelve null (budget.ts:43) y visibleYear cae al año actual; test it.each(['','not-a-month','2026-13'])"
+        },
+        {
+          "id": "AC-5",
+          "text": "El componente no importa stores ni services; sólo recibe props y emite eventos",
+          "validated": true,
+          "validatedAt": "2026-08-25T21:33:04.828Z",
+          "note": "MonthYearPicker.vue:2-3 sólo importa vue y utils/budget; sin imports de stores/ ni services/"
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm test:coverage pasa con >= 80% incluyendo el nuevo componente",
+          "validated": true,
+          "validatedAt": "2026-08-25T21:33:04.860Z",
+          "note": "pnpm test:coverage: 401 tests frontend en verde, statements 100%, branches 99.09%, functions 100%, lines 100%"
+        }
+      ],
+      "spec": "0008-correcciones-de-la-vista-de-presupuestos"
+    },
+    {
+      "id": "T-0051",
+      "title": "Wire the visual month picker into the budgets view",
+      "description": "La vista de presupuestos ofrece el selector visual junto al campo de texto de mes, manteniendo ambos sincronizados y recargando los datos del mes elegido.",
+      "status": "pendiente",
+      "createdAt": "2026-08-25T21:29:35.843Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "La vista muestra un control que abre el selector visual de mes/año sin eliminar el campo de texto type=month existente",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "Elegir un mes en el selector actualiza el mes seleccionado y dispara la carga del presupuesto y del resumen de ese mes exactamente una vez",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "Escribir un mes válido en el campo de texto deja el selector visual posicionado en ese mes y año al reabrirlo",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Escribir un mes inválido no dispara ninguna carga ni rompe el selector visual",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Elegir un mes ya seleccionado no vuelve a disparar la carga",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/frontend",
+          "validated": false
+        }
+      ],
+      "spec": "0008-correcciones-de-la-vista-de-presupuestos"
+    },
+    {
+      "id": "T-0052",
+      "title": "Exclude already budgeted categories from the item selector",
+      "description": "Función pura en utils/budget.ts que calcula las categorías disponibles para una partida y su uso en BudgetFormDialog, respetando la unicidad por categoría y tipo del dominio.",
+      "status": "pendiente",
+      "createdAt": "2026-08-25T21:29:35.874Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "utils/budget.ts expone una función pura que, dadas las categorías y las partidas en edición, devuelve para una partida concreta las categorías no usadas por otras partidas del mismo tipo, más la propia categoría de esa partida",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "La función permite la misma categoría en una partida de gasto y otra de ingreso",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "En el diálogo, tras presupuestar una categoría, el desplegable de una partida nueva del mismo tipo ya no la ofrece",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Eliminar la partida que ocupaba una categoría vuelve a ofrecerla en las demás partidas del mismo tipo",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "Cambiar la categoría de una partida libera la anterior y ocupa la nueva en el resto de desplegables del mismo tipo",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "Cambiar el tipo de una partida recalcula las categorías disponibles de todas las partidas",
+          "validated": false
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm test:coverage pasa con >= 80% en utils/budget.ts y en el diálogo",
+          "validated": false
+        }
+      ],
+      "spec": "0008-correcciones-de-la-vista-de-presupuestos"
+    },
+    {
+      "id": "T-0053",
+      "title": "Show a pinned budget total while editing items",
+      "description": "Función pura de totales del editor y panel fijo en BudgetFormDialog con gasto presupuestado, ingreso presupuestado y balance.",
+      "status": "pendiente",
+      "createdAt": "2026-08-25T21:29:35.905Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "utils/budget.ts expone una función pura que devuelve el total de gastos, el total de ingresos y el balance (ingresos - gastos) de una lista de partidas, redondeados a dos decimales",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "La función ignora las partidas con importe no finito o <= 0 y devuelve ceros para una lista vacía",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "El diálogo muestra esos tres totales con formato de moneda en un bloque que permanece visible al hacer scroll por las partidas",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Añadir, editar el importe o eliminar una partida actualiza los totales mostrados sin guardar el presupuesto",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm test:coverage pasa con >= 80% en utils/budget.ts y en BudgetFormDialog",
+          "validated": false
+        }
+      ],
+      "spec": "0008-correcciones-de-la-vista-de-presupuestos"
+    },
+    {
+      "id": "T-0054",
+      "title": "Compare budgeted and actual totals on the dashboard card",
+      "description": "Cabecera de totales en BudgetStatusCard: total presupuestado del periodo frente al gasto real, con diferencia y porcentaje consumido, alimentada por una función pura.",
+      "status": "pendiente",
+      "createdAt": "2026-08-25T21:29:35.937Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "utils/budget.ts expone una función pura que, a partir de un BudgetStatus, devuelve el total planificado, el total real, la diferencia y el ratio consumido para gastos y para ingresos",
+          "validated": false
+        },
+        {
+          "id": "AC-2",
+          "text": "El ratio es 0 cuando el total planificado es 0, sin producir NaN ni Infinity",
+          "validated": false
+        },
+        {
+          "id": "AC-3",
+          "text": "BudgetStatusCard muestra, por encima del detalle por categoría, el total presupuestado y el total gastado del periodo con su diferencia y su porcentaje",
+          "validated": false
+        },
+        {
+          "id": "AC-4",
+          "text": "Cuando no hay presupuesto definido para el periodo la tarjeta indica que falta el presupuesto en lugar de mostrar totales en cero",
+          "validated": false
+        },
+        {
+          "id": "AC-5",
+          "text": "El bloque de totales aparece igualmente en la tarjeta de la vista de presupuestos, que reutiliza el mismo componente",
+          "validated": false
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm test:coverage pasa con >= 80% en utils/budget.ts y en BudgetStatusCard",
+          "validated": false
+        }
+      ],
+      "spec": "0008-correcciones-de-la-vista-de-presupuestos"
     }
   ]
 }
