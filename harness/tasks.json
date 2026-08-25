@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-20T17:26:37.942Z",
+  "updatedAt": "2026-08-25T19:48:56.875Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -1020,6 +1020,1375 @@
         }
       ],
       "spec": "0002-agenda-de-transacciones"
+    },
+    {
+      "id": "T-0021",
+      "title": "Add the transfer type to the transaction domain",
+      "description": "Agregar TRANSFER al enum de tipos y el campo destinationAccountId a la entidad Transaction, con sus invariantes y el delta de saldo por cuenta.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:36:31.487Z",
+      "implementedAt": "2026-08-20T22:58:15.315Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "TransactionType incluye TRANSFER con valor 'transfer'",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:13:27.314Z",
+          "note": "transaction-type.enum.ts:1-5 declara TRANSFER='transfer'; test 'exposes the transfer transaction type' en transaction.entity.spec.ts pasa."
+        },
+        {
+          "id": "AC-2",
+          "text": "Transaction.create con type TRANSFER exige destinationAccountId; si falta lanza un error de dominio",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:13:27.352Z",
+          "note": "transaction.entity.ts:62-68 lanza TransactionError sin destinationAccountId; test parametrizado 'rejects a transfer without a destination account' cubre undefined, null y cadena vacia."
+        },
+        {
+          "id": "AC-3",
+          "text": "Transaction.create con type TRANSFER y destinationAccountId igual a accountId lanza un error de dominio",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:13:27.389Z",
+          "note": "transaction.entity.ts:69-73 rechaza origen igual a destino; test 'rejects a transfer to its source account' pasa."
+        },
+        {
+          "id": "AC-4",
+          "text": "Transaction.create con type TRANSFER fuerza categoryId a null aunque se le pase una categoria",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:13:27.425Z",
+          "note": "transaction.entity.ts:43-47 fuerza categoryId a null para TRANSFER; test 'creates a transfer without a category and with a destination account' lo verifica."
+        },
+        {
+          "id": "AC-5",
+          "text": "Transaction.create con type INCOME o EXPENSE y destinationAccountId presente lanza un error de dominio",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:13:27.462Z",
+          "note": "transaction.entity.ts:75-81 rechaza destino en INCOME y EXPENSE; test parametrizado 'rejects a %s with a destination account' cubre ambos tipos."
+        },
+        {
+          "id": "AC-6",
+          "text": "getBalanceDelta devuelve -amount para una transferencia y existe un metodo que devuelve +amount para la cuenta destino",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:13:27.500Z",
+          "note": "transaction.entity.ts:128-136 devuelve -amount para origen y getDestinationBalanceDelta() devuelve +amount; test 'computes both balance deltas for a transfer' pasa."
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/backend/src/modules/transactions/domain",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:15.277Z",
+          "note": "pnpm test:coverage en verde: backend 48 suites/355 tests; apps/backend/src/modules/transactions/domain 100% statements, branches, functions y lines. Frontend 22 archivos/208 tests."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0022",
+      "title": "Persist the destination account and keep transfers out of the summary",
+      "description": "Guardar destinationAccountId en Mongo, permitir filtrar por el tipo transferencia y excluir las transferencias de los totales, del desglose por categoria y de la serie del resumen.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:36:46.674Z",
+      "implementedAt": "2026-08-20T21:44:41.703Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "TransactionSchema declara destinationAccountId y el repositorio lo guarda y lo rehidrata en la entidad",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:44:41.496Z",
+          "note": "transaction.schema.ts:18-19 declara destinationAccountId; transaction.repository.mongo.ts:92-103 persiste y :288-301 rehidrata con null; tests de persistencia de transferencia y legacy pasan."
+        },
+        {
+          "id": "AC-2",
+          "text": "findByUserId con el filtro type='transfer' devuelve solo transferencias",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:44:41.540Z",
+          "note": "transaction.repository.mongo.ts:254-268 incorpora filters.type manteniendo userId; test de listado en transaction.repository.mongo.spec.ts:205-255 devuelve sólo la transferencia del usuario autenticado."
+        },
+        {
+          "id": "AC-3",
+          "text": "summarize ignora las transacciones de tipo transfer: no suman en totals, no aparecen en byCategory y no alteran los buckets de series",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:44:41.579Z",
+          "note": "transaction.repository.mongo.ts:142-149 excluye transfer antes de ; tests de summarize comprueban que no altera totals, byCategory ni series."
+        },
+        {
+          "id": "AC-4",
+          "text": "deleteByAccountId borra tambien las transferencias en las que la cuenta es el destino",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:44:41.621Z",
+          "note": "transaction.repository.mongo.ts:115-121 filtra userId y  sobre origen/destino; DeleteAccountUseCase:31-40 propaga el usuario; tests de repositorio y caso de uso pasan."
+        },
+        {
+          "id": "AC-5",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/backend/src/modules/transactions/infrastructure",
+          "validated": true,
+          "validatedAt": "2026-08-20T21:44:41.663Z",
+          "note": "Cobertura focalizada de infrastructure/transactions: 2 suites, 36 tests; 100% statements, 95.08% branches, 100% functions, 100% lines."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0023",
+      "title": "Move balance between both accounts on create, update and delete",
+      "description": "Los casos de uso de transaccion aplican, recalculan y revierten el saldo de las dos cuentas implicadas en una transferencia, incluido el importe usado de las tarjetas de credito.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:36:46.708Z",
+      "implementedAt": "2026-08-20T22:22:17.819Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "CreateTransactionUseCase con una transferencia resta el importe en la cuenta origen y lo suma en la cuenta destino",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.572Z",
+          "note": "create-transaction.use-case.ts:53-79 y :117-128 aplican -amount al origen y +amount al destino; test create-transaction.use-case.spec.ts:147-163 pasa."
+        },
+        {
+          "id": "AC-2",
+          "text": "CreateTransactionUseCase rechaza con NotFoundException una transferencia cuya cuenta destino no existe o es de otro usuario, sin ajustar ningun saldo",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.609Z",
+          "note": "create-transaction.use-case.ts:82-98 valida existencia y userId del destino antes de mutar; tests parametrizados cubren destino ausente/ajeno y verifican cero ajustes y save."
+        },
+        {
+          "id": "AC-3",
+          "text": "CreateTransactionUseCase rechaza con BadRequestException una transferencia sin destino o con origen igual a destino, sin ajustar ningun saldo",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.646Z",
+          "note": "create-transaction.use-case.ts:89-115 rechaza destino ausente o igual con BadRequestException antes de mutar; tests de create cubren undefined, null, vacio e igualdad."
+        },
+        {
+          "id": "AC-4",
+          "text": "Una transferencia hacia una cuenta de credito reduce su usedAmount y una transferencia desde una cuenta de credito lo aumenta",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.682Z",
+          "note": "create-transaction.use-case.ts:131-135 ajusta usedAmount como -delta para credito; tests cubren credito como origen (+usedAmount) y destino (-usedAmount)."
+        },
+        {
+          "id": "AC-5",
+          "text": "UpdateTransactionUseCase que cambia importe u origen o destino de una transferencia deja los saldos de todas las cuentas implicadas, incluidas las que dejan de estarlo, como si la transferencia se hubiera creado ya con los datos nuevos",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.717Z",
+          "note": "update-transaction.use-case.ts:131-146 revierte movimiento anterior y aplica nuevo por cuenta; tests de importe/origen/destino cubren cuentas antiguas y nuevas, incluyendo credito."
+        },
+        {
+          "id": "AC-6",
+          "text": "DeleteTransactionUseCase revierte el saldo de las dos cuentas de la transferencia",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.751Z",
+          "note": "delete-transaction.use-case.ts:54-69 revierte origen y destino y :101-105 ajusta credito; tests cubren balances normales y tarjetas."
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/backend/src/modules/transactions/application",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:22:17.785Z",
+          "note": "Cobertura focalizada de transactions/application: 5 suites, 56 tests; 98.36% statements, 96.66% branches, 93.33% functions, 98.83% lines."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0024",
+      "title": "Expose transfers over the transactions HTTP API",
+      "description": "DTOs y controlador de transacciones aceptan y devuelven la cuenta destino y el tipo transferencia.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:37:00.979Z",
+      "implementedAt": "2026-08-20T22:58:21.999Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "CreateTransactionDto acepta destinationAccountId como string no vacio opcional y el ValidationPipe descarta cualquier otro campo",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:21.812Z",
+          "note": "CreateTransactionDto:32-35 usa IsOptional, IsString e IsNotEmpty; main.ts:7 usa whitelist+transform; tests de create DTO cubren valor valido, vacio, tipo no string y campos desconocidos."
+        },
+        {
+          "id": "AC-2",
+          "text": "POST /transactions con type='transfer' y destinationAccountId responde 201 con el destino en el cuerpo",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:21.850Z",
+          "note": "transactions.controller.ts:46-64 recibe POST 201, delega al caso de uso y devuelve destinationAccountId; tests de controller y smoke HTTP verifican destino en respuesta."
+        },
+        {
+          "id": "AC-3",
+          "text": "POST /transactions con type='transfer' sin destinationAccountId responde 400",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:21.887Z",
+          "note": "create-transaction.use-case.ts:82-115 lanza BadRequestException sin destino antes de mutar; transactions.controller.spec.ts cubre propagacion con status 400."
+        },
+        {
+          "id": "AC-4",
+          "text": "GET /transactions?type=transfer responde 200 y solo con transferencias del usuario del token",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:21.925Z",
+          "note": "transactions.controller.ts:35-36 protege con JwtAuthGuard y :66-81 usa CurrentUser; repositorio conserva userId+type; tests de controller/repository cubren usuario propio frente a ajeno."
+        },
+        {
+          "id": "AC-5",
+          "text": "TransactionView incluye destinationAccountId con null para ingresos y gastos",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:21.962Z",
+          "note": "transaction-response.dto.ts:3-13 declara destinationAccountId obligatorio string|null; transactions.controller.ts:164-175 lo serializa siempre y tests verifican null para income/expense y id para transfer."
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/backend/src/modules/transactions/presentation",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:58:15.353Z",
+          "note": "pnpm test:coverage en verde: transactions/presentation 100% statements, 88.88% branches, 100% functions y lines; backend 48 suites/355 tests y frontend 22 archivos/208 tests."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0025",
+      "title": "Add the destination account to the scheduled transaction domain and persistence",
+      "description": "La entidad agendada admite el tipo transferencia con cuenta destino, con las mismas invariantes que la transaccion, y se persiste en Mongo.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:37:01.014Z",
+      "implementedAt": "2026-08-20T22:56:00.465Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "ScheduledTransaction.create con type TRANSFER exige destinationAccountId distinto del accountId y fuerza categoryId a null",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:56:00.317Z",
+          "note": "scheduled-transaction.entity.ts:51-75 normaliza categoria y :89-103 exige destino distinto para TRANSFER; tests de entity cubren destino ausente, igual y válido."
+        },
+        {
+          "id": "AC-2",
+          "text": "ScheduledTransaction.create con type INCOME o EXPENSE y destinationAccountId presente lanza ScheduledTransactionError",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:56:00.355Z",
+          "note": "scheduled-transaction.entity.ts:106-110 rechaza destinationAccountId en INCOME/EXPENSE; test parametrizado cubre ambos tipos."
+        },
+        {
+          "id": "AC-3",
+          "text": "ScheduledTransactionSchema declara destinationAccountId y el repositorio lo guarda y lo rehidrata",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:56:00.392Z",
+          "note": "scheduled-transaction.schema.ts:20-21 declara destinationAccountId; repository.mongo.ts:44-69 persiste y :96-113 rehidrata con null; tests cubren transfer y legacy undefined/null."
+        },
+        {
+          "id": "AC-4",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/backend/src/modules/scheduled-transactions/domain y /infrastructure",
+          "validated": true,
+          "validatedAt": "2026-08-20T22:56:00.428Z",
+          "note": "pnpm test:coverage en verde: backend 48 suites/355 tests, scheduled domain e infrastructure 100% statements/branches/functions/lines; frontend 22 files/208 tests."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0026",
+      "title": "Schedule and execute transfers end to end",
+      "description": "Los casos de uso y la API de la agenda crean, editan y ejecutan transferencias agendadas, propagando la cuenta destino tambien al reagendar.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:37:16.016Z",
+      "implementedAt": "2026-08-20T23:22:51.806Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "CreateScheduledTransactionUseCase valida que la cuenta destino exista y sea del usuario, y rechaza con NotFoundException si no lo es",
+          "validated": true,
+          "validatedAt": "2026-08-20T23:22:49.967Z",
+          "note": "create-scheduled-transaction.use-case.ts:55-64 valida destino con assertAccountOwnership, que comprueba existencia y userId; tests cubren ajeno/inexistente y save=0."
+        },
+        {
+          "id": "AC-2",
+          "text": "ExecuteScheduledTransactionUseCase crea una transaccion de tipo transfer con la cuenta destino agendada, o con la que confirma el usuario si la cambia",
+          "validated": true,
+          "validatedAt": "2026-08-20T23:22:50.224Z",
+          "note": "execute-scheduled-transaction.use-case.ts:65-84 propaga destino confirmado o agendado y fuerza categoryId null en transfer; tests de ejecucion cubren ambos destinos y CreateTransactionUseCase valida antes de saldos."
+        },
+        {
+          "id": "AC-3",
+          "text": "Al reagendar una transferencia la siguiente ocurrencia conserva accountId y destinationAccountId",
+          "validated": true,
+          "validatedAt": "2026-08-20T23:22:50.498Z",
+          "note": "execute-scheduled-transaction.use-case.ts:108-133 reagenda con existing.accountId y existing.destinationAccountId; tests verifican ambos campos en la siguiente ocurrencia."
+        },
+        {
+          "id": "AC-4",
+          "text": "POST y PATCH /scheduled-transactions aceptan destinationAccountId y responden 400 si el tipo es transfer y falta el destino",
+          "validated": true,
+          "validatedAt": "2026-08-20T23:22:50.831Z",
+          "note": "DTOs create/update declaran destinationAccountId con IsOptional/IsString/IsNotEmpty; controller lo propaga y tests HTTP/use-case verifican 400 sin destino y 201/200 con destino."
+        },
+        {
+          "id": "AC-5",
+          "text": "ScheduledTransactionView incluye destinationAccountId con null para ingresos y gastos",
+          "validated": true,
+          "validatedAt": "2026-08-20T23:22:51.068Z",
+          "note": "scheduled-transaction-response.dto.ts:5-18 declara destinationAccountId string|null; controller:159-173 lo serializa y tests verifican null en ingresos/gastos e id en transferencias."
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/backend/src/modules/scheduled-transactions",
+          "validated": true,
+          "validatedAt": "2026-08-20T23:22:51.417Z",
+          "note": "pnpm test:coverage en verde: backend 48 suites/383 tests, scheduled-transactions >=98% en todas las metricas; frontend 22 archivos/208 tests."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0027",
+      "title": "Create transfers from the transactions UI",
+      "description": "Tipos del frontend, opcion Transfer en el formulario de transaccion con selector de cuenta destino, y listado con origen, destino y filtro por tipo.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:37:16.050Z",
+      "implementedAt": "2026-08-21T00:10:35.071Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El tipo TransactionType del frontend incluye 'transfer' y las vistas y payloads incluyen destinationAccountId",
+          "validated": true,
+          "validatedAt": "2026-08-21T00:10:34.868Z",
+          "note": "types/transaction.ts:1,3-47 declara transfer, destinationAccountId en vistas/payloads/filtros; services/transactions.ts y stores/transactions.ts propagan payloads; tests de tipos/services/store pasan."
+        },
+        {
+          "id": "AC-2",
+          "text": "TransactionFormDialog ofrece la opcion Transfer y al elegirla muestra el selector de cuenta destino y oculta el de categoria",
+          "validated": true,
+          "validatedAt": "2026-08-21T00:10:34.909Z",
+          "note": "utils/transaction.ts:10-14 ofrece Transfer; TransactionFormDialog.vue:167-187 muestra destino sólo en transfer y oculta categoría; tests de formulario cubren ambas ramas y payload sin categoria."
+        },
+        {
+          "id": "AC-3",
+          "text": "El selector de cuenta destino excluye la cuenta de origen ya seleccionada y el boton de guardar queda deshabilitado mientras no haya destino",
+          "validated": true,
+          "validatedAt": "2026-08-21T00:10:34.948Z",
+          "note": "utils/transaction.ts:28-33 excluye sourceAccountId; TransactionFormDialog.vue:42-45/207-209 filtra y deshabilita guardar sin destino; tests cubren origen excluido y botón."
+        },
+        {
+          "id": "AC-4",
+          "text": "TransactionsView muestra en la fila de una transferencia la cuenta origen y la cuenta destino, y ofrece el filtro por tipo Transfer",
+          "validated": true,
+          "validatedAt": "2026-08-21T00:10:34.988Z",
+          "note": "TransactionsView.vue usa etiqueta origen→destino y opciones Transfer; utils/transaction.ts:42-52 deriva etiqueta; tests de vista y service verifican fila y type=transfer."
+        },
+        {
+          "id": "AC-5",
+          "text": "La logica derivada nueva vive en apps/frontend/src/utils y pnpm test:coverage pasa con >= 80% ahi",
+          "validated": true,
+          "validatedAt": "2026-08-21T00:10:35.029Z",
+          "note": "La lógica derivada vive en utils/transaction.ts; pnpm --filter frontend test:coverage: 26 archivos/228 tests, 100% statements, 98.68% branches, 100% functions, 100% lines; transaction.ts 100%."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0028",
+      "title": "Schedule transfers from the agenda UI",
+      "description": "El formulario de agenda, la tarjeta de agenda, la tarjeta de proximos movimientos y el dialogo de ejecucion soportan y muestran las transferencias.",
+      "status": "completada",
+      "createdAt": "2026-08-20T20:37:27.583Z",
+      "implementedAt": "2026-08-21T01:16:32.624Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "ScheduledTransactionFormDialog ofrece la opcion Transfer con selector de cuenta destino y sin categoria, con las mismas reglas que el formulario de transaccion",
+          "validated": true,
+          "validatedAt": "2026-08-21T01:16:32.474Z",
+          "note": "ScheduledTransactionFormDialog.vue:46-68/186-207 ofrece Transfer, filtra origen, muestra destino, oculta categoria; :235-241 deshabilita guardar sin destino; tests del formulario cubren reglas y payload."
+        },
+        {
+          "id": "AC-2",
+          "text": "ScheduledTransactionCard y UpcomingScheduleCard muestran una transferencia como origen hacia destino, sin signo de ingreso ni de gasto",
+          "validated": true,
+          "validatedAt": "2026-08-21T01:16:32.513Z",
+          "note": "ScheduledTransactionCard.vue:21-28/83-88 muestra origen→destino con icono/color neutral y monto sin signo; UpcomingScheduleCard.vue:119-143 propaga destination-name; tests de card/upcoming pasan."
+        },
+        {
+          "id": "AC-3",
+          "text": "ExecuteScheduledDialog muestra origen y destino y permite confirmar la ejecucion con la pregunta de reagendado ya existente",
+          "validated": true,
+          "validatedAt": "2026-08-21T01:16:32.550Z",
+          "note": "ExecuteScheduledDialog.vue:39-48/63-78/148-200 muestra y emite destino, excluye origen y conserva switch/rescheduleFor; tests de dialogo cubren destino y reagendado."
+        },
+        {
+          "id": "AC-4",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/frontend",
+          "validated": true,
+          "validatedAt": "2026-08-21T01:16:32.587Z",
+          "note": "pnpm --filter frontend test:coverage: 27 archivos/238 tests, 100% statements, 98.68% branches, 100% functions, 100% lines."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0029",
+      "title": "Clear agenda data when the authenticated user changes",
+      "description": "Evitar que los datos de agenda y cuentas de una sesión anterior aparezcan durante el cambio de usuario en la UI de próximos movimientos.",
+      "status": "completada",
+      "createdAt": "2026-08-21T01:16:24.412Z",
+      "implementedAt": "2026-08-21T07:08:44.028Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Al cerrar sesión o cambiar de usuario, la agenda y las cuentas visibles se vacían antes de mostrar datos de la nueva sesión",
+          "validated": true,
+          "validatedAt": "2026-08-21T07:08:43.903Z",
+          "note": "auth.ts:24-30 limpia accounts, categories, scheduled-transactions, transactions y dashboard; login y logout limpian antes de exponer la nueva sesion. auth.spec.ts verifica logout y cambio de usuario."
+        },
+        {
+          "id": "AC-2",
+          "text": "Una respuesta tardía de una petición iniciada por el usuario anterior no puede sobrescribir el estado de la sesión nueva",
+          "validated": true,
+          "validatedAt": "2026-08-21T07:08:43.945Z",
+          "note": "auth.ts:43-64 invalida operaciones de login obsoletas; stores accounts/categories/scheduled/transactions/dashboard comparan sessionGeneration y requestId. Tests cubren respuestas tardias entre sesiones, logout durante login y carreras de la misma sesion."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
+          "validated": true,
+          "validatedAt": "2026-08-21T07:08:43.986Z",
+          "note": "pnpm --filter frontend test:coverage: 27 archivos y 250 tests; 100% statements, 98.68% branches, 100% functions y 100% lines. pnpm test:coverage y pnpm build tambien pasan."
+        }
+      ],
+      "spec": "0003-transacciones-de-tipo-transferencia"
+    },
+    {
+      "id": "T-0030",
+      "title": "Create the Budget domain entity",
+      "description": "Entidad de dominio Budget con sus renglones embebidos y sus invariantes, sin dependencias de Nest ni de Mongoose.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:40:39.668Z",
+      "implementedAt": "2026-08-24T18:10:44.664Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Budget.create rechaza con BudgetError un mes que no cumpla el formato YYYY-MM (mes 00 y 13 incluidos)",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.513Z",
+          "note": "apps/backend/src/modules/budgets/domain/entities/budget.entity.ts:30-32,79-82 valida YYYY-MM con meses 01-12; test 'rejects the invalid month %p' en budget.entity.spec.ts:62-72; probe real: 2026-00 y 2026-13 rechazados con BudgetError."
+        },
+        {
+          "id": "AC-2",
+          "text": "Budget.create rechaza con BudgetError un renglón con amount <= 0, NaN o no finito",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.550Z",
+          "note": "budget.entity.ts:85-90,103-106 rechaza amount no finito o <=0; test 'rejects the invalid item amount %p' en budget.entity.spec.ts:74-84; probe real: NaN, Infinity, -Infinity, 0 y -1 rechazados con BudgetError."
+        },
+        {
+          "id": "AC-3",
+          "text": "Budget.create rechaza con BudgetError dos renglones con la misma categoryId y el mismo type",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.587Z",
+          "note": "budget.entity.ts:86-100 detecta categoryId+type duplicados; test 'rejects duplicate items with the same category and type' en budget.entity.spec.ts:86-101; probe real: duplicate REJECTED BudgetError."
+        },
+        {
+          "id": "AC-4",
+          "text": "Budget.create acepta la misma categoryId dos veces si un renglón es income y el otro expense",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.625Z",
+          "note": "budget.entity.ts:92-100 permite tipos distintos para la misma categoría; test 'accepts the same category with different item types' en budget.entity.spec.ts:103-116; probe real: same-category-different-type ACCEPTED 3 1."
+        },
+        {
+          "id": "AC-5",
+          "text": "Budget.restore rehidrata id, userId, month, items, createdAt y updatedAt sin re-generarlos",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.664Z",
+          "note": "budget.entity.ts:43-45 conserva props sin regenerarlos y :47-69 los expone; test 'restores every persisted budget property without regenerating metadata' en budget.entity.spec.ts:128-163; probe real: restore b1 true true true 0."
+        },
+        {
+          "id": "AC-6",
+          "text": "Budget expone plannedFor(categoryId, type) devolviendo 0 cuando no hay renglón para esa combinación",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.701Z",
+          "note": "budget.entity.ts:71-77 devuelve el amount coincidente o 0 con ?? 0; tests 'returns the planned amount for a matching category and type' y 'returns zero when no item matches the category and type' en budget.entity.spec.ts:165-186; suite: 19 tests passed."
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% de líneas y branches en src/modules/budgets/domain",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:10:41.739Z",
+          "note": "pnpm --filter backend test:coverage termina en verde: 49 suites y 402 tests; src/modules/budgets/domain reporta 100% de líneas y 100% de branches. Cobertura focalizada: 19 tests passed y 100% en todas las métricas."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0031",
+      "title": "Persist budgets in MongoDB behind the repository port",
+      "description": "Port BudgetRepository con su token de DI y adaptador de Mongoose, incluido el índice único por usuario y mes.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:40:39.703Z",
+      "implementedAt": "2026-08-24T18:38:07.383Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "budget.schema.ts declara un índice único compuesto sobre { userId, month }",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:38:04.445Z",
+          "note": "budget.schema.ts:45-46 declara BudgetSchema.index({ userId: 1, month: 1 }, { unique: true }); test 'declares a unique compound index for one budget per user and month' en budget.repository.mongo.spec.ts:104-115; BudgetSchema.indexes() devuelve el índice compuesto único."
+        },
+        {
+          "id": "AC-2",
+          "text": "BudgetMongoRepository.findByMonth(userId, month) devuelve una entidad Budget, nunca un documento de Mongoose, y null si no existe",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:38:04.485Z",
+          "note": "budget.repository.mongo.ts:27-30 devuelve this.toEntity(doc) o null; toEntity usa Budget.restore en :80-93; tests 'returns a Budget entity...' y 'returns null...' en budget.repository.mongo.spec.ts:117-149; salida real: 1 suite y 11 tests pasados."
+        },
+        {
+          "id": "AC-3",
+          "text": "findByMonth y list filtran siempre por userId: un test verifica que el userId ajeno no devuelve el presupuesto",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:38:04.522Z",
+          "note": "budget.repository.mongo.ts:28 y :64-77 incluyen siempre userId en findByMonth y list; tests 'does not return a budget from another user...' y 'lists only the requested user...' en :151-180 verifican aislamiento entre u1 y u2."
+        },
+        {
+          "id": "AC-4",
+          "text": "list(userId, { from, to }) devuelve los presupuestos del rango ordenados por month ascendente",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:38:04.559Z",
+          "note": "budget.repository.mongo.ts:32-37 aplica sort({ month: 1 }) y :70-74 construye /; tests de rango, límites individuales y orden en budget.repository.mongo.spec.ts:182-214 pasan."
+        },
+        {
+          "id": "AC-5",
+          "text": "save hace upsert por (userId, month) y actualiza updatedAt sin duplicar documentos",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:38:04.596Z",
+          "note": "budget.repository.mongo.ts:40-57 usa findOneAndUpdate por { userId, month }, .updatedAt y { upsert: true, new: true }; test 'upserts by user and month...' en budget.repository.mongo.spec.ts:216-269 verifica dos guardados sin insertar otra clave."
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en src/modules/budgets/infrastructure",
+          "validated": true,
+          "validatedAt": "2026-08-24T18:38:04.632Z",
+          "note": "pnpm --filter backend test:coverage: 50 suites y 413 tests pasados; src/modules/budgets/infrastructure/persistence reporta 100% statements, branches, functions y lines."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0032",
+      "title": "Expose the budgets CRUD use cases and REST controller",
+      "description": "Casos de uso de crear, consultar, listar, actualizar y borrar presupuestos, más el controlador HTTP y sus DTOs.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:40:39.735Z",
+      "implementedAt": "2026-08-24T19:42:29.084Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "POST /budgets crea el presupuesto del mes indicado y responde 201 con el BudgetResponseDto",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:17.395Z",
+          "note": "budgets.controller.ts:47-59 declara POST, delega en CreateBudgetUseCase y mapea a BudgetResponseDto; test 'creates a budget returning the response DTO and takes userId from CurrentUser' en budgets.controller.spec.ts:76-123; suites de budgets en verde."
+        },
+        {
+          "id": "AC-2",
+          "text": "POST /budgets responde 409 (ConflictException) si el usuario ya tiene presupuesto de ese mes",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:17.486Z",
+          "note": "create-budget.use-case.ts:28-45 detecta presupuesto existente y traduce código Mongo 11000 a ConflictException; índice único en budget.schema.ts:45-46; tests de duplicado y carrera en create-budget.use-case.spec.ts:69-88; probe real: segunda creación devuelve ConflictException 409."
+        },
+        {
+          "id": "AC-3",
+          "text": "GET /budgets/:month responde 404 (NotFoundException) cuando el mes no tiene presupuesto",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:17.567Z",
+          "note": "get-budget.use-case.ts:20-29 lanza NotFoundException si no existe o pertenece a otro usuario; test 'throws NotFoundException when the month has no budget' en get-budget.use-case.spec.ts:47-61; probe real: missing-month devuelve 404."
+        },
+        {
+          "id": "AC-4",
+          "text": "PATCH /budgets/:month reemplaza los renglones y DELETE /budgets/:month responde 204",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:28.660Z",
+          "note": "budgets.controller.ts:86-110 declara PATCH y DELETE 204; update-budget.use-case.ts:28-71 reemplaza todos los items y delete-budget.use-case.ts:19-29 verifica ownership; tests de reemplazo, ownership y 204 pasados."
+        },
+        {
+          "id": "AC-5",
+          "text": "Ninguna ruta acepta userId desde body o query: el userId sale siempre de @CurrentUser()",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:28.745Z",
+          "note": "budgets.controller.ts:53,66,79,92,106 usa exclusivamente user.id de CurrentUser; main.ts:7 activa whitelist; tests de userId inyectado en body/query en budgets.controller.spec.ts:76-203 y DTO specs; campos desconocidos eliminados."
+        },
+        {
+          "id": "AC-6",
+          "text": "Todas las rutas del controlador están protegidas con JwtAuthGuard y un test lo verifica por metadatos",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:28.832Z",
+          "note": "@UseGuards(JwtAuthGuard) en budgets.controller.ts:36-37 protege las rutas :47, :61, :74, :86 y :100; test 'is mounted on /budgets and protected by JwtAuthGuard metadata' en budgets.controller.spec.ts:65-74 pasado."
+        },
+        {
+          "id": "AC-7",
+          "text": "Los DTOs rechazan con 400 un month mal formado, un type fuera de income|expense y un amount <= 0",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:28.915Z",
+          "note": "budget-month-param.dto.ts:3-8 y budget-item.dto.ts:16-21 validan formato, enum, positivismo y finitud; tests de mes/tipo/amount, NaN/Infinity y campos desconocidos pasados; probe real devuelve 400."
+        },
+        {
+          "id": "AC-8",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en src/modules/budgets",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:42:28.998Z",
+          "note": "pnpm --filter backend test:coverage: 63 suites y 478 tests pasados; cobertura global 99.03/96.34/97.96/99.01 y budgets 97.46/93.75/100/97.10."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0033",
+      "title": "Build the budget template from the schedule",
+      "description": "Caso de uso y endpoint que proponen los renglones del presupuesto de un mes a partir de las transacciones agendadas de ese mes, sin persistir nada.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:40:39.766Z",
+      "implementedAt": "2026-08-25T03:38:00.163Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "GET /budgets/:month/template devuelve 200 con los renglones propuestos y no escribe en la colección de budgets",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:59.851Z",
+          "note": "budgets.controller.ts:78-99 declara GET /:month/template protegido y get-budget-template.use-case.ts:33-49 sólo inyecta la agenda; budgets.template.controller.spec.ts:75-119 prueba 200 y que budgetRepository.save no se llama."
+        },
+        {
+          "id": "AC-2",
+          "text": "Las transacciones agendadas pendientes cuyo scheduledFor cae en el mes se suman al renglón de su categoría y tipo",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:59.891Z",
+          "note": "get-budget-template.use-case.ts:42-69,104-108,131-144 agrupa por categoryId+type y suma; get-budget-template.use-case.spec.ts:39-101 verifica c1/expense=1000, c1/income=3000 y c2/expense=250."
+        },
+        {
+          "id": "AC-3",
+          "text": "Las transacciones agendadas recurrentes se incluyen aunque su scheduledFor sea de un mes anterior al solicitado",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:59.929Z",
+          "note": "get-budget-template.use-case.ts:104-108 incluye recurrentes pasadas y excluye futuras; get-budget-template.use-case.spec.ts:103-152 verifica recurrente pasada incluida, pasada no recurrente excluida y futuras excluidas."
+        },
+        {
+          "id": "AC-4",
+          "text": "La nota del renglón enumera los títulos de las agendadas que lo componen (p. ej. 'Renta, Internet (agenda)')",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:59.968Z",
+          "note": "get-budget-template.use-case.ts:64-69,135-143 genera notas con títulos y sufijo (agenda); get-budget-template.use-case.spec.ts:39-100 espera 'Rent, Internet (agenda)'."
+        },
+        {
+          "id": "AC-5",
+          "text": "Las agendadas de tipo TRANSFER y las ya ejecutadas o canceladas quedan excluidas de la propuesta",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:38:00.053Z",
+          "note": "get-budget-template.use-case.ts:45-48,96-102,111-118 excluye TRANSFER, EXECUTED y CANCELLED; get-budget-template.use-case.spec.ts:154-198 cubre los tres y devuelve []."
+        },
+        {
+          "id": "AC-6",
+          "text": "El caso de uso sólo lee agendadas del userId del token: un test lo verifica con datos de dos usuarios",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:38:00.092Z",
+          "note": "budgets.controller.ts:89-92 pasa user.id; get-budget-template.use-case.ts:42-47,96-100 filtra userId; get-budget-template.use-case.spec.ts:154-198 prueba dos usuarios y no devuelve la entrada ajena."
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el caso de uso de plantilla",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:38:00.129Z",
+          "note": "pnpm --filter backend test:coverage: 65 suites y 529 tests pasados; get-budget-template.use-case.ts reporta 95.38% statements, 91.42% branches, 100% functions y 95.16% lines."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0034",
+      "title": "Add the budgets types, service and Pinia store",
+      "description": "Capa de datos del frontend: tipos alineados con los response DTOs, cliente HTTP sobre api.ts y store de Pinia con su estado y acciones.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:41:04.002Z",
+      "implementedAt": "2026-08-25T04:39:27.663Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "types/budget.ts declara Budget, BudgetItem y BudgetItemType alineados con los response DTOs del backend",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:27.434Z",
+          "note": "types/budget.ts:1-16 declara BudgetItemType, BudgetItem y Budget alineados con budget-response.dto.ts:3-15; budget.spec.ts:47-66 pasa y vue-tsc --noEmit termina correctamente."
+        },
+        {
+          "id": "AC-2",
+          "text": "budgetsService usa el cliente de api.ts y no reconstruye headers de auth a mano",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:27.472Z",
+          "note": "services/budgets.ts:8,31-63 usa apiFetch para todas las operaciones y no contiene Authorization, localStorage ni fetch; budgets.spec.ts:39-53,80-87 verifica ausencia de headers manuales."
+        },
+        {
+          "id": "AC-3",
+          "text": "budgetsService expone list, getByMonth, template, create, update y remove contra las rutas de /budgets",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:27.510Z",
+          "note": "services/budgets.ts:31-63 implementa list, getByMonth, template, create, update y remove contra /budgets; budgets.spec.ts:39-62,80-117 verifica rutas, métodos y payloads."
+        },
+        {
+          "id": "AC-4",
+          "text": "El store expone fetchForMonth, save y clear, y clear deja el estado vacío al cerrar sesión (mismo patrón que dashboard.ts)",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:27.549Z",
+          "note": "stores/budgets.ts:23-31,33-55,86-126 implementa clear, fetchForMonth y save; auth.ts:25-31,60-66 limpia el store al cambiar de usuario o cerrar sesión; tests de logout, respuestas tardías y carreras pasan en budgets.spec.ts:203-272 y auth.spec.ts:229-250,329-442."
+        },
+        {
+          "id": "AC-5",
+          "text": "getByMonth devuelve null ante un 404 en lugar de propagar el error, para que la vista distinga 'sin presupuesto' de 'falló la carga'",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:27.588Z",
+          "note": "services/budgets.ts:24-41 devuelve null para status/statusCode 404 y relanza cualquier otro error; api.ts:29-35 conserva response.status; budgets.spec.ts:64-78 verifica 404 y propagación idéntica de un error 500."
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm --filter frontend test:coverage pasa el umbral del 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:27.627Z",
+          "note": "pnpm --filter frontend test:coverage: 30 archivos y 280 tests pasados, 100% statements, 98.68% branches, 100% functions y 100% lines; el umbral está configurado al 80%."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0035",
+      "title": "Compute the budget status against actual totals",
+      "description": "Lógica pura en src/utils/budget.ts que resuelve los meses tocados por un periodo del dashboard y cruza los renglones presupuestados con los totales reales por categoría.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:41:04.034Z",
+      "implementedAt": "2026-08-25T05:51:20.157Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "monthsInPeriod(from, to) devuelve un solo mes cuando el periodo cae dentro de un mes calendario y todos los meses tocados cuando lo cruza",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:19.857Z",
+          "note": "utils/budget.ts:36-54 y budget.spec.ts:61-77: monthsInPeriod devuelve meses únicos y cruces inclusivos; rango invertido incluso dentro del mismo mes lanza RangeError."
+        },
+        {
+          "id": "AC-2",
+          "text": "monthKey usa la fecha local del navegador, no UTC (un 1 de mes a las 00:30 en un huso negativo no devuelve el mes anterior)",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:19.897Z",
+          "note": "budget.ts:25-32 usa getFullYear/getMonth locales; budget.spec.ts:40-47 con TZ=Pacific/Honolulu prueba que monthKey no usa UTC."
+        },
+        {
+          "id": "AC-3",
+          "text": "buildBudgetStatus suma los renglones de varios meses por (categoryId, type) antes de comparar",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:19.936Z",
+          "note": "budget.ts:101-135 agrega presupuestos por categoryId+type; budget.spec.ts:106-167 verifica food expense planned 150 e income planned 1500 sumando meses tocados."
+        },
+        {
+          "id": "AC-4",
+          "text": "Cada fila de status expone planned, actual, ratio y remaining, con remaining negativo cuando el gasto real supera lo planeado",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:19.976Z",
+          "note": "budget.ts:7-15,79-91 expone planned/actual/ratio/remaining/unbudgeted; test verifica expense planned 150, actual 180, ratio 1.2 y remaining -30."
+        },
+        {
+          "id": "AC-5",
+          "text": "Una categoría con gasto real y sin renglón presupuestado aparece con planned = 0 y queda marcada como no presupuestada",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:20.014Z",
+          "note": "budget.ts:137-145 y budget.spec.ts:169-189 crean fila sin presupuesto con planned=0, actual=45 y unbudgeted=true."
+        },
+        {
+          "id": "AC-6",
+          "text": "El status señala los meses del periodo que no tienen presupuesto en una lista aparte",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:20.051Z",
+          "note": "budget.ts:103-108,150-153 y budget.spec.ts:191-205 separan missingMonths; resultado ['2026-09','2026-10']."
+        },
+        {
+          "id": "AC-7",
+          "text": "ratio con planned = 0 devuelve un valor definido (no NaN ni Infinity) y un test lo cubre",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:20.087Z",
+          "note": "budget.ts:72-77 define ratio 0 cuando planned=0; budget.spec.ts:187-188 verifica Number.isNaN=false y Number.isFinite=true."
+        },
+        {
+          "id": "AC-8",
+          "text": "pnpm --filter frontend test:coverage reporta >= 80% de líneas y branches en src/utils/budget.ts",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:20.123Z",
+          "note": "pnpm --filter frontend test:coverage: 31 archivos y 291 tests; utils/budget.ts 100% statements, 93.75% branches, 100% functions y 100% lines."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0036",
+      "title": "Add the dedicated budgets view",
+      "description": "Vista /budgets con el listado de presupuestos por mes, selector de mes (incluidos meses futuros) y diálogo de edición de renglones prellenado desde la agenda.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:41:04.066Z",
+      "implementedAt": "2026-08-25T14:42:41.835Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "La ruta /budgets está registrada con meta.requiresAuth y aparece en la navegación",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:30:31.159Z",
+          "note": "router/index.ts:21-25 registra /budgets con meta.requiresAuth=true; App.vue:64-69 añade el enlace de navegación to=/budgets; App.spec.ts:31-47 y BudgetsView.spec.ts:116-132 verifican navegación y redirección protegida; suite dirigida: 6 archivos, 45 tests pasaron."
+        },
+        {
+          "id": "AC-2",
+          "text": "El selector permite elegir meses futuros y crear su presupuesto antes de que llegue el mes",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:30:38.125Z",
+          "note": "BudgetsView.vue:16 y :205-213 usa un input type=month sin límite superior; :95-112 carga cualquier mes válido y :119-134 abre la plantilla cuando no existe; :144-151 guarda; BudgetsView.spec.ts:157-188 prueba seleccionar un mes futuro y cargar su plantilla, y :230-252 prueba crear el presupuesto futuro. Suite dirigida: 6 archivos, 45 tests pasaron."
+        },
+        {
+          "id": "AC-3",
+          "text": "Al crear el presupuesto de un mes sin datos, el diálogo llega prellenado con los renglones de la plantilla de la agenda, incluida su nota",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:30:46.901Z",
+          "note": "BudgetsView.vue:125-131 llama budgetsStore.fetchTemplate(month) para un mes sin presupuesto y copia sus renglones; BudgetFormDialog.vue:48-55 conserva categoryId/type/amount/note y :58-64 los carga al abrir; BudgetsView.spec.ts:157-187 verifica la nota Renta (agenda) en el diálogo. Suite dirigida: 6 archivos, 45 tests pasaron."
+        },
+        {
+          "id": "AC-4",
+          "text": "El usuario puede editar o eliminar cualquier renglón propuesto antes de guardar, y el guardado envía sólo lo que quedó en pantalla",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:32:13.075Z",
+          "note": "BudgetFormDialog.vue:151-188 enlaza categoría, tipo, monto y nota con el estado local; :67-79 agrega/elimina renglones; :81-89 mapea sólo los renglones actuales y :91-100 emite ese payload; BudgetsView.vue:144-151 lo entrega a budgetsStore.save; BudgetFormDialog.spec.ts:84-146 y BudgetsView.spec.ts:204-252 verifican edición, eliminación, lista vacía y create/update con sólo los renglones restantes. Suite dirigida: 6 archivos, 45 tests pasaron."
+        },
+        {
+          "id": "AC-5",
+          "text": "Abrir un mes ya presupuestado muestra su avance real reutilizando el mismo cálculo de utils/budget.ts",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:31:28.559Z",
+          "note": "BudgetsView.vue:7-10 importa buildBudgetStatus de utils/budget.ts; :53-69 calcula el status del presupuesto abierto contra el resumen real y :297-303 renderiza BudgetStatusCard; :95-101 carga el rango exacto del mes; BudgetsView.spec.ts:134-155 verifica 75%, Vivienda y Remanente: $25.00. Suite dirigida: 6 archivos, 45 tests pasaron."
+        },
+        {
+          "id": "AC-6",
+          "text": "Los componentes no llaman a fetch/axios: hablan con el store de presupuestos",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:31:02.522Z",
+          "note": "BudgetsView.vue:5-7 usa los stores y :95-106/:128 llama métodos del store; BudgetFormDialog.vue, BudgetStatusCard.vue y BudgetCategoryBar.vue no importan servicios ni contienen fetch/axios (rg sobre las cuatro implementaciones no devolvió coincidencias); BudgetStatusCard.spec.ts:111-117 espía fetch y confirma cero llamadas. Suite dirigida: 6 archivos, 45 tests pasaron."
+        },
+        {
+          "id": "AC-7",
+          "text": "Los colores salen de los tokens del tema greenBeige, sin hex sueltos en los componentes",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:31:08.138Z",
+          "note": "BudgetsView.vue:173,195,199,201,223,240,247,285 y los componentes BudgetFormDialog.vue:117,142,196,207, BudgetStatusCard.vue:32,34,41, BudgetCategoryBar.vue:18-20,35,46 usan nombres de tokens Vuetify; rg '#[0-9A-Fa-f]{3,8}' sobre las cuatro implementaciones no devolvió coincidencias; tokens están definidos por greenBeige en plugins/vuetify.ts:7-19."
+        },
+        {
+          "id": "AC-8",
+          "text": "pnpm --filter frontend test:coverage pasa el umbral del 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T14:31:12.013Z",
+          "note": "Salida real de pnpm --filter frontend test:coverage: 36 archivos y 325 tests pasaron; Statements 100% (188/188), Branches 98.91% (91/92), Functions 100% (67/67), Lines 100% (176/176)."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0037",
+      "title": "Show the budget status and the missing-budget notice on the dashboard",
+      "description": "Aviso en el dashboard cuando falta el presupuesto del mes corriente y tarjeta de barras presupuestado vs real ligada al periodo seleccionado en el dashboard.",
+      "status": "completada",
+      "createdAt": "2026-08-24T17:41:04.098Z",
+      "implementedAt": "2026-08-25T15:20:19.826Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Si el mes corriente (fecha del navegador) no tiene presupuesto, el dashboard muestra un aviso con acceso directo a crearlo",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.180Z",
+          "note": "DashboardSummary.vue:24,56-67,108-112,158 resuelve el mes local, carga el listado y renderiza MissingBudgetAlert; MissingBudgetAlert.vue:8-29 muestra el aviso y v-btn to=/budgets. DashboardSummary.spec.ts:137-147 y MissingBudgetAlert.spec.ts:6-19 lo verifican; prueba dirigida: 4 archivos, 21 tests pasados."
+        },
+        {
+          "id": "AC-2",
+          "text": "El aviso desaparece en cuanto existe el presupuesto del mes corriente",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.219Z",
+          "note": "DashboardSummary.vue:56-67 usa un computed reactivo sobre budgets.budgets/budget y oculta el aviso mientras carga o hay error; budgets.ts:125-135 actualiza y añade el presupuesto guardado. DashboardSummary.spec.ts:149-156 verifica que con el presupuesto del mes corriente no existe el aviso; budgets.spec.ts:201-214 verifica la actualización del estado al guardar."
+        },
+        {
+          "id": "AC-3",
+          "text": "La tarjeta de status usa el periodo seleccionado en el dashboard, no siempre el mes corriente, y se recalcula al cambiar de periodo",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.258Z",
+          "note": "DashboardSummary.vue:73-95 calcula buildBudgetStatus con dashboard.period y :116-125 refresca resumen y presupuestos al seleccionar periodo; dashboard.ts:68-75 cambia el periodo antes de pedir el resumen. DashboardSummary.spec.ts:219-254 verifica cambio a 2026-01..12, planned=800 y missingMonths; prueba dirigida: 4 archivos, 21 tests pasados."
+        },
+        {
+          "id": "AC-4",
+          "text": "Cada categoría se dibuja como una barra con presupuestado, real y porcentaje consumido, con ingresos y gastos en bloques separados",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.297Z",
+          "note": "BudgetStatusCard.vue:15-21 separa rows income/expense y :58-78 renderiza ambos bloques; BudgetCategoryBar.vue:31-57 dibuja la barra y muestra porcentaje, Planeado y Real. DashboardSummary.spec.ts:195-216 y BudgetCategoryBar.spec.ts:24-54 verifican las barras y valores; prueba dirigida: 4 archivos, 21 tests pasados."
+        },
+        {
+          "id": "AC-5",
+          "text": "Una barra cuyo gasto real supera lo presupuestado se distingue visualmente del resto",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.335Z",
+          "note": "BudgetCategoryBar.vue:17-20 asigna color error al exceso y :25-27/:52-57 muestra Exceso con text-error; BudgetCategoryBar.spec.ts:56-72 verifica 100%, Exceso, clase text-error y color error para actual=150/planned=100. Prueba dirigida: 4 archivos, 21 tests pasados."
+        },
+        {
+          "id": "AC-6",
+          "text": "Cuando el periodo toca meses sin presupuesto, la tarjeta lo indica en lugar de mostrar el avance como si fuera completo",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.375Z",
+          "note": "buildBudgetStatus en utils/budget.ts:135-142 y :186-189 calcula missingMonths; BudgetStatusCard.vue:47-55 muestra el aviso explícito. DashboardSummary.spec.ts:219-253 verifica 2026-02, 2026-03 y 2026-10 faltantes y el aviso; BudgetStatusCard.spec.ts:76-94 lo cubre y utils/budget.spec.ts:298-312 pasa con ['2026-09','2026-10']."
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm --filter frontend test:coverage pasa el umbral del 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T15:10:09.411Z",
+          "note": "pnpm --filter frontend test:coverage: 37 archivos y 331 tests pasados; Statements 100% (188/188), Branches 98.91% (91/92), Functions 100% (67/67), Lines 100% (176/176), con umbrales 80% en vite.config.ts:19-27. pnpm --filter frontend build también termina correctamente."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0038",
+      "title": "Limit budget listings",
+      "description": "Añadir paginación o un límite máximo validado al listado de presupuestos para evitar respuestas sin cota y consumo excesivo de recursos.",
+      "status": "completada",
+      "createdAt": "2026-08-24T19:14:57.288Z",
+      "implementedAt": "2026-08-24T19:41:08.204Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "GET /budgets aplica un límite máximo validado y nunca carga una cantidad ilimitada de presupuestos",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:41:07.831Z",
+          "note": "list-budgets.dto.ts:13-19 valida limit 1..100; budget-list-limits.ts:1-2 define default 20 y máximo 100; budget.repository.mongo.ts:36-42,85-91 aplica siempre .limit(), usando 20 por defecto y acotando a 100. Tests DTO y repository pasan; pnpm --filter backend test:coverage: 63 suites/494 tests passed."
+        },
+        {
+          "id": "AC-2",
+          "text": "Los filtros from/to y el orden month ascendente se conservan con el límite aplicado",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:41:07.945Z",
+          "note": "budgets.controller.ts:61-72 toma user.id del token y reenvía from/to/limit; list-budgets.use-case.ts:23-35 conserva los filtros; budget.repository.mongo.ts:69-82 conserva userId y límites de mes, y :36-42 aplica sort({ month: 1 }) seguido de limit. budget.repository.mongo.spec.ts:183-205 lo verifica."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el módulo budgets",
+          "validated": true,
+          "validatedAt": "2026-08-24T19:41:08.058Z",
+          "note": "pnpm --filter backend test:coverage pasa: 63 suites, 494 tests; budgets/application/use-cases 94.11% branches y los demás grupos del módulo budgets >=80%."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0039",
+      "title": "Bound budget item payloads",
+      "description": "Limitar el tamaño de los presupuestos y de las notas para evitar respuestas y documentos desproporcionados.",
+      "status": "completada",
+      "createdAt": "2026-08-24T19:40:59.759Z",
+      "implementedAt": "2026-08-24T20:33:53.447Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Los DTOs rechazan más de 100 renglones en un presupuesto",
+          "validated": true,
+          "validatedAt": "2026-08-24T20:33:53.236Z",
+          "note": "budget-limits.ts:1 define MAX_BUDGET_ITEMS=100; create-budget.dto.ts:18-22 y update-budget.dto.ts:7-11 rechazan 101 elementos; ValidationPipe real devuelve 400 y acepta exactamente 100; entity tests cubren create/restore y update-budget.use-case.ts:49-71 cubre update."
+        },
+        {
+          "id": "AC-2",
+          "text": "Los DTOs rechazan notas de más de 500 caracteres y el schema conserva una cota equivalente",
+          "validated": true,
+          "validatedAt": "2026-08-24T20:33:53.298Z",
+          "note": "budget-item.dto.ts:25-28 aplica MaxLength(500); budget.schema.ts:20-21 conserva maxlength=500; ValidationPipe y Mongoose rechazan longitud 501 y aceptan exactamente 500; pre-hook budget.schema.ts:59-60 habilita runValidators en findOneAndUpdate."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el módulo budgets",
+          "validated": true,
+          "validatedAt": "2026-08-24T20:33:53.369Z",
+          "note": "pnpm --filter backend test:coverage pasa: 63 suites, 510 tests; todas las áreas del módulo budgets superan 80% en statements, branches, functions y lines."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0040",
+      "title": "Bound budget template reads",
+      "description": "Acotar la lectura de transacciones agendadas y el tamaño de las notas de la plantilla para evitar consumo ilimitado de recursos.",
+      "status": "completada",
+      "createdAt": "2026-08-25T02:45:23.645Z",
+      "implementedAt": "2026-08-25T03:16:35.950Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "GET /budgets/:month/template aplica un límite máximo a las agendadas leídas y no materializa una cantidad ilimitada",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:07:39.949Z",
+          "note": "get-budget-template.use-case.ts:45-53 fija limit=MAX_BUDGET_ITEMS+1 (MAX_BUDGET_ITEMS=100 en domain/budget-limits.ts:1); budgets.controller.ts:78-92 solo recibe @Param y user del token, sin @Query/limit; scheduled-transaction.repository.mongo.ts:37-46 aplica query.limit antes de exec y :85-95 construye {userId,status,scheduledFor:}; tests de use case, endpoint y repositorio: 3 suites, 29 tests passed."
+        },
+        {
+          "id": "AC-2",
+          "text": "La plantilla rechaza de forma controlada una propuesta que exceda los límites de renglones o nota agregada",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:07:39.988Z",
+          "note": "get-budget-template.use-case.ts:71-75 rechaza más de 100 grupos y :155-169 lanza BadRequestException para más de 100 resultados o nota agregada de más de 500; get-budget-template.use-case.spec.ts:205-292 cubre 100/101 renglones y 500/overflow de nota; budgets.template.controller.spec.ts:123-206 verifica HTTP 400 y budgetRepository.save no llamado, y :76-121 normal flow 200 sin persistir."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el flujo de plantilla",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:07:40.024Z",
+          "note": "Salida real pnpm --filter backend test:coverage: 65 suites y 527 tests pasados; global 99.03% statements, 96.14% branches, 98.33% functions y 99.01% lines; get-budget-template.use-case.ts 95.16/90.32/100/94.91 en ese orden."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0041",
+      "title": "Guard budget template sums",
+      "description": "Rechazar desbordamientos numéricos al sumar importes de agendadas en la plantilla, evitando exponer Infinity o null como monto financiero.",
+      "status": "completada",
+      "createdAt": "2026-08-25T03:16:13.988Z",
+      "implementedAt": "2026-08-25T03:37:40.563Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "La plantilla rechaza con un error controlado una suma no finita y no devuelve Infinity ni null como amount",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:40.441Z",
+          "note": "get-budget-template.use-case.ts:141-149 rechaza sumas no finitas con BadRequestException; ejecución real de overflow/Infinity/null devuelve status 400 y no invoca persistencia (saves:0)."
+        },
+        {
+          "id": "AC-2",
+          "text": "Las sumas finitas de importes válidos siguen agrupándose correctamente",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:40.485Z",
+          "note": "get-budget-template.use-case.ts:139-163 agrupa por categoría y tipo; get-budget-template.use-case.spec.ts:108-172 verifica sumas finitas 2000, 3000 y 250."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter backend test:coverage pasa con >= 80% en el flujo de plantilla",
+          "validated": true,
+          "validatedAt": "2026-08-25T03:37:40.524Z",
+          "note": "pnpm --filter backend test:coverage: 65 suites y 529 tests pasados; cobertura global 99.03/96.17/98.33/99.01; get-budget-template.use-case.ts 95.38/91.42/100/95.16."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0042",
+      "title": "Discard stale budget template responses",
+      "description": "Evitar que una respuesta de plantilla iniciada por una sesión llegue al consumidor después de cerrar sesión o cambiar de usuario.",
+      "status": "completada",
+      "createdAt": "2026-08-25T04:17:01.626Z",
+      "implementedAt": "2026-08-25T04:39:15.446Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Una respuesta de plantilla iniciada antes de clear no se devuelve ni queda disponible tras cambiar de sesión",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:15.338Z",
+          "note": "stores/budgets.ts:16-30,58-81 invalida por generación/request y devuelve [] para respuestas obsoletas; auth.ts:25-31,60-67 ejecuta clear al logout y :45-53 al cambiar usuario; tests budgets.spec.ts:227-249 y auth.spec.ts:252-271,351-373."
+        },
+        {
+          "id": "AC-2",
+          "text": "Las respuestas de plantilla de la sesión activa siguen llegando normalmente",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:15.376Z",
+          "note": "stores/budgets.ts:65-68 actualiza template y devuelve datos para la respuesta vigente; budgets.spec.ts:117-128,274-297 cubre respuestas activas y fuera de orden."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T04:39:15.412Z",
+          "note": "pnpm --filter frontend test:coverage: 30 archivos y 280 tests pasados; statements 100%, branches 98.68%, functions 100%, lines 100%."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0043",
+      "title": "Guard budget status arithmetic",
+      "description": "Evitar que la utilidad de status del presupuesto exponga Infinity o NaN al redondear o acumular montos extremos.",
+      "status": "completada",
+      "createdAt": "2026-08-25T05:22:59.458Z",
+      "implementedAt": "2026-08-25T05:51:05.831Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "buildBudgetStatus rechaza con un error controlado un cálculo no representable y nunca devuelve Infinity o NaN en sus filas",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:05.722Z",
+          "note": "utils/budget.ts:68-110,163-180 valida finitud en acumulación, redondeo, ratio y remaining; budget.spec.ts:206-274 cubre overflow con RangeError y ningún campo devuelve Infinity/NaN."
+        },
+        {
+          "id": "AC-2",
+          "text": "Los cálculos representables y el ratio con planned=0 conservan su comportamiento",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:05.759Z",
+          "note": "budget.ts:113-125 conserva cálculos normales y ratio 0 cuando planned=0; budget.spec.ts:116-204 verifica planned=100 actual=25 ratio=.25 remaining=75 y planned=0 actual=45 ratio=0 remaining=-45, todos finitos."
+        },
+        {
+          "id": "AC-3",
+          "text": "pnpm --filter frontend test:coverage pasa con >= 80% en utils/budget.ts",
+          "validated": true,
+          "validatedAt": "2026-08-25T05:51:05.795Z",
+          "note": "pnpm --filter frontend test:coverage: 31 archivos, 295 tests; budget.ts 100% statements, branches, functions y lines; global 100/98.91/100/100."
+        }
+      ],
+      "spec": "0004-presupuesto-del-mes"
+    },
+    {
+      "id": "T-0044",
+      "title": "Translate the budgets interface to English",
+      "description": "Replace Spanish user-facing copy in the budgets view, dialogs, status components, dashboard alert and related budget labels with English while preserving existing behavior.",
+      "status": "completada",
+      "createdAt": "2026-08-25T15:43:16.741Z",
+      "implementedAt": "2026-08-25T16:20:37.370Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "All user-facing text rendered by the budgets feature is in English, including the dedicated view, editor dialog, status card, category bars, dashboard alert, loading/empty/error states, and navigation label",
+          "validated": true,
+          "validatedAt": "2026-08-25T16:11:51.535Z",
+          "note": "BudgetsView.vue:167-292, BudgetFormDialog.vue:35-208, BudgetStatusCard.vue:23-86, BudgetCategoryBar.vue:22-56, MissingBudgetAlert.vue:17-28, stores/budgets.ts:52-142 y App.vue:64-68 contienen el copy de presupuestos en inglés; búsqueda de copy español en esos archivos no devolvió coincidencias. Tests: BudgetsView.spec.ts:148-216, BudgetFormDialog.spec.ts:67-114, BudgetStatusCard.spec.ts:76-112, BudgetCategoryBar.spec.ts:25-87, MissingBudgetAlert.spec.ts:15-20 y DashboardSummary.spec.ts:137-148."
+        },
+        {
+          "id": "AC-2",
+          "text": "The budget UI keeps the existing routes, API payloads, calculations, and user interactions unchanged",
+          "validated": true,
+          "validatedAt": "2026-08-25T16:11:51.583Z",
+          "note": "git diff --quiet confirma sin diff en router/index.ts, services/budgets.ts, types/budget.ts ni utils/budget.ts; el diff de implementación sólo cambia copy y los locales visibles. BudgetsView.spec.ts:116-132 verifica /budgets protegido; BudgetsView.spec.ts:219-314 y BudgetFormDialog.spec.ts:116-179 cubren selección, plantilla, alta, edición, borrado, validación e interacción; BudgetFormDialog.spec.ts:137-168 y BudgetsView.spec.ts:266-314 verifican payloads create/update."
+        },
+        {
+          "id": "AC-3",
+          "text": "Frontend tests cover the translated copy and pnpm --filter frontend test:coverage remains at or above 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T16:11:51.623Z",
+          "note": "Salida real de pnpm --filter frontend test:coverage: 37 archivos y 338 tests passed; Statements 100% (188/188), Branches 98.91% (91/92), Functions 100% (67/67), Lines 100% (176/176). Assertions del copy traducido en BudgetFormDialog.spec.ts:67-114, BudgetStatusCard.spec.ts:76-112, BudgetCategoryBar.spec.ts:25-87, MissingBudgetAlert.spec.ts:15-20, BudgetsView.spec.ts:148-216 y DashboardSummary.spec.ts:137-148."
+        }
+      ],
+      "spec": "0005-ajustar-idioma-y-contraste-de-presupuestos"
+    },
+    {
+      "id": "T-0045",
+      "title": "Fix budget form input contrast",
+      "description": "Make every editable field in the budget dialog visibly distinct from the greenBeige surface and preserve readable labels, borders, focus states, and validation feedback.",
+      "status": "completada",
+      "createdAt": "2026-08-25T15:43:16.785Z",
+      "implementedAt": "2026-08-25T16:52:39.022Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Category, type, amount, and note controls in the budget dialog have an explicit visible variant/color or surface treatment with readable labels and borders",
+          "validated": true,
+          "validatedAt": "2026-08-25T16:45:36.409Z",
+          "note": "BudgetFormDialog.vue:151-201 añade a Category, Type, Planned amount y Note variant=outlined, color=primary y base-color=primary; BudgetFormDialog.spec.ts:102-121 verifica labels, props y v-field__outline; greenBeige primary/surface están en plugins/vuetify.ts:7-18 y el contraste calculado es 5.89:1."
+        },
+        {
+          "id": "AC-2",
+          "text": "The budget dialog remains usable for adding, editing, removing, validating, and saving rows, including on the greenBeige theme",
+          "validated": true,
+          "validatedAt": "2026-08-25T16:45:36.455Z",
+          "note": "BudgetFormDialog.vue:40-45 conserva las reglas de categoría y monto, y :67-108 conserva add/remove/validate/toPayload/save; BudgetFormDialog.spec.ts:138-159 cubre focus/error y :161-272 add, edit, remove, payload, fila vacía, 0/-1 y cierre; test real: 1 archivo, 11 tests passed; mount usa greenBeige en test-utils/vuetify.ts:9-30."
+        },
+        {
+          "id": "AC-3",
+          "text": "Frontend tests verify the input appearance contract and pnpm --filter frontend test:coverage remains at or above 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T16:45:36.501Z",
+          "note": "BudgetFormDialog.spec.ts:102-121 verifica el contrato visual de los cuatro campos y :138-159 focus/error; salida real dirigida: 1 archivo, 11 tests passed; pnpm --filter frontend test:coverage: 37 archivos, 342 tests passed, Statements 100% (188/188), Branches 98.91% (91/92), Functions 100% (67/67), Lines 100% (176/176)."
+        }
+      ],
+      "spec": "0005-ajustar-idioma-y-contraste-de-presupuestos"
+    },
+    {
+      "id": "T-0046",
+      "title": "Match the account form style in the budget dialog",
+      "description": "Refactor the budget creation/edit dialog presentation to follow the existing AccountFormDialog layout and Vuetify field treatment while keeping its multi-row editing behavior.",
+      "status": "completada",
+      "createdAt": "2026-08-25T17:30:16.149Z",
+      "implementedAt": "2026-08-25T17:54:54.173Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "BudgetFormDialog uses the same dialog/card/title/form/footer layout and default field treatment as AccountFormDialog, with the budget-specific rows and actions preserved",
+          "validated": true,
+          "validatedAt": "2026-08-25T17:50:00.436Z",
+          "note": "AccountFormDialog.vue:106-182 y BudgetFormDialog.vue:112-199 comparten dialog max-width=520, card surface pa-6, title pb-4, v-form y footer d-flex justify-end mt-4; BudgetFormDialog.vue:144-176 deja los campos sin variant/color/baseColor explícitos, igual que AccountFormDialog.vue:115-131. BudgetFormDialog.spec.ts:119-199 compara el contrato visual y conserva filas/dividers, add/remove y footer. pnpm --filter frontend exec vitest run src/components/organisms/BudgetFormDialog.spec.ts: 1 archivo, 12 tests passed."
+        },
+        {
+          "id": "AC-2",
+          "text": "The budget dialog remains readable on the greenBeige theme and still supports adding, editing, removing, validating, and saving rows with the same payloads",
+          "validated": true,
+          "validatedAt": "2026-08-25T17:50:00.478Z",
+          "note": "BudgetFormDialog.vue:67-89 conserva add/remove y normalización de payload; :91-103 conserva validación y save; :182-197 conserva Add item, Cancel y Save budget. BudgetFormDialog.spec.ts:201-236 cubre validación/foco, :238-280 edición-remoción-payload, :298-345 alta/remoción/payload vacío y :347-356 rechaza 0/-1; salida dirigida: 12 tests passed. El tema greenBeige está en plugins/vuetify.ts:7-29 y se usa en test-utils/vuetify.ts:9-31."
+        },
+        {
+          "id": "AC-3",
+          "text": "Tests compare the relevant visual contract with the account form and pnpm --filter frontend test:coverage remains at or above 80%",
+          "validated": true,
+          "validatedAt": "2026-08-25T17:50:00.518Z",
+          "note": "BudgetFormDialog.spec.ts:7 y :119-199 monta AccountFormDialog y compara maxWidth, card/title, form, campos, footer y dividers; vite.config.ts:19-27 fija umbrales de cobertura en 80%. pnpm --filter frontend test:coverage: 37 archivos, 343 tests passed; Statements 100% (188/188), Branches 98.91% (91/92), Functions 100% (67/67), Lines 100% (176/176)."
+        }
+      ],
+      "spec": "0006-alinear-formulario-de-presupuesto-con-cuentas"
+    },
+    {
+      "id": "T-0047",
+      "title": "Compute liquidity from accounts in a pure util",
+      "description": "Nuevo src/utils/liquidity.ts con el calculo de liquidez por cuenta, el total y las porciones del grafico, sin dependencias de Vue ni de stores. Reutiliza la forma de DonutSlice/DonutData de utils/summary.ts.",
+      "status": "completada",
+      "createdAt": "2026-08-25T17:34:42.548Z",
+      "implementedAt": "2026-08-25T18:42:21.501Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "accountLiquidity devuelve el balance para cuentas de tipo cash y debit",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.111Z",
+          "note": "liquidity.ts:4-7 devuelve account.balance para cash/debit; liquidity.spec.ts:30-40 parametriza ambos tipos. Comando real: pnpm --filter frontend exec vitest run src/utils/liquidity.spec.ts --reporter=verbose -> los dos tests de balance pasaron; 11/11 tests passed."
+        },
+        {
+          "id": "AC-2",
+          "text": "accountLiquidity devuelve creditLimit - usedAmount para cuentas de tipo credit",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.154Z",
+          "note": "liquidity.ts:13-16 calcula creditLimit - usedAmount; liquidity.spec.ts:42-51 espera 924.5. Comando real: pnpm --filter frontend exec vitest run src/utils/liquidity.spec.ts --reporter=verbose -> 'returns the available credit for a credit account' passed; 11/11 tests passed."
+        },
+        {
+          "id": "AC-3",
+          "text": "accountLiquidity devuelve 0, y nunca un negativo, cuando usedAmount supera creditLimit",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.197Z",
+          "note": "liquidity.ts:13-16 aplica Math.max(0, ...); liquidity.spec.ts:59-68 prueba 500-650 y espera 0. Comando real: pnpm --filter frontend exec vitest run src/utils/liquidity.spec.ts --reporter=verbose -> 'does not return negative liquidity for an overdrawn card' passed; 11/11 tests passed."
+        },
+        {
+          "id": "AC-4",
+          "text": "buildLiquidity devuelve total 0 e isEmpty true cuando la lista de cuentas esta vacia",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.238Z",
+          "note": "liquidity.ts:19-37 construye slices, total e isEmpty; liquidity.spec.ts:71-78 verifica buildLiquidity([]) exactamente {slices:[], total:0, isEmpty:true}. Comando real: pnpm --filter frontend exec vitest run src/utils/liquidity.spec.ts --reporter=verbose -> test de lista vacía passed; 11/11 tests passed."
+        },
+        {
+          "id": "AC-5",
+          "text": "buildLiquidity excluye de las slices las cuentas cuya liquidez es 0, pero el total sigue sumando el resto",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.278Z",
+          "note": "liquidity.ts:20-30 filtra únicamente slice.value !== 0 en la línea 26 y reduce las slices restantes. liquidity.spec.ts:80-119 excluye balance 0, tarjeta sin detalles y tarjeta sobregirada, sumando 80+275=355; :121-145 conserva y resta balances -50 de cash y debit; :147-167 conserva slices no cero pero marca isEmpty true para total neto 0 (-100+100). Comando real: pnpm --filter frontend exec vitest run src/utils/liquidity.spec.ts --reporter=verbose -> los 11/11 tests passed, incluidos los dos negativos y net-zero."
+        },
+        {
+          "id": "AC-6",
+          "text": "Cada slice lleva el nombre y el color de su cuenta, y el total se redondea a dos decimales igual que utils/summary.ts",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.316Z",
+          "note": "liquidity.ts:21-25 conserva nombre/color, :28-30 suma y :39-41 redondea a centavos; summary.ts:13-23 define DonutData/DonutSlice y :69-71 usa el mismo redondeo. liquidity.spec.ts:169-194 verifica nombres, colores y 0.1+0.2=0.3 finito. Comando real: pnpm --filter frontend exec vitest run src/utils/liquidity.spec.ts --reporter=verbose -> test de nombres/colores/redondeo passed; 11/11 tests passed."
+        },
+        {
+          "id": "AC-7",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/frontend, con src/utils/liquidity.ts al 100% de lineas y ramas",
+          "validated": true,
+          "validatedAt": "2026-08-25T18:33:45.355Z",
+          "note": "Comando real: pnpm test:coverage terminó correctamente; frontend: 38 archivos, 354 tests passed, Statements 100%, Branches 98.97%, Functions 100%, Lines 100%. apps/frontend/coverage/index.html:97-108 reporta liquidity.ts 100% (12/12 statements, 6/6 branches, 6/6 functions, 12/12 lines); coverage/liquidity.ts.html:26-49 confirma 100% en statements/branches/functions/lines."
+        }
+      ],
+      "spec": "0007-liquidez-actual-en-dashboard-y-cuentas"
+    },
+    {
+      "id": "T-0048",
+      "title": "Add LiquidityCard molecule with total and donut breakdown",
+      "description": "Nuevo src/components/molecules/LiquidityCard.vue que recibe accounts y loading por props, deriva los datos con utils/liquidity.ts y presenta el total, la dona por cuenta y la leyenda. Sigue la forma de CategoryDonutCard.vue: Doughnut de vue-chartjs, chartTheme, tokens del tema greenBeige, sin llamadas HTTP ni acceso a stores.",
+      "status": "completada",
+      "createdAt": "2026-08-25T17:34:50.451Z",
+      "implementedAt": "2026-08-25T19:08:47.093Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Con cuentas que suman liquidez, el componente renderiza el total formateado con formatCurrency y un canvas de dona con una porcion por cuenta con liquidez",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:02:20.174Z",
+          "note": "LiquidityCard.vue:14-25 deriva total y slices desde buildLiquidity; :64-69 monta Doughnut; vue-chartjs/dist/index.cjs:206-216 renderiza canvas. LiquidityCard.spec.ts:76-91 pasó: total $2,275.50, labels Cash/Debit account/Credit card y datos 1200.5/350/725; comando dirigido: 8/8 tests passed."
+        },
+        {
+          "id": "AC-2",
+          "text": "La leyenda lista el nombre y el importe de cada cuenta con el color de la cuenta",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:02:20.215Z",
+          "note": "LiquidityCard.vue:81-97 itera cada slice y muestra label, formatCurrency(value) y dot con backgroundColor slice.color. LiquidityCard.spec.ts:93-110 pasó: 3 li, importes $1,200.50/$350.00/$725.00 y colores RGB esperados; comando dirigido: 8/8 tests passed."
+        },
+        {
+          "id": "AC-3",
+          "text": "Con loading true muestra el indicador de carga y no renderiza la dona",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:02:20.253Z",
+          "note": "LiquidityCard.vue:52-54 v-if loading muestra VProgressCircular y :56-69 solo evalúa/monta Doughnut en v-else. LiquidityCard.spec.ts:130-137 pasó: con loading=true no existe donut-chart y sí VProgressCircular; comando dirigido: 8/8 tests passed."
+        },
+        {
+          "id": "AC-4",
+          "text": "Sin cuentas o con liquidez total 0 muestra el estado vacio en lugar de la dona, sin errores en consola",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:02:20.292Z",
+          "note": "LiquidityCard.vue:58-63 usa liquidity.isEmpty para estado vacío, :64-69 omite Doughnut, :71-75 conserva total y :81-98 omite leyenda. LiquidityCard.spec.ts:139-169 pasó para lista [] y total 0: donut/leyenda ausentes, $0.00 y console.error no llamado; comando dirigido: 8/8 tests passed."
+        },
+        {
+          "id": "AC-5",
+          "text": "El componente no importa ningun store ni service: solo props, utils y el plugin de charts",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:02:20.331Z",
+          "note": "LiquidityCard.vue:1-7 solo importa Vue, vue-chartjs, chartTheme, tipo AccountView y utils; no importa stores/services ni usa fetch/axios. LiquidityCard.spec.ts:187-190 lo verifica leyendo el fuente; comando dirigido: 8/8 tests passed."
+        },
+        {
+          "id": "AC-6",
+          "text": "Existe LiquidityCard.spec.ts y pnpm test:coverage pasa con >= 80% en apps/frontend",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:02:20.369Z",
+          "note": "Existe apps/frontend/src/components/molecules/LiquidityCard.spec.ts (191 líneas, 8 tests). Comando real pnpm test:coverage: frontend 39 archivos, 362/362 tests passed, Statements 100%, Branches 98.97%, Functions 100%, Lines 100%; coverage/index.html:97-108 reporta liquidity.ts 100%. pnpm --filter frontend build también terminó con vue-tsc y vite build en verde."
+        }
+      ],
+      "spec": "0007-liquidez-actual-en-dashboard-y-cuentas"
+    },
+    {
+      "id": "T-0049",
+      "title": "Show LiquidityCard on dashboard and accounts views",
+      "description": "Montar LiquidityCard en HomeView y en AccountsView alimentandolo desde useAccountsStore, garantizando que las cuentas se cargan en ambas vistas y que el total reacciona a altas, ediciones y bajas de cuenta. El filtro de periodo del dashboard no le aplica.",
+      "status": "completada",
+      "createdAt": "2026-08-25T17:34:56.457Z",
+      "implementedAt": "2026-08-25T19:48:56.874Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "HomeView renderiza LiquidityCard y dispara la carga de cuentas al montarse",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:39:24.778Z",
+          "note": "Cumple tras la correccion: HomeView.vue:10-14 monta fetchAccounts condicionado a store vacio/no loading y HomeView.vue:19-24 renderiza LiquidityCard. HomeView.spec.ts:107-121 con UpcomingScheduleCard stub verifica fetchAccounts=1 y accountsService.list=1; HomeView.spec.ts:123-135 con el UpcomingScheduleCard real verifica data-test presente, accountsService.list=1 y la cuenta en LiquidityCard. Vitest dirigido: 13/13 tests pasaron."
+        },
+        {
+          "id": "AC-2",
+          "text": "AccountsView renderiza LiquidityCard por encima del listado de cuentas",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:39:24.817Z",
+          "note": "Cumple: AccountsView.vue:75-79 monta LiquidityCard antes del listado v-row de AccountsView.vue:83-97. AccountsView.spec.ts:183-191 verifica tarjeta, 3 AccountCard y orden en el HTML. Vitest dirigido: 13/13 tests pasaron."
+        },
+        {
+          "id": "AC-3",
+          "text": "Ambas vistas muestran el mismo total para el mismo conjunto de cuentas",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:39:41.260Z",
+          "note": "Cumple: HomeView.vue:20-24 y AccountsView.vue:75-79 pasan accountsStore.accounts al mismo LiquidityCard. AccountsView.spec.ts:202-215 compara props, total y slices en ambas vistas y espera $2,275.50 con valores [1200.5,350,725]. Vitest dirigido: 13/13 tests pasaron."
+        },
+        {
+          "id": "AC-4",
+          "text": "Tras crear, editar o eliminar una cuenta en AccountsView el total y las slices se recalculan sin recargar la vista",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:39:24.889Z",
+          "note": "Cumple: AccountsView.vue:37-62 delega alta/edicion/baja; stores/accounts.ts:43-71 actualiza accounts reactivamente sin fetch posterior. AccountsView.spec.ts:218-289 verifica recalculo inmediato del total y slices tras crear, editar y eliminar, y accountsService.list=1. Vitest dirigido: 13/13 tests pasaron."
+        },
+        {
+          "id": "AC-5",
+          "text": "Cambiar el periodo en el dashboard no altera el total de liquidez",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:39:24.925Z",
+          "note": "Cumple: HomeView.spec.ts:201-233 pulsa preset-year y verifica que accountsService.list no vuelve a llamarse y que props, total y Doughnut data no cambian; HomeView.vue:10-24 carga LiquidityCard fuera del estado del periodo. Vitest dirigido: 13/13 tests pasaron."
+        },
+        {
+          "id": "AC-6",
+          "text": "pnpm test:coverage pasa con >= 80% en apps/frontend y pnpm build termina sin errores de tipos",
+          "validated": true,
+          "validatedAt": "2026-08-25T19:39:24.959Z",
+          "note": "Cumple con comandos reales: pnpm test:coverage termino con frontend 40 archivos/371 tests, Statements 100%, Branches 98.97%, Functions 100%, Lines 100%; pnpm build termino con backend Done, vue-tsc --noEmit y vite build Done."
+        }
+      ],
+      "spec": "0007-liquidez-actual-en-dashboard-y-cuentas"
     }
   ]
 }
