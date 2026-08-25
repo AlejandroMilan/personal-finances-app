@@ -78,6 +78,19 @@ describe('budgets store', () => {
     expect(store.error).toBeNull();
   });
 
+  it('passes period filters to the budget service when fetching a bounded list', async () => {
+    vi.mocked(budgetsService.list).mockResolvedValue([augustBudget]);
+    const store = useBudgetsStore();
+    const filters = { from: '2026-01', to: '2026-08', limit: 100 };
+
+    await store.fetchBudgets(filters);
+
+    expect(budgetsService.list).toHaveBeenCalledWith(filters);
+    expect(store.budgets).toEqual([augustBudget]);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+  });
+
   it('clears the budget list and exposes an Error message when listing fails', async () => {
     vi.mocked(budgetsService.list).mockRejectedValue(new Error('List unavailable'));
     const store = useBudgetsStore();

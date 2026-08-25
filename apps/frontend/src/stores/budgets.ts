@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { budgetsService } from '../services/budgets';
 import type {
   Budget,
+  BudgetFilters,
   BudgetItem,
   CreateBudgetPayload,
 } from '../types/budget';
@@ -32,13 +33,16 @@ export const useBudgetsStore = defineStore('budgets', () => {
     error.value = null;
   }
 
-  async function fetchBudgets(): Promise<void> {
+  async function fetchBudgets(filters: BudgetFilters = {}): Promise<void> {
     const generation = sessionGeneration;
     const request = ++requestId;
     loading.value = true;
     error.value = null;
     try {
-      const loadedBudgets = await budgetsService.list();
+      const loadedBudgets =
+        Object.keys(filters).length === 0
+          ? await budgetsService.list()
+          : await budgetsService.list(filters);
       if (isCurrentRequest(generation, request)) {
         budgets.value = loadedBudgets;
       }

@@ -1,16 +1,28 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import PeriodFilter from '../molecules/PeriodFilter.vue';
+import MissingBudgetAlert from '../molecules/MissingBudgetAlert.vue';
 import CategoryDonutCard from '../molecules/CategoryDonutCard.vue';
 import IncomeExpenseLineCard from '../molecules/IncomeExpenseLineCard.vue';
+import BudgetStatusCard from './BudgetStatusCard.vue';
 import { fallbackPalette } from '../../plugins/charts';
 import { useCategoriesStore } from '../../stores/categories';
 import { useDashboardStore } from '../../stores/dashboard';
+import { useBudgetsStore } from '../../stores/budgets';
 import type { PeriodRange } from '../../utils/period';
+import {
+  buildBudgetStatus,
+  monthKey,
+  type BudgetStatus,
+} from '../../utils/budget';
 import { toDonutData } from '../../utils/summary';
 
 const dashboard = useDashboardStore();
 const categories = useCategoriesStore();
+const budgets = useBudgetsStore();
+
+const currentMonth = monthKey(new Date());
+const budgetsLoaded = ref(false);
 
 const expenses = computed(() =>
   toDonutData(
@@ -41,17 +53,81 @@ const periodLabel = computed(() => {
   return `${format.format(dashboard.period.from)} — ${format.format(dashboard.period.to)}`;
 });
 
-function applyPeriod(range: PeriodRange): void {
-  if (range.kind === 'custom') {
-    void dashboard.selectCustomRange(range.from, range.to);
-    return;
+const hasCurrentBudget = computed(() =>
+  budgets.budgets.some((budget) => budget.month === currentMonth) ||
+  budgets.budget?.month === currentMonth,
+);
+
+const showMissingBudget = computed(
+  () =>
+    budgetsLoaded.value &&
+    !budgets.loading &&
+    !budgets.error &&
+    !hasCurrentBudget.value,
+);
+
+const budgetStatusLoading = computed(
+  () => budgets.loading || dashboard.loading || dashboard.summary === null,
+);
+
+const budgetStatus = computed<BudgetStatus | null>(() => {
+  if (
+    budgets.loading ||
+    budgets.error ||
+    dashboard.loading ||
+    !dashboard.summary
+  ) {
+    return null;
   }
-  void dashboard.selectPreset(range.kind);
+
+  try {
+    return buildBudgetStatus(
+      budgets.budgets,
+      dashboard.summary,
+      dashboard.period.from,
+      dashboard.period.to,
+    );
+  } catch {
+    return null;
+  }
+});
+
+const budgetPeriodMonth = computed(() => monthKey(dashboard.period.from));
+
+function budgetFiltersForPeriod(): { from: string; to: string; limit: number } {
+  const selectedFrom = monthKey(dashboard.period.from);
+  const selectedTo = monthKey(dashboard.period.to);
+
+  return {
+    from: selectedFrom < currentMonth ? selectedFrom : currentMonth,
+    to: selectedTo > currentMonth ? selectedTo : currentMonth,
+    limit: 100,
+  };
+}
+
+async function refreshBudgets(): Promise<void> {
+  try {
+    await budgets.fetchBudgets(budgetFiltersForPeriod());
+  } finally {
+    budgetsLoaded.value = true;
+  }
+}
+
+async function applyPeriod(range: PeriodRange): Promise<void> {
+  let summaryRequest: Promise<void>;
+  if (range.kind === 'custom') {
+    summaryRequest = dashboard.selectCustomRange(range.from, range.to);
+  } else {
+    summaryRequest = dashboard.selectPreset(range.kind);
+  }
+
+  await Promise.all([summaryRequest, refreshBudgets()]);
 }
 
 onMounted(() => {
   void categories.fetchCategories();
   void dashboard.fetchSummary();
+  void refreshBudgets();
 });
 </script>
 
@@ -78,6 +154,8 @@ onMounted(() => {
     >
       {{ dashboard.error }}
     </v-alert>
+
+    <MissingBudgetAlert v-if="showMissingBudget" :month="currentMonth" />
 
     <v-row>
       <v-col cols="12" md="6">
@@ -107,5 +185,15 @@ onMounted(() => {
         />
       </v-col>
     </v-row>
+
+    <BudgetStatusCard
+      v-if="dashboard.summary"
+      :month="budgetPeriodMonth"
+      :period-label="periodLabel"
+      :status="budgetStatus"
+      :categories="categories.categories"
+      :loading="budgetStatusLoading"
+      class="mt-4"
+    />
   </section>
 </template>

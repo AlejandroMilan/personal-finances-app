@@ -6,6 +6,7 @@ import type { BudgetStatus } from '../../utils/budget';
 
 const props = defineProps<{
   month: string;
+  periodLabel?: string;
   status: BudgetStatus | null;
   categories: CategoryView[];
   loading?: boolean;
@@ -33,7 +34,9 @@ function categoryName(categoryId: string | null): string {
     <v-card-title class="d-flex align-center pa-0 pb-2">
       <v-icon icon="mdi-chart-timeline-variant" color="primary" size="20" class="mr-2" />
       <span class="text-subtitle-1 font-weight-bold">Avance del presupuesto</span>
-      <span class="text-caption text-medium-emphasis ml-auto">{{ month }}</span>
+      <span class="text-caption text-medium-emphasis ml-auto">
+        {{ props.periodLabel ?? props.month }}
+      </span>
     </v-card-title>
 
     <v-card-text class="pa-0">

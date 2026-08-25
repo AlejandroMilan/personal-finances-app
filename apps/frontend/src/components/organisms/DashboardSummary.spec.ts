@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 
@@ -34,10 +34,25 @@ vi.mock('../../services/categories', () => ({
   },
 }));
 
+vi.mock('../../services/budgets', () => ({
+  budgetsService: {
+    list: vi.fn(),
+    getByMonth: vi.fn(),
+    template: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  },
+}));
+
 import { categoriesService } from '../../services/categories';
+import { budgetsService } from '../../services/budgets';
 import { transactionsService } from '../../services/transactions';
 import { mountOptions } from '../../test-utils/vuetify';
+import type { Budget } from '../../types/budget';
 import type { TransactionsSummaryView } from '../../types/summary';
+import type { BudgetStatus } from '../../utils/budget';
+import BudgetStatusCard from './BudgetStatusCard.vue';
 import DashboardSummary from './DashboardSummary.vue';
 
 const summary: TransactionsSummaryView = {
@@ -59,12 +74,39 @@ const summary: TransactionsSummaryView = {
   ],
 };
 
+const currentBudget: Budget = {
+  id: 'budget-2026-08',
+  month: '2026-08',
+  items: [
+    { categoryId: 'c3', type: 'income', amount: 1000 },
+    { categoryId: 'c1', type: 'expense', amount: 100 },
+  ],
+  createdAt: '2026-08-01T00:00:00.000Z',
+  updatedAt: '2026-08-01T00:00:00.000Z',
+};
+
+const januaryBudget: Budget = {
+  ...currentBudget,
+  id: 'budget-2026-01',
+  month: '2026-01',
+  items: [{ categoryId: 'c1', type: 'expense', amount: 300 }],
+};
+
+const septemberBudget: Budget = {
+  ...currentBudget,
+  id: 'budget-2026-09',
+  month: '2026-09',
+  items: [{ categoryId: 'c1', type: 'expense', amount: 400 }],
+};
+
 const flush = async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
 };
 
 describe('DashboardSummary', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 25, 12));
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.mocked(transactionsService.summary).mockResolvedValue(summary);
@@ -72,6 +114,11 @@ describe('DashboardSummary', () => {
       { id: 'c1', name: 'Comida', color: '#2E6B4F' },
       { id: 'c3', name: 'Sueldo', color: '#3E7C4F' },
     ]);
+    vi.mocked(budgetsService.list).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('loads the categories and the summary on mount', async () => {
@@ -80,6 +127,32 @@ describe('DashboardSummary', () => {
 
     expect(categoriesService.list).toHaveBeenCalledTimes(1);
     expect(transactionsService.summary).toHaveBeenCalledTimes(1);
+    expect(budgetsService.list).toHaveBeenCalledWith({
+      from: '2026-08',
+      to: '2026-08',
+      limit: 100,
+    });
+  });
+
+  it('shows a missing-budget alert for the current month with a link to budgets', async () => {
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    const alert = wrapper.find('[data-test="missing-budget-alert"]');
+    const link = wrapper.findComponent({ name: 'VBtn' });
+
+    expect(alert.exists()).toBe(true);
+    expect(alert.text()).toContain('2026-08');
+    expect(link.props('to')).toBe('/budgets');
+  });
+
+  it('hides the missing-budget alert when the current month has a budget', async () => {
+    vi.mocked(budgetsService.list).mockResolvedValue([currentBudget]);
+
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    expect(wrapper.find('[data-test="missing-budget-alert"]').exists()).toBe(false);
   });
 
   it('renders the period filter and the three charts', async () => {
@@ -117,6 +190,67 @@ describe('DashboardSummary', () => {
       'month',
     );
     expect(wrapper.find('[data-test="period-label"]').exists()).toBe(true);
+  });
+
+  it('renders separate income and expense bars and highlights an expense overrun', async () => {
+    vi.mocked(budgetsService.list).mockResolvedValue([currentBudget]);
+
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    const income = wrapper.find('[data-test="budget-income-status"]');
+    const expenses = wrapper.find('[data-test="budget-expense-status"]');
+
+    expect(income.exists()).toBe(true);
+    expect(expenses.exists()).toBe(true);
+    expect(wrapper.findAll('[data-test="budget-category-bar"]')).toHaveLength(3);
+    expect(income.text()).toContain('Sueldo');
+    expect(income.text()).toContain('Planeado: $1,000.00');
+    expect(income.text()).toContain('Real: $900.00');
+    expect(income.text()).toContain('90%');
+    expect(expenses.text()).toContain('Comida');
+    expect(expenses.text()).toContain('Sin categoría');
+    expect(expenses.text()).toContain('Planeado: $100.00');
+    expect(expenses.text()).toContain('Real: $120.00');
+    expect(expenses.text()).toContain('Exceso: $20.00');
+    expect(expenses.find('.text-error').exists()).toBe(true);
+  });
+
+  it('reloads budgets and recomputes status for the selected period', async () => {
+    vi.mocked(budgetsService.list)
+      .mockResolvedValueOnce([currentBudget])
+      .mockResolvedValueOnce([januaryBudget, currentBudget, septemberBudget]);
+
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    const initialCard = wrapper.findComponent(BudgetStatusCard);
+    const initialStatus = initialCard.props('status') as BudgetStatus;
+    expect(initialStatus.rows).toContainEqual(
+      expect.objectContaining({ categoryId: 'c1', planned: 100 }),
+    );
+
+    await wrapper.find('[data-test="preset-year"]').trigger('click');
+    await flush();
+
+    expect(budgetsService.list).toHaveBeenNthCalledWith(2, {
+      from: '2026-01',
+      to: '2026-12',
+      limit: 100,
+    });
+
+    const selectedCard = wrapper.findComponent(BudgetStatusCard);
+    const selectedStatus = selectedCard.props('status') as BudgetStatus;
+    expect(selectedCard.props('month')).toBe('2026-01');
+    expect(selectedStatus.rows).toContainEqual(
+      expect.objectContaining({ categoryId: 'c1', planned: 800 }),
+    );
+    expect(selectedStatus.missingMonths).toEqual(
+      expect.arrayContaining(['2026-02', '2026-03', '2026-10']),
+    );
+    expect(wrapper.find('[data-test="budget-missing-months"]').text()).toContain(
+      '2026-02',
+    );
   });
 
   it('stacks the donuts on mobile and places them side by side on desktop', async () => {
