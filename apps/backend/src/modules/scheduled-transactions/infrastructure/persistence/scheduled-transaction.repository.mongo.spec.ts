@@ -41,10 +41,14 @@ describe('MongoScheduledTransactionRepository', () => {
   };
   let execMock: jest.Mock;
   let sortMock: jest.Mock;
+  let limitMock: jest.Mock;
 
   beforeEach(() => {
     execMock = jest.fn().mockResolvedValue(doc);
-    sortMock = jest.fn().mockReturnValue({ exec: execMock });
+    limitMock = jest.fn();
+    const query = { limit: limitMock, exec: execMock };
+    limitMock.mockReturnValue(query);
+    sortMock = jest.fn().mockReturnValue(query);
     modelMock = {
       findOne: jest.fn().mockReturnValue({ exec: execMock }),
       find: jest.fn().mockReturnValue({ sort: sortMock }),
@@ -142,6 +146,25 @@ describe('MongoScheduledTransactionRepository', () => {
       userId: 'u1',
       scheduledFor: { $gte: from, $lte: to },
     });
+  });
+
+  it('applies an optional result limit after sorting without dropping filters', async () => {
+    execMock.mockResolvedValue([]);
+    const to = new Date('2026-08-31T23:59:59.999Z');
+
+    await repo().findByUserId('u1', {
+      status: ScheduledTransactionStatus.PENDING,
+      to,
+      limit: 101,
+    });
+
+    expect(modelMock.find).toHaveBeenCalledWith({
+      userId: 'u1',
+      status: ScheduledTransactionStatus.PENDING,
+      scheduledFor: { $lte: to },
+    });
+    expect(sortMock).toHaveBeenCalledWith({ scheduledFor: 1 });
+    expect(limitMock).toHaveBeenCalledWith(101);
   });
 
   it.each([

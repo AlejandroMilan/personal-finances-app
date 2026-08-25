@@ -7,6 +7,8 @@ export interface ScheduledTransactionFilters {
   from?: Date;
   /** Límite superior de la fecha prevista, inclusivo. */
   to?: Date;
+  /** Límite interno de resultados para consultas acotadas. */
+  limit?: number;
 }
 
 export interface ScheduledTransactionRepository {

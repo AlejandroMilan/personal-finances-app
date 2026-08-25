@@ -34,10 +34,15 @@ export class MongoScheduledTransactionRepository implements ScheduledTransaction
     userId: string,
     filters: ScheduledTransactionFilters,
   ): Promise<ScheduledTransaction[]> {
-    const docs = await this.model
+    const query = this.model
       .find(this.buildQuery(userId, filters))
-      .sort({ scheduledFor: 1 })
-      .exec();
+      .sort({ scheduledFor: 1 });
+
+    if (filters.limit !== undefined) {
+      query.limit(filters.limit);
+    }
+
+    const docs = await query.exec();
     return docs.map((doc) => this.toEntity(doc));
   }
 
