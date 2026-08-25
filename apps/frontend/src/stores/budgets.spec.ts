@@ -224,6 +224,31 @@ describe('budgets store', () => {
     expect(store.error).toBeNull();
   });
 
+  it('returns an empty template and keeps cleared state when a pending template is invalidated', async () => {
+    let resolvePending: (value: BudgetItem[]) => void = () => undefined;
+    const pending = new Promise<BudgetItem[]>((resolve) => {
+      resolvePending = resolve;
+    });
+    vi.mocked(budgetsService.template).mockReturnValue(pending);
+    const store = useBudgetsStore();
+    store.month = '2026-08';
+    store.budget = augustBudget;
+    store.template = template;
+    store.error = 'old error';
+
+    const pendingFetch = store.fetchTemplate('2026-09');
+    store.clear();
+    resolvePending(template);
+
+    await expect(pendingFetch).resolves.toEqual([]);
+
+    expect(store.month).toBeNull();
+    expect(store.budget).toBeNull();
+    expect(store.template).toEqual([]);
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
+  });
+
   it('keeps the newest month when requests finish out of order', async () => {
     let resolvePrevious: (value: Budget | null) => void = () => undefined;
     const previousResponse = new Promise<Budget | null>((resolve) => {
@@ -263,7 +288,7 @@ describe('budgets store', () => {
     const currentFetch = store.fetchTemplate('2026-09');
     await expect(currentFetch).resolves.toEqual(currentTemplate);
     resolvePrevious(template);
-    await expect(previousFetch).resolves.toEqual(template);
+    await expect(previousFetch).resolves.toEqual([]);
 
     expect(store.month).toBe('2026-09');
     expect(store.template).toEqual(currentTemplate);

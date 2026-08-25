@@ -249,6 +249,28 @@ describe('auth store', () => {
     expect(useBudgetsStore().template).toEqual([]);
   });
 
+  it('does not deliver a pending budget template after logout', async () => {
+    vi.mocked(authService.login).mockResolvedValue(response);
+    const auth = useAuthStore();
+    await auth.login('ana@mail.com', 'secret123');
+
+    const budgets = useBudgetsStore();
+    const pendingResponse = deferred<BudgetItem[]>();
+    vi.mocked(budgetsService.template).mockReturnValueOnce(pendingResponse.promise);
+    const pendingTemplate = budgets.fetchTemplate('2026-08');
+
+    auth.logout();
+    pendingResponse.resolve(budget.items);
+
+    await expect(pendingTemplate).resolves.toEqual([]);
+
+    expect(budgets.month).toBeNull();
+    expect(budgets.budget).toBeNull();
+    expect(budgets.template).toEqual([]);
+    expect(budgets.loading).toBe(false);
+    expect(budgets.error).toBeNull();
+  });
+
   it('clears previous data before exposing a different authenticated user', async () => {
     vi.mocked(authService.login)
       .mockResolvedValueOnce(response)
@@ -324,6 +346,31 @@ describe('auth store', () => {
     expect(store.user).toBeNull();
     expect(localStorage.getItem('auth-token')).toBeNull();
     expect(localStorage.getItem('auth-user')).toBeNull();
+  });
+
+  it('does not deliver a pending budget template after changing sessions', async () => {
+    vi.mocked(authService.login)
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(otherUserResponse);
+    const auth = useAuthStore();
+    await auth.login('ana@mail.com', 'secret123');
+
+    const budgets = useBudgetsStore();
+    const pendingResponse = deferred<BudgetItem[]>();
+    vi.mocked(budgetsService.template).mockReturnValueOnce(pendingResponse.promise);
+    const pendingTemplate = budgets.fetchTemplate('2026-08');
+
+    await auth.login('bruno@mail.com', 'secret123');
+    pendingResponse.resolve(budget.items);
+
+    await expect(pendingTemplate).resolves.toEqual([]);
+
+    expect(auth.user?.id).toBe('u2');
+    expect(budgets.month).toBeNull();
+    expect(budgets.budget).toBeNull();
+    expect(budgets.template).toEqual([]);
+    expect(budgets.loading).toBe(false);
+    expect(budgets.error).toBeNull();
   });
 
   it('does not let delayed requests from user A overwrite stores after user B logs in', async () => {

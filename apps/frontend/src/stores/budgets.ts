@@ -63,12 +63,11 @@ export const useBudgetsStore = defineStore('budgets', () => {
     error.value = null;
     try {
       const loadedTemplate = await budgetsService.template(selectedMonth);
-      if (isCurrentRequest(generation, request)) {
-        template.value = loadedTemplate;
-      }
+      if (!isCurrentRequest(generation, request)) return [];
+      template.value = loadedTemplate;
       return loadedTemplate;
     } catch (caught) {
-      if (!isCurrentRequest(generation, request)) return;
+      if (!isCurrentRequest(generation, request)) return [];
       template.value = [];
       error.value =
         caught instanceof Error
