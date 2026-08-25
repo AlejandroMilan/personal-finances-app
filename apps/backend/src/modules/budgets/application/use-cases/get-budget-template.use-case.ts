@@ -142,6 +142,12 @@ export class GetBudgetTemplateUseCase {
       ? current.amount + transaction.amount
       : transaction.amount;
 
+    if (!Number.isFinite(nextAmount)) {
+      throw new BadRequestException(
+        'A budget template amount must remain finite',
+      );
+    }
+
     if (current) {
       current.amount = nextAmount;
       current.titles.push(transaction.title);

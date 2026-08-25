@@ -171,6 +171,38 @@ describe('GetBudgetTemplateUseCase', () => {
     expect(scheduledRepository.save).not.toHaveBeenCalled();
   });
 
+  it('rejects a non-finite grouped sum without exposing or persisting an invalid item', async () => {
+    const first = scheduled({
+      id: 's1',
+      categoryId: 'c1',
+      type: TransactionType.EXPENSE,
+      title: 'First large expense',
+      amount: 1e308,
+      scheduledFor: new Date('2026-08-01T00:00:00.000Z'),
+      recurring: false,
+    });
+    const overflowing = scheduled({
+      id: 's2',
+      categoryId: 'c1',
+      type: TransactionType.EXPENSE,
+      title: 'Second large expense',
+      amount: 1e308,
+      scheduledFor: new Date('2026-08-15T00:00:00.000Z'),
+      recurring: false,
+    });
+    scheduledRepository.findByUserId.mockResolvedValue([first, overflowing]);
+
+    const template = useCase.execute({ userId: 'u1', month: '2026-08' });
+
+    await expect(template).rejects.toBeInstanceOf(BadRequestException);
+    await expect(template).rejects.toThrow(
+      'A budget template amount must remain finite',
+    );
+    expect(first.amount).toBe(1e308);
+    expect(overflowing.amount).toBe(1e308);
+    expect(scheduledRepository.save).not.toHaveBeenCalled();
+  });
+
   it('includes recurring transactions from before a future month but excludes non-recurring and future transactions', async () => {
     scheduledRepository.findByUserId.mockResolvedValue([
       scheduled({
