@@ -5,6 +5,7 @@ import type { User } from '../types/auth';
 import { useAccountsStore } from './accounts';
 import { useCategoriesStore } from './categories';
 import { useDashboardStore } from './dashboard';
+import { useBudgetsStore } from './budgets';
 import { useScheduledTransactionsStore } from './scheduled-transactions';
 import { useTransactionsStore } from './transactions';
 
@@ -22,6 +23,7 @@ function readStoredUser(): User | null {
 }
 
 function clearUserData(): void {
+  useBudgetsStore().clear();
   useScheduledTransactionsStore().clear();
   useAccountsStore().clear();
   useCategoriesStore().clear();

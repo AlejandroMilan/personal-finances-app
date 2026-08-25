@@ -48,13 +48,26 @@ vi.mock('../services/transactions', () => ({
   },
 }));
 
+vi.mock('../services/budgets', () => ({
+  budgetsService: {
+    list: vi.fn(),
+    getByMonth: vi.fn(),
+    template: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  },
+}));
+
 import { authService } from '../services/auth';
 import { accountsService } from '../services/accounts';
 import { categoriesService } from '../services/categories';
 import { scheduledTransactionsService } from '../services/scheduled-transactions';
 import { transactionsService } from '../services/transactions';
+import { budgetsService } from '../services/budgets';
 import type { AccountView } from '../types/account';
 import type { AuthResponse } from '../types/auth';
+import type { Budget, BudgetItem } from '../types/budget';
 import type { CategoryView } from '../types/category';
 import type { ScheduledTransactionView } from '../types/scheduled-transaction';
 import type { PaginatedTransactions, TransactionView } from '../types/transaction';
@@ -65,6 +78,7 @@ import { useAuthStore } from './auth';
 import { useDashboardStore } from './dashboard';
 import { useScheduledTransactionsStore } from './scheduled-transactions';
 import { useTransactionsStore } from './transactions';
+import { useBudgetsStore } from './budgets';
 
 const response: AuthResponse = {
   token: 'jwt-token',
@@ -143,6 +157,21 @@ const summary: TransactionsSummaryView = {
   ],
 };
 
+const budget: Budget = {
+  id: 'b1',
+  month: '2026-08',
+  items: [
+    {
+      categoryId: 'c1',
+      type: 'expense',
+      amount: 900,
+      note: 'Rent',
+    },
+  ],
+  createdAt: '2026-08-01T00:00:00.000Z',
+  updatedAt: '2026-08-01T00:00:00.000Z',
+};
+
 function seedUserData(): void {
   useAccountsStore().accounts = [account];
   useCategoriesStore().categories = [category];
@@ -150,6 +179,9 @@ function seedUserData(): void {
   useTransactionsStore().items = [transaction];
   useTransactionsStore().total = 1;
   useDashboardStore().summary = summary;
+  useBudgetsStore().month = budget.month;
+  useBudgetsStore().budget = budget;
+  useBudgetsStore().template = budget.items;
 }
 
 describe('auth store', () => {
@@ -212,6 +244,9 @@ describe('auth store', () => {
     expect(useTransactionsStore().items).toEqual([]);
     expect(useTransactionsStore().total).toBe(0);
     expect(useDashboardStore().summary).toBeNull();
+    expect(useBudgetsStore().month).toBeNull();
+    expect(useBudgetsStore().budget).toBeNull();
+    expect(useBudgetsStore().template).toEqual([]);
   });
 
   it('clears previous data before exposing a different authenticated user', async () => {
@@ -234,7 +269,10 @@ describe('auth store', () => {
             useScheduledTransactionsStore().items.length === 0 &&
             useTransactionsStore().items.length === 0 &&
             useTransactionsStore().total === 0 &&
-            useDashboardStore().summary === null;
+            useDashboardStore().summary === null &&
+            useBudgetsStore().month === null &&
+            useBudgetsStore().budget === null &&
+            useBudgetsStore().template.length === 0;
         }
       },
       { flush: 'sync' },
@@ -294,6 +332,7 @@ describe('auth store', () => {
     const previousSchedule = deferred<ScheduledTransactionView[]>();
     const previousTransactions = deferred<PaginatedTransactions>();
     const previousSummary = deferred<TransactionsSummaryView>();
+    const previousBudget = deferred<Budget | null>();
     const currentAccount = { ...account, id: 'a2', name: 'Checking' };
     const currentCategory = { ...category, id: 'c2', name: 'Transport' };
     const currentScheduled = { ...scheduled, id: 's2', title: 'Salary' };
@@ -307,6 +346,12 @@ describe('auth store', () => {
     const currentSummary: TransactionsSummaryView = {
       ...summary,
       totals: { income: 0, expense: 800 },
+    };
+    const currentBudget: Budget = {
+      ...budget,
+      id: 'b2',
+      month: '2026-09',
+      items: [{ ...budget.items[0], amount: 1200 }],
     };
 
     vi.mocked(authService.login)
@@ -327,6 +372,9 @@ describe('auth store', () => {
     vi.mocked(transactionsService.summary)
       .mockReturnValueOnce(previousSummary.promise)
       .mockResolvedValueOnce(currentSummary);
+    vi.mocked(budgetsService.getByMonth)
+      .mockReturnValueOnce(previousBudget.promise)
+      .mockResolvedValueOnce(currentBudget);
 
     const auth = useAuthStore();
     await auth.login('ana@mail.com', 'secret123');
@@ -336,6 +384,7 @@ describe('auth store', () => {
     const schedule = useScheduledTransactionsStore();
     const transactions = useTransactionsStore();
     const dashboard = useDashboardStore();
+    const budgets = useBudgetsStore();
     seedUserData();
 
     const previousFetches = Promise.all([
@@ -344,6 +393,7 @@ describe('auth store', () => {
       schedule.fetchScheduled(),
       transactions.fetchTransactions(),
       dashboard.fetchSummary(),
+      budgets.fetchForMonth('2026-08'),
     ]);
 
     await auth.login('bruno@mail.com', 'secret123');
@@ -354,6 +404,9 @@ describe('auth store', () => {
     expect(transactions.items).toEqual([]);
     expect(transactions.total).toBe(0);
     expect(dashboard.summary).toBeNull();
+    expect(budgets.month).toBeNull();
+    expect(budgets.budget).toBeNull();
+    expect(budgets.template).toEqual([]);
 
     const currentFetches = Promise.all([
       accounts.fetchAccounts(),
@@ -361,6 +414,7 @@ describe('auth store', () => {
       schedule.fetchScheduled(),
       transactions.fetchTransactions(),
       dashboard.fetchSummary(),
+      budgets.fetchForMonth('2026-09'),
     ]);
     await currentFetches;
 
@@ -374,6 +428,7 @@ describe('auth store', () => {
       limit: 20,
     });
     previousSummary.resolve(summary);
+    previousBudget.resolve(budget);
     await previousFetches;
 
     expect(accounts.accounts).toEqual([currentAccount]);
@@ -382,6 +437,8 @@ describe('auth store', () => {
     expect(transactions.items).toEqual([currentTransaction]);
     expect(transactions.total).toBe(1);
     expect(dashboard.summary).toEqual(currentSummary);
+    expect(budgets.month).toBe('2026-09');
+    expect(budgets.budget).toEqual(currentBudget);
   });
 
   it('restores the session from localStorage', () => {
