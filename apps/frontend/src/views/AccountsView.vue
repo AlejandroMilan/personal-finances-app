@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import AccountCard from '../components/molecules/AccountCard.vue';
+import LiquidityCard from '../components/molecules/LiquidityCard.vue';
 import AccountFormDialog from '../components/organisms/AccountFormDialog.vue';
 import { useAccountsStore } from '../stores/accounts';
 import type { AccountView, CreateAccountPayload, UpdateAccountPayload } from '../types/account';
@@ -70,6 +71,12 @@ async function confirmDelete(): Promise<void> {
         Add account
       </v-btn>
     </div>
+
+    <LiquidityCard
+      :accounts="accountsStore.accounts"
+      :loading="accountsStore.loading"
+      class="mb-6"
+    />
 
     <v-progress-linear v-if="accountsStore.loading" indeterminate color="primary" class="mb-4" />
 

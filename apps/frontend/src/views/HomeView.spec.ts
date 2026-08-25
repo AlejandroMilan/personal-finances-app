@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 
 vi.mock('vue-chartjs', () => ({
@@ -19,6 +19,17 @@ vi.mock('../services/accounts', () => ({
   accountsService: { list: vi.fn() },
 }));
 
+vi.mock('../services/budgets', () => ({
+  budgetsService: {
+    list: vi.fn(),
+    getByMonth: vi.fn(),
+    template: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  },
+}));
+
 vi.mock('../services/scheduled-transactions', () => ({
   scheduledTransactionsService: {
     list: vi.fn(),
@@ -31,14 +42,48 @@ vi.mock('../services/scheduled-transactions', () => ({
 }));
 
 import { accountsService } from '../services/accounts';
+import { budgetsService } from '../services/budgets';
 import { categoriesService } from '../services/categories';
 import { scheduledTransactionsService } from '../services/scheduled-transactions';
 import { transactionsService } from '../services/transactions';
+import LiquidityCard from '../components/molecules/LiquidityCard.vue';
 import router from '../router';
 import { vuetify } from '../test-utils/vuetify';
+import type { AccountView } from '../types/account';
+import { useAccountsStore } from '../stores/accounts';
 import HomeView from './HomeView.vue';
 
 const mountOptions = { global: { plugins: [vuetify, router] } };
+
+const account: AccountView = {
+  id: 'a1',
+  name: 'Checking',
+  balance: 750,
+  color: '#2E6B4F',
+  type: 'cash',
+  creditCard: null,
+};
+
+const homeWithUpcomingStubMountOptions = {
+  ...mountOptions,
+  global: {
+    ...mountOptions.global,
+    stubs: {
+      DashboardSummary: true,
+      UpcomingScheduleCard: true,
+    },
+  },
+};
+
+const homeWithRealUpcomingMountOptions = {
+  ...mountOptions,
+  global: {
+    ...mountOptions.global,
+    stubs: {
+      DashboardSummary: true,
+    },
+  },
+};
 
 describe('HomeView', () => {
   beforeEach(() => {
@@ -46,6 +91,7 @@ describe('HomeView', () => {
     vi.clearAllMocks();
     vi.mocked(categoriesService.list).mockResolvedValue([]);
     vi.mocked(accountsService.list).mockResolvedValue([]);
+    vi.mocked(budgetsService.list).mockResolvedValue([]);
     vi.mocked(scheduledTransactionsService.list).mockResolvedValue([]);
     vi.mocked(transactionsService.summary).mockResolvedValue({
       from: '2026-08-01T06:00:00.000Z',
@@ -56,6 +102,37 @@ describe('HomeView', () => {
       byCategory: { income: [], expense: [] },
       series: [],
     });
+  });
+
+  it('loads accounts from HomeView when UpcomingScheduleCard is stubbed', async () => {
+    vi.mocked(accountsService.list).mockResolvedValue([account]);
+    const accountsStore = useAccountsStore();
+    const fetchAccounts = vi.spyOn(accountsStore, 'fetchAccounts');
+
+    const wrapper = mount(HomeView, homeWithUpcomingStubMountOptions);
+    await flushPromises();
+
+    const liquidityCard = wrapper.findComponent(LiquidityCard);
+
+    expect(liquidityCard.exists()).toBe(true);
+    expect(fetchAccounts).toHaveBeenCalledTimes(1);
+    expect(accountsService.list).toHaveBeenCalledTimes(1);
+    expect(liquidityCard.props('accounts')).toEqual([account]);
+  });
+
+  it('loads accounts once when the real UpcomingScheduleCard is mounted', async () => {
+    vi.mocked(accountsService.list).mockResolvedValue([account]);
+
+    const wrapper = mount(HomeView, homeWithRealUpcomingMountOptions);
+    await flushPromises();
+
+    const liquidityCard = wrapper.findComponent(LiquidityCard);
+
+    expect(wrapper.find('[data-test="upcoming-schedule-card"]').exists()).toBe(
+      true,
+    );
+    expect(accountsService.list).toHaveBeenCalledTimes(1);
+    expect(liquidityCard.props('accounts')).toEqual([account]);
   });
 
   it('no longer renders the hello world placeholder', async () => {
@@ -119,5 +196,40 @@ describe('HomeView', () => {
       'timeZone',
       'to',
     ]);
+  });
+
+  it('does not reload or change liquidity when the dashboard period changes', async () => {
+    vi.mocked(accountsService.list).mockResolvedValue([account]);
+
+    const wrapper = mount(HomeView, {
+      ...mountOptions,
+      global: {
+        ...mountOptions.global,
+        stubs: { UpcomingScheduleCard: true },
+      },
+    });
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const liquidityCard = wrapper.findComponent(LiquidityCard);
+    const beforeAccounts = liquidityCard.props('accounts');
+    const beforeTotal = liquidityCard.find('[data-test="donut-total"]').text();
+    const beforeChartData = liquidityCard
+      .findComponent({ name: 'Doughnut' })
+      .props('data');
+    vi.mocked(accountsService.list).mockClear();
+
+    await wrapper.find('[data-test="preset-year"]').trigger('click');
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(accountsService.list).not.toHaveBeenCalled();
+    expect(liquidityCard.props('accounts')).toEqual(beforeAccounts);
+    expect(liquidityCard.find('[data-test="donut-total"]').text()).toBe(
+      beforeTotal,
+    );
+    expect(
+      liquidityCard.findComponent({ name: 'Doughnut' }).props('data'),
+    ).toEqual(beforeChartData);
   });
 });
