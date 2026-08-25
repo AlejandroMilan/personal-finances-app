@@ -6,6 +6,7 @@ import type {
   BudgetItemType,
   CreateBudgetPayload,
 } from '../../types/budget';
+import { availableCategories } from '../../utils/budget';
 
 interface EditableBudgetItem {
   key: number;
@@ -64,14 +65,21 @@ watch(
   { immediate: true },
 );
 
+function categoryOptions(index: number): CategoryView[] {
+  return availableCategories(props.categories, items.value, index);
+}
+
 function addItem(): void {
-  items.value.push({
+  const created: EditableBudgetItem = {
     key: nextKey++,
-    categoryId: props.categories[0]?.id ?? '',
+    categoryId: '',
     type: 'expense',
     amount: 0,
     note: '',
-  });
+  };
+
+  items.value.push(created);
+  created.categoryId = categoryOptions(items.value.length - 1)[0]?.id ?? '';
 }
 
 function removeItem(key: number): void {
@@ -144,7 +152,7 @@ function close(): void {
             <v-select
               v-model="item.categoryId"
               label="Category"
-              :items="categories"
+              :items="categoryOptions(index)"
               item-title="name"
               item-value="id"
               :rules="categoryRules"

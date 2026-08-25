@@ -82,6 +82,35 @@ export function monthsInPeriod(from: Date, to: Date): string[] {
   return months;
 }
 
+/** Partida en edición, reducida a lo que decide si una categoría está ocupada. */
+export interface BudgetItemSelection {
+  categoryId: string;
+  type: BudgetItemType;
+}
+
+/**
+ * Categorías que la partida `index` puede elegir: las que ninguna otra partida del
+ * mismo tipo ha tomado, más la que ella misma tiene seleccionada.
+ */
+export function availableCategories<T extends { id: string }>(
+  categories: readonly T[],
+  items: readonly BudgetItemSelection[],
+  index: number,
+): T[] {
+  const current = items[index];
+  if (!current) return [...categories];
+
+  const taken = new Set(
+    items
+      .filter((item, position) => position !== index && item.type === current.type)
+      .map((item) => item.categoryId),
+  );
+
+  return categories.filter(
+    (category) => category.id === current.categoryId || !taken.has(category.id),
+  );
+}
+
 interface BudgetStatusAccumulator {
   categoryId: string | null;
   type: BudgetItemType;

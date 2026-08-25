@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Budget, BudgetItem } from '../types/budget';
 import type { CategoryTotalView, TransactionsSummaryView } from '../types/summary';
 import {
+  availableCategories,
   buildBudgetStatus,
   buildMonthKey,
   monthKey,
@@ -354,5 +355,69 @@ describe('buildMonthKey', () => {
       year: 2026,
       month: 9,
     });
+  });
+});
+
+describe('availableCategories', () => {
+  const categories = [
+    { id: 'c1', name: 'Vivienda' },
+    { id: 'c2', name: 'Comida' },
+    { id: 'c3', name: 'Sueldo' },
+  ];
+
+  it('hides the categories taken by other items of the same type', () => {
+    const items = [
+      { categoryId: 'c1', type: 'expense' as const },
+      { categoryId: '', type: 'expense' as const },
+    ];
+
+    expect(availableCategories(categories, items, 1).map((c) => c.id)).toEqual([
+      'c2',
+      'c3',
+    ]);
+  });
+
+  it('keeps the category selected by the item itself', () => {
+    const items = [
+      { categoryId: 'c1', type: 'expense' as const },
+      { categoryId: 'c2', type: 'expense' as const },
+    ];
+
+    expect(availableCategories(categories, items, 0).map((c) => c.id)).toEqual([
+      'c1',
+      'c3',
+    ]);
+  });
+
+  it('allows the same category as an expense and as an income', () => {
+    const items = [
+      { categoryId: 'c1', type: 'expense' as const },
+      { categoryId: '', type: 'income' as const },
+    ];
+
+    expect(availableCategories(categories, items, 1).map((c) => c.id)).toEqual([
+      'c1',
+      'c2',
+      'c3',
+    ]);
+  });
+
+  it('returns every category when the index does not point to an item', () => {
+    expect(availableCategories(categories, [], 0)).toHaveLength(3);
+    expect(
+      availableCategories(categories, [{ categoryId: 'c1', type: 'expense' }], 5),
+    ).toHaveLength(3);
+  });
+
+  it('does not mutate the received collections', () => {
+    const items = [
+      { categoryId: 'c1', type: 'expense' as const },
+      { categoryId: 'c2', type: 'expense' as const },
+    ];
+
+    availableCategories(categories, items, 0);
+
+    expect(categories).toHaveLength(3);
+    expect(items).toHaveLength(2);
   });
 });

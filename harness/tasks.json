@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-25T21:35:14.179Z",
+  "updatedAt": "2026-08-25T21:37:48.788Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -2500,44 +2500,58 @@
       "id": "T-0052",
       "title": "Exclude already budgeted categories from the item selector",
       "description": "Función pura en utils/budget.ts que calcula las categorías disponibles para una partida y su uso en BudgetFormDialog, respetando la unicidad por categoría y tipo del dominio.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-25T21:29:35.874Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-25T21:37:48.788Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "utils/budget.ts expone una función pura que, dadas las categorías y las partidas en edición, devuelve para una partida concreta las categorías no usadas por otras partidas del mismo tipo, más la propia categoría de esa partida",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.609Z",
+          "note": "utils/budget.ts:95 availableCategories(categories, items, index); tests 'hides the categories taken by other items of the same type' y 'keeps the category selected by the item itself'"
         },
         {
           "id": "AC-2",
           "text": "La función permite la misma categoría en una partida de gasto y otra de ingreso",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.643Z",
+          "note": "El filtro compara item.type; test 'allows the same category as an expense and as an income' (util) y 'lets the same category be budgeted once as expense and once as income' (diálogo)"
         },
         {
           "id": "AC-3",
           "text": "En el diálogo, tras presupuestar una categoría, el desplegable de una partida nueva del mismo tipo ya no la ofrece",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.675Z",
+          "note": "BudgetFormDialog.vue:155 :items=categoryOptions(index); test 'hides an already budgeted category from a new item of the same type' (opciones ['c2','c3'] y default c2)"
         },
         {
           "id": "AC-4",
           "text": "Eliminar la partida que ocupaba una categoría vuelve a ofrecerla en las demás partidas del mismo tipo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.707Z",
+          "note": "removeItem recalcula categoryOptions; test 'offers the category again once its item is removed' (vuelve a ['c1','c2','c3'])"
         },
         {
           "id": "AC-5",
           "text": "Cambiar la categoría de una partida libera la anterior y ocupa la nueva en el resto de desplegables del mismo tipo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.739Z",
+          "note": "categoryOptions es reactivo sobre items; test 'moves the taken slot when an item changes its category'"
         },
         {
           "id": "AC-6",
           "text": "Cambiar el tipo de una partida recalcula las categorías disponibles de todas las partidas",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.771Z",
+          "note": "test 'recalculates the options when an item changes its type'"
         },
         {
           "id": "AC-7",
           "text": "pnpm test:coverage pasa con >= 80% en utils/budget.ts y en el diálogo",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:37:41.802Z",
+          "note": "vitest run --coverage: 415 tests en verde; utils/budget.ts al 100% de statements/lines y branches globales 99.13%"
         }
       ],
       "spec": "0008-correcciones-de-la-vista-de-presupuestos"

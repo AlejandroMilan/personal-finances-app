@@ -76,6 +76,22 @@ type DialogVm = {
 const vm = (wrapper: ReturnType<typeof mountDialog>) =>
   wrapper.vm as unknown as DialogVm;
 
+
+const threeCategories: CategoryView[] = [
+  ...categories,
+  { id: 'c3', name: 'Sueldo', color: '#C98A2D' },
+];
+
+const categoryOptionIds = (
+  wrapper: ReturnType<typeof mountDialog>,
+): string[][] =>
+  wrapper
+    .findAllComponents({ name: 'VSelect' })
+    .filter((_, index) => index % 2 === 0)
+    .map((select) =>
+      (select.props('items') as CategoryView[]).map((category) => category.id),
+    );
+
 describe('BudgetFormDialog', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -242,8 +258,9 @@ describe('BudgetFormDialog', () => {
     await wrapper.find('[data-test="add-budget-item"]').trigger('click');
 
     expect(wrapper.findAll('[data-test="budget-item-row"]')).toHaveLength(2);
+    // La fila nueva arranca en la primera categoría todavía libre para su tipo.
     expect(vm(wrapper).items[1]).toMatchObject({
-      categoryId: 'c1',
+      categoryId: 'c2',
       type: 'expense',
       amount: 0,
       note: '',
@@ -253,7 +270,7 @@ describe('BudgetFormDialog', () => {
 
     expect(wrapper.findAll('[data-test="budget-item-row"]')).toHaveLength(1);
     expect(source).toEqual([rentItem]);
-    expect(vm(wrapper).items[0]).toMatchObject({ categoryId: 'c1', amount: 0 });
+    expect(vm(wrapper).items[0]).toMatchObject({ categoryId: 'c2', amount: 0 });
   });
 
   it('emits only the edited and remaining rows when saving', async () => {
@@ -362,5 +379,75 @@ describe('BudgetFormDialog', () => {
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
     expect(wrapper.emitted('save')).toBeUndefined();
+  });
+  it('hides an already budgeted category from a new item of the same type', async () => {
+    const wrapper = mountDialog([rentItem], threeCategories);
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+
+    expect(categoryOptionIds(wrapper)).toEqual([
+      ['c1', 'c3'],
+      ['c2', 'c3'],
+    ]);
+    expect(vm(wrapper).items[1].categoryId).toBe('c2');
+  });
+
+  it('leaves the new item without category when every one is taken', async () => {
+    const wrapper = mountDialog([rentItem, foodItem], categories);
+
+    await wrapper.find('[data-test="add-budget-item"]').trigger('click');
+
+    expect(categoryOptionIds(wrapper)[2]).toEqual([]);
+    expect(vm(wrapper).items[2].categoryId).toBe('');
+  });
+
+  it('offers the category again once its item is removed', async () => {
+    const wrapper = mountDialog([rentItem, foodItem], threeCategories);
+
+    expect(categoryOptionIds(wrapper)).toEqual([
+      ['c1', 'c3'],
+      ['c2', 'c3'],
+    ]);
+
+    const removeButtons = wrapper.findAll('[data-test="remove-budget-item"]');
+    await removeButtons[1].trigger('click');
+
+    expect(categoryOptionIds(wrapper)).toEqual([['c1', 'c2', 'c3']]);
+  });
+
+  it('moves the taken slot when an item changes its category', async () => {
+    const wrapper = mountDialog([rentItem, foodItem], threeCategories);
+
+    vm(wrapper).items[0].categoryId = 'c3';
+    await wrapper.vm.$nextTick();
+
+    expect(categoryOptionIds(wrapper)).toEqual([
+      ['c1', 'c3'],
+      ['c1', 'c2'],
+    ]);
+  });
+
+  it('recalculates the options when an item changes its type', async () => {
+    const wrapper = mountDialog([rentItem, foodItem], threeCategories);
+
+    vm(wrapper).items[1].type = 'income';
+    await wrapper.vm.$nextTick();
+
+    expect(categoryOptionIds(wrapper)).toEqual([
+      ['c1', 'c2', 'c3'],
+      ['c1', 'c2', 'c3'],
+    ]);
+  });
+
+  it('lets the same category be budgeted once as expense and once as income', async () => {
+    const wrapper = mountDialog(
+      [rentItem, { categoryId: 'c1', type: 'income', amount: 900 }],
+      threeCategories,
+    );
+
+    expect(categoryOptionIds(wrapper)).toEqual([
+      ['c1', 'c2', 'c3'],
+      ['c1', 'c2', 'c3'],
+    ]);
   });
 });
