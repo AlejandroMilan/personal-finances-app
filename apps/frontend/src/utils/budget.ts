@@ -225,6 +225,52 @@ function toRow(accumulator: BudgetStatusAccumulator): BudgetStatusRow {
   };
 }
 
+/** Totales agregados de un tipo de partida dentro de un periodo. */
+export interface BudgetTypeTotals {
+  planned: number;
+  actual: number;
+  difference: number;
+  ratio: number;
+}
+
+/** Totales del periodo por tipo, listos para comparar presupuesto y realidad. */
+export interface BudgetTotals {
+  expense: BudgetTypeTotals;
+  income: BudgetTypeTotals;
+}
+
+function totalsFor(
+  rows: readonly BudgetStatusRow[],
+  type: BudgetItemType,
+): BudgetTypeTotals {
+  let planned = 0;
+  let actual = 0;
+
+  rows.forEach((row) => {
+    if (row.type !== type) return;
+    planned = addMoney(planned, row.planned);
+    actual = addMoney(actual, row.actual);
+  });
+
+  const roundedPlanned = roundMoney(planned);
+  const roundedActual = roundMoney(actual);
+
+  return {
+    planned: roundedPlanned,
+    actual: roundedActual,
+    difference: remainingFor(roundedPlanned, roundedActual),
+    ratio: ratioFor(roundedPlanned, roundedActual),
+  };
+}
+
+/** Agrega un `BudgetStatus` en totales de gasto y de ingreso del periodo. */
+export function buildBudgetTotals(status: BudgetStatus): BudgetTotals {
+  return {
+    expense: totalsFor(status.rows, 'expense'),
+    income: totalsFor(status.rows, 'income'),
+  };
+}
+
 /** Cruza el presupuesto de los meses del periodo con los totales reales del resumen. */
 export function buildBudgetStatus(
   budgets: readonly Budget[],

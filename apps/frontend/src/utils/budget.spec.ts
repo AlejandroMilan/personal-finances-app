@@ -4,6 +4,7 @@ import type { CategoryTotalView, TransactionsSummaryView } from '../types/summar
 import {
   availableCategories,
   buildBudgetStatus,
+  buildBudgetTotals,
   buildMonthKey,
   monthKey,
   monthsInPeriod,
@@ -468,5 +469,80 @@ describe('sumBudgetItems', () => {
         { type: 'income', amount: 400 },
       ]).balance,
     ).toBe(-500);
+  });
+});
+
+describe('buildBudgetTotals', () => {
+  const status = (
+    rows: ReturnType<typeof buildBudgetStatus>['rows'],
+  ): ReturnType<typeof buildBudgetStatus> => ({ rows, missingMonths: [] });
+
+  const row = (
+    type: 'income' | 'expense',
+    planned: number,
+    actual: number,
+    categoryId: string | null = 'c1',
+  ) => ({
+    categoryId,
+    type,
+    planned,
+    actual,
+    ratio: planned === 0 ? 0 : actual / planned,
+    remaining: planned - actual,
+    unbudgeted: planned === 0,
+  });
+
+  it('adds planned and actual amounts per type', () => {
+    const totals = buildBudgetTotals(
+      status([
+        row('expense', 1000, 800),
+        row('expense', 200, 350, 'c2'),
+        row('income', 3000, 3000, 'c3'),
+      ]),
+    );
+
+    expect(totals.expense).toEqual({
+      planned: 1200,
+      actual: 1150,
+      difference: 50,
+      ratio: 1150 / 1200,
+    });
+    expect(totals.income).toEqual({
+      planned: 3000,
+      actual: 3000,
+      difference: 0,
+      ratio: 1,
+    });
+  });
+
+  it('reports a negative difference when the actual amount exceeds the plan', () => {
+    const totals = buildBudgetTotals(status([row('expense', 100, 250)]));
+
+    expect(totals.expense.difference).toBe(-150);
+    expect(totals.expense.ratio).toBe(2.5);
+  });
+
+  it('uses a zero ratio when nothing was planned', () => {
+    const totals = buildBudgetTotals(status([row('expense', 0, 500)]));
+
+    expect(totals.expense.ratio).toBe(0);
+    expect(Number.isFinite(totals.expense.ratio)).toBe(true);
+    expect(totals.expense.difference).toBe(-500);
+  });
+
+  it('returns zeroed totals for an empty status', () => {
+    expect(buildBudgetTotals(status([]))).toEqual({
+      expense: { planned: 0, actual: 0, difference: 0, ratio: 0 },
+      income: { planned: 0, actual: 0, difference: 0, ratio: 0 },
+    });
+  });
+
+  it('rounds the aggregated amounts to two decimals', () => {
+    const totals = buildBudgetTotals(
+      status([row('expense', 0.1, 0.2), row('expense', 0.2, 0.1, 'c2')]),
+    );
+
+    expect(totals.expense.planned).toBe(0.3);
+    expect(totals.expense.actual).toBe(0.3);
   });
 });

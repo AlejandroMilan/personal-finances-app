@@ -487,4 +487,26 @@ describe('BudgetsView', () => {
     expect(budgetsService.getByMonth).not.toHaveBeenCalled();
     expect(transactionsService.summary).not.toHaveBeenCalled();
   });
+  it('shows the period totals in the budget progress card', async () => {
+    const current = monthAt(0);
+    const saved = budget(current);
+    vi.mocked(budgetsService.list).mockResolvedValue([saved]);
+    vi.mocked(budgetsService.getByMonth).mockResolvedValue(saved);
+    vi.mocked(transactionsService.summary).mockImplementation(async (query) =>
+      summaryFor(query, 75),
+    );
+
+    const wrapper = await mountView();
+
+    expect(wrapper.find('[data-test="budget-period-totals"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="period-total-planned"]').text()).toBe(
+      '$100.00',
+    );
+    expect(wrapper.find('[data-test="period-total-actual"]').text()).toBe(
+      '$75.00',
+    );
+    expect(
+      wrapper.find('[data-test="period-total-difference"]').text(),
+    ).toContain('Remaining: $25.00');
+  });
 });

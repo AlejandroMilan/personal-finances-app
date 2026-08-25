@@ -119,4 +119,107 @@ describe('BudgetStatusCard', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
+  it('compares the budgeted and the actual totals of the period', () => {
+    const wrapper = mountCard();
+    const totals = wrapper.find('[data-test="budget-period-totals"]');
+
+    expect(totals.exists()).toBe(true);
+    expect(totals.text()).toContain('Budgeted expenses');
+    expect(totals.text()).toContain('Actual expenses');
+    expect(wrapper.find('[data-test="period-total-planned"]').text()).toBe(
+      '$1,100.00',
+    );
+    expect(wrapper.find('[data-test="period-total-actual"]').text()).toBe(
+      '$1,270.00',
+    );
+    expect(wrapper.find('[data-test="period-total-difference"]').text()).toContain(
+      'Over budget: $170.00',
+    );
+    expect(wrapper.find('[data-test="period-total-percentage"]').text()).toContain(
+      '115% of the budget',
+    );
+    expect(wrapper.find('[data-test="period-total-income"]').text()).toContain(
+      'Budgeted income: $2,000.00',
+    );
+  });
+
+  it('shows the totals above the per-category detail', () => {
+    const wrapper = mountCard();
+    const html = wrapper.html();
+
+    expect(html.indexOf('budget-period-totals')).toBeLessThan(
+      html.indexOf('budget-category-bar'),
+    );
+  });
+
+  it('marks the remaining budget when the period is within the plan', () => {
+    const wrapper = mountCard({
+      status: {
+        missingMonths: [],
+        rows: [
+          {
+            categoryId: 'expense-category',
+            type: 'expense',
+            planned: 1000,
+            actual: 400,
+            ratio: 0.4,
+            remaining: 600,
+            unbudgeted: false,
+          },
+        ],
+      },
+    });
+
+    const difference = wrapper.find('[data-test="period-total-difference"]');
+    expect(difference.text()).toContain('Remaining: $600.00');
+    expect(difference.classes()).not.toContain('text-error');
+    expect(wrapper.find('[data-test="period-total-percentage"]').text()).toContain(
+      '40% of the budget',
+    );
+  });
+
+  it('says the period has no budget instead of showing zeroed totals', () => {
+    const wrapper = mountCard({
+      status: {
+        missingMonths: ['2026-09'],
+        rows: [
+          {
+            categoryId: 'expense-category',
+            type: 'expense',
+            planned: 0,
+            actual: 320,
+            ratio: 0,
+            remaining: -320,
+            unbudgeted: true,
+          },
+        ],
+      },
+    });
+
+    expect(wrapper.find('[data-test="budget-period-totals"]').exists()).toBe(false);
+    expect(
+      wrapper.find('[data-test="budget-period-totals-empty"]').text(),
+    ).toContain('There is no budget defined for this period yet.');
+  });
+
+  it('hides the income line when no income was budgeted', () => {
+    const wrapper = mountCard({
+      status: {
+        missingMonths: [],
+        rows: [
+          {
+            categoryId: 'expense-category',
+            type: 'expense',
+            planned: 500,
+            actual: 100,
+            ratio: 0.2,
+            remaining: 400,
+            unbudgeted: false,
+          },
+        ],
+      },
+    });
+
+    expect(wrapper.find('[data-test="period-total-income"]').exists()).toBe(false);
+  });
 });

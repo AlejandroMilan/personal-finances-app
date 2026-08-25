@@ -318,4 +318,37 @@ describe('DashboardSummary', () => {
       'Network down',
     );
   });
+  it('compares the budgeted and the actual totals of the period', async () => {
+    vi.mocked(budgetsService.list).mockResolvedValue([currentBudget]);
+
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    const totals = wrapper.find('[data-test="budget-period-totals"]');
+    expect(totals.exists()).toBe(true);
+    expect(wrapper.find('[data-test="period-total-planned"]').text()).toBe(
+      '$100.00',
+    );
+    expect(wrapper.find('[data-test="period-total-actual"]').text()).toBe(
+      '$200.00',
+    );
+    expect(
+      wrapper.find('[data-test="period-total-difference"]').text(),
+    ).toContain('Over budget: $100.00');
+    expect(
+      wrapper.find('[data-test="period-total-percentage"]').text(),
+    ).toContain('200% of the budget');
+  });
+
+  it('states that the period has no budget when none was defined', async () => {
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    expect(wrapper.find('[data-test="budget-period-totals"]').exists()).toBe(
+      false,
+    );
+    expect(
+      wrapper.find('[data-test="budget-period-totals-empty"]').text(),
+    ).toContain('There is no budget defined for this period yet.');
+  });
 });

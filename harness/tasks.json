@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-25T21:39:51.749Z",
+  "updatedAt": "2026-08-25T21:42:41.746Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -2606,39 +2606,51 @@
       "id": "T-0054",
       "title": "Compare budgeted and actual totals on the dashboard card",
       "description": "Cabecera de totales en BudgetStatusCard: total presupuestado del periodo frente al gasto real, con diferencia y porcentaje consumido, alimentada por una función pura.",
-      "status": "pendiente",
+      "status": "completada",
       "createdAt": "2026-08-25T21:29:35.937Z",
-      "implementedAt": null,
+      "implementedAt": "2026-08-25T21:42:41.746Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
           "text": "utils/budget.ts expone una función pura que, a partir de un BudgetStatus, devuelve el total planificado, el total real, la diferencia y el ratio consumido para gastos y para ingresos",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:42:33.682Z",
+          "note": "utils/budget.ts:267 buildBudgetTotals devuelve {planned, actual, difference, ratio} por tipo; test 'adds planned and actual amounts per type'"
         },
         {
           "id": "AC-2",
           "text": "El ratio es 0 cuando el total planificado es 0, sin producir NaN ni Infinity",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:42:33.718Z",
+          "note": "ratioFor devuelve 0 con planned 0; tests 'uses a zero ratio when nothing was planned' y 'returns zeroed totals for an empty status'"
         },
         {
           "id": "AC-3",
           "text": "BudgetStatusCard muestra, por encima del detalle por categoría, el total presupuestado y el total gastado del periodo con su diferencia y su porcentaje",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:42:33.751Z",
+          "note": "BudgetStatusCard.vue bloque data-test=budget-period-totals antes de las secciones por categoría; tests 'compares the budgeted and the actual totals of the period' y 'shows the totals above the per-category detail'; en dashboard: DashboardSummary.spec 'compares the budgeted and the actual totals of the period' ($100 vs $200, 200%)"
         },
         {
           "id": "AC-4",
           "text": "Cuando no hay presupuesto definido para el periodo la tarjeta indica que falta el presupuesto en lugar de mostrar totales en cero",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:42:33.786Z",
+          "note": "hasPlannedBudget false => data-test=budget-period-totals-empty; tests 'says the period has no budget instead of showing zeroed totals' y 'states that the period has no budget when none was defined' (dashboard)"
         },
         {
           "id": "AC-5",
           "text": "El bloque de totales aparece igualmente en la tarjeta de la vista de presupuestos, que reutiliza el mismo componente",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:42:33.821Z",
+          "note": "BudgetsView reutiliza BudgetStatusCard; test 'shows the period totals in the budget progress card' (planned $100.00, actual $75.00, Remaining: $25.00)"
         },
         {
           "id": "AC-6",
           "text": "pnpm test:coverage pasa con >= 80% en utils/budget.ts y en BudgetStatusCard",
-          "validated": false
+          "validated": true,
+          "validatedAt": "2026-08-25T21:42:33.856Z",
+          "note": "vitest run --coverage: 434 tests en verde, statements 100%, branches 99.19%, functions 100%, lines 100%; vue-tsc --noEmit limpio"
         }
       ],
       "spec": "0008-correcciones-de-la-vista-de-presupuestos"
