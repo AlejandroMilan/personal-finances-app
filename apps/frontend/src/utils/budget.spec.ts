@@ -273,6 +273,28 @@ describe('buildBudgetStatus', () => {
     );
   });
 
+  it('keeps the largest amount with a finite cent conversion representable', () => {
+    const status = buildBudgetStatus(
+      [
+        makeBudget('2026-08', [
+          {
+            categoryId: 'boundary',
+            type: 'expense',
+            amount: Number.MAX_VALUE / 100,
+          },
+        ]),
+      ],
+      makeSummary(),
+      new Date(2026, 7, 1),
+      new Date(2026, 7, 31),
+    );
+
+    expectFiniteRows(status);
+    expect(
+      Number.isFinite(findRow(status, 'boundary', 'expense')?.planned),
+    ).toBe(true);
+  });
+
   it('lists every period month that has no budget', () => {
     const status = buildBudgetStatus(
       [
