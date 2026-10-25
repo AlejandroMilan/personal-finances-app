@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -9,8 +10,10 @@ import {
   IsPositive,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import { TransactionType } from '../../domain/transaction-type.enum';
+import { DebtLinkDto } from './debt-link.dto';
 
 export class CreateTransactionDto {
   @IsString()
@@ -48,4 +51,9 @@ export class CreateTransactionDto {
   @ArrayMaxSize(10)
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DebtLinkDto)
+  debtLink?: DebtLinkDto | null;
 }

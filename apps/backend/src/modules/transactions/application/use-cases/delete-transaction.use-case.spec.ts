@@ -29,6 +29,7 @@ describe('DeleteTransactionUseCase', () => {
     adjustUsedAmount: jest.fn(),
     deleteByAccountId: jest.fn(),
   };
+  const debtLedger = { record: jest.fn(), revert: jest.fn() };
   let useCase: DeleteTransactionUseCase;
 
   const account = (type: AccountType, id = 'a1', userId = 'u1') =>
@@ -77,6 +78,7 @@ describe('DeleteTransactionUseCase', () => {
       transactionRepository,
       accountRepository,
       creditCardRepository,
+      debtLedger as never,
     );
   });
 

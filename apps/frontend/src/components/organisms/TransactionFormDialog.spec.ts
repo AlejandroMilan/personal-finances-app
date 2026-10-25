@@ -22,6 +22,8 @@ vi.mock('../../services/categories', () => ({
 
 import { mountOptions } from '../../test-utils/vuetify';
 import { useAccountsStore } from '../../stores/accounts';
+import { useDebtsStore } from '../../stores/debts';
+import DebtLinkFields from '../molecules/DebtLinkFields.vue';
 import type { AccountView } from '../../types/account';
 import type { TransactionType, TransactionView } from '../../types/transaction';
 import TransactionFormDialog from './TransactionFormDialog.vue';
@@ -159,5 +161,99 @@ describe('TransactionFormDialog transfer fields', () => {
       .findAllComponents({ name: 'VSelect' })
       .find((select) => select.props('label') === 'Type');
     expect(typeSelect?.props('disabled')).toBe(true);
+  });
+});
+
+describe('TransactionFormDialog debt link', () => {
+  const debt = {
+    id: 'd1',
+    name: 'Card',
+    totalAmount: 900,
+    revolving: true,
+    annualInterestRate: null,
+    paymentMode: 'capital' as const,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  const linkedExpense: TransactionView = {
+    id: 't2',
+    accountId: 'a1',
+    destinationAccountId: null,
+    categoryId: null,
+    type: 'expense',
+    title: 'Card payment',
+    amount: 120,
+    timestamp: '2026-08-20T12:00:00.000Z',
+    tags: [],
+    debtLink: { kind: 'payment', debtId: 'd1', capitalAmount: 100, interestAmount: 20 },
+  };
+
+  const setLink = (wrapper: ReturnType<typeof mountDialog>, form: Record<string, unknown>) =>
+    wrapper.findComponent(DebtLinkFields).vm.$emit('update:modelValue', form);
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    useAccountsStore().accounts = [account('a1', 'Checking')];
+    useDebtsStore().debts = [debt];
+  });
+
+  it('sends a payment link with the capital typed for an expense', async () => {
+    const wrapper = mountDialog();
+    await open(wrapper);
+    vm(wrapper).title = 'Card';
+    vm(wrapper).amount = 120;
+    setLink(wrapper, { enabled: true, kind: 'payment', debtId: 'd1', capital: 100, extraInterest: 0 });
+    await wrapper.vm.$nextTick();
+
+    await vm(wrapper).save();
+
+    const [[payload]] = wrapper.emitted('save') as [[Record<string, unknown>]];
+    expect(payload.debtLink).toEqual({ kind: 'payment', debtId: 'd1', capitalAmount: 100 });
+  });
+
+  it('sends an increase link with the extra interest for income', async () => {
+    const wrapper = mountDialog();
+    await open(wrapper);
+    vm(wrapper).type = 'income';
+    vm(wrapper).title = 'Loan';
+    vm(wrapper).amount = 1000;
+    await wrapper.vm.$nextTick();
+    setLink(wrapper, { enabled: true, kind: 'increase', debtId: 'd1', capital: 0, extraInterest: 25 });
+    await wrapper.vm.$nextTick();
+
+    await vm(wrapper).save();
+
+    const [[payload]] = wrapper.emitted('save') as [[Record<string, unknown>]];
+    expect(payload.debtLink).toEqual({ kind: 'increase', debtId: 'd1', interestAmount: 25 });
+  });
+
+  it('blocks the save when the capital is above the amount paid', async () => {
+    const wrapper = mountDialog();
+    await open(wrapper);
+    vm(wrapper).title = 'Card';
+    vm(wrapper).amount = 120;
+    setLink(wrapper, { enabled: true, kind: 'payment', debtId: 'd1', capital: 150, extraInterest: 0 });
+    await wrapper.vm.$nextTick();
+
+    await vm(wrapper).save();
+
+    expect(wrapper.emitted('save')).toBeUndefined();
+    expect(document.body.textContent).toContain('no puede superar');
+  });
+
+  it('keeps the saved link when editing and sends null once it is switched off', async () => {
+    const wrapper = mountDialog(linkedExpense);
+    await open(wrapper);
+
+    await vm(wrapper).save();
+    const [[kept]] = wrapper.emitted('save') as [[Record<string, unknown>]];
+    expect(kept.debtLink).toEqual({ kind: 'payment', debtId: 'd1', capitalAmount: 100 });
+
+    setLink(wrapper, { enabled: false, kind: 'payment', debtId: 'd1', capital: 100, extraInterest: 0 });
+    await wrapper.vm.$nextTick();
+    await vm(wrapper).save();
+    const [, [removed]] = wrapper.emitted('save') as [unknown, [Record<string, unknown>]];
+    expect(removed.debtLink).toBeNull();
   });
 });

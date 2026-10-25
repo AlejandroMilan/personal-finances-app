@@ -1,3 +1,4 @@
+import { DebtLink } from '../../domain/debt-link';
 import { TransactionType } from '../../domain/transaction-type.enum';
 
 export interface TransactionView {
@@ -10,6 +11,7 @@ export interface TransactionView {
   amount: number;
   timestamp: Date;
   tags: string[];
+  debtLink: DebtLink | null;
 }
 
 export interface PaginatedTransactionsView {

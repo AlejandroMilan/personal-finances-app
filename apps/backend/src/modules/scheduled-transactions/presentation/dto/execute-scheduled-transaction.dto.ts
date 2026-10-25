@@ -1,3 +1,5 @@
+import { DebtLinkDto } from '../../../transactions/presentation/dto/debt-link.dto';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
@@ -7,6 +9,7 @@ import {
   IsPositive,
   IsString,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 
 export class ExecuteScheduledTransactionDto {
@@ -44,4 +47,9 @@ export class ExecuteScheduledTransactionDto {
   @IsOptional()
   @IsDateString()
   rescheduleFor?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DebtLinkDto)
+  debtLink?: DebtLinkDto | null;
 }

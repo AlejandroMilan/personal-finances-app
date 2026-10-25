@@ -8,6 +8,17 @@ import {
   CategoryRepository,
 } from '../../../categories/application/ports/category.repository';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
+import {
+  DEBT_REPOSITORY,
+  DebtRepository,
+} from '../../../debts/application/ports/debt.repository';
+import {
+  buildDebtLink,
+  DebtLink,
+  DebtLinkRequest,
+  toDebtLinkRequest,
+} from '../../../transactions/domain/debt-link';
+import { withTransactionErrors } from '../../../transactions/application/domain-error';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
 import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
 import {
@@ -17,6 +28,7 @@ import {
 import {
   assertAccountOwnership,
   assertCategoryOwnership,
+  assertDebtOwnership,
 } from './scheduled-transaction-ownership.guard';
 
 export interface CreateScheduledTransactionInput {
@@ -30,6 +42,7 @@ export interface CreateScheduledTransactionInput {
   scheduledFor: Date;
   recurring?: boolean;
   tags?: string[];
+  debtLink?: DebtLinkRequest | null;
 }
 
 @Injectable()
@@ -41,6 +54,8 @@ export class CreateScheduledTransactionUseCase {
     private readonly accountRepository: AccountRepository,
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
+    @Inject(DEBT_REPOSITORY)
+    private readonly debtRepository: DebtRepository,
   ) {}
 
   async execute(
@@ -52,10 +67,7 @@ export class CreateScheduledTransactionUseCase {
       input.userId,
     );
 
-    if (
-      input.type === TransactionType.TRANSFER &&
-      input.destinationAccountId
-    ) {
+    if (input.type === TransactionType.TRANSFER && input.destinationAccountId) {
       await assertAccountOwnership(
         this.accountRepository,
         input.destinationAccountId,
@@ -71,6 +83,13 @@ export class CreateScheduledTransactionUseCase {
       );
     }
 
+    const debtLink = await this.resolveDebtLink(
+      input.userId,
+      input.type,
+      input.amount,
+      input.debtLink,
+    );
+
     let scheduled: ScheduledTransaction;
     try {
       scheduled = ScheduledTransaction.create({
@@ -84,6 +103,7 @@ export class CreateScheduledTransactionUseCase {
         tags: input.tags ?? [],
         scheduledFor: input.scheduledFor,
         recurring: input.recurring ?? false,
+        debtLink,
       });
     } catch (error) {
       if (error instanceof ScheduledTransactionError) {
@@ -93,5 +113,19 @@ export class CreateScheduledTransactionUseCase {
     }
 
     return this.scheduledRepository.save(scheduled);
+  }
+
+  /** La deuda debe ser del usuario y el vínculo compatible con el tipo. */
+  private async resolveDebtLink(
+    userId: string,
+    type: TransactionType,
+    amount: number,
+    request: DebtLinkRequest | null | undefined,
+  ): Promise<DebtLink | null> {
+    if (!request) {
+      return null;
+    }
+    await assertDebtOwnership(this.debtRepository, request.debtId, userId);
+    return withTransactionErrors(() => buildDebtLink(type, amount, request));
   }
 }

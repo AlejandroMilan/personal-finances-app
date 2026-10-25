@@ -63,6 +63,7 @@ export class ScheduledTransactionsController {
       scheduledFor: new Date(dto.scheduledFor),
       recurring: dto.recurring,
       tags: dto.tags,
+      debtLink: dto.debtLink,
     });
     return this.toView(scheduled);
   }
@@ -99,6 +100,7 @@ export class ScheduledTransactionsController {
       scheduledFor: dto.scheduledFor ? new Date(dto.scheduledFor) : undefined,
       recurring: dto.recurring,
       tags: dto.tags,
+      debtLink: dto.debtLink,
     });
     return this.toView(scheduled);
   }
@@ -134,6 +136,7 @@ export class ScheduledTransactionsController {
       rescheduleFor: dto.rescheduleFor
         ? new Date(dto.rescheduleFor)
         : undefined,
+      debtLink: dto.debtLink,
     });
 
     return {
@@ -166,6 +169,7 @@ export class ScheduledTransactionsController {
       title: scheduled.title,
       amount: scheduled.amount,
       tags: scheduled.tags,
+      debtLink: scheduled.debtLink,
       scheduledFor: scheduled.scheduledFor,
       recurring: scheduled.recurring,
       status: scheduled.status,
@@ -184,6 +188,7 @@ export class ScheduledTransactionsController {
       amount: transaction.amount,
       timestamp: transaction.timestamp,
       tags: transaction.tags,
+      debtLink: transaction.debtLink,
     };
   }
 }

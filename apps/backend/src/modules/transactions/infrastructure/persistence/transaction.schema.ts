@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { DebtLink } from '../../domain/debt-link';
 import { TransactionType } from '../../domain/transaction-type.enum';
 
 export type TransactionDocument = HydratedDocument<TransactionModel>;
@@ -35,6 +36,9 @@ export class TransactionModel {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  @Prop({ type: Object, default: null })
+  debtLink: DebtLink | null;
 
   @Prop({ type: Date, required: true })
   createdAt: Date;

@@ -15,6 +15,7 @@ import {
   CREDIT_CARD_REPOSITORY,
   CreditCardRepository,
 } from '../../../accounts/application/ports/credit-card.repository';
+import { DEBT_LEDGER, DebtLedger } from '../ports/debt-ledger.port';
 import {
   TRANSACTION_REPOSITORY,
   TransactionRepository,
@@ -34,6 +35,8 @@ export class DeleteTransactionUseCase {
     private readonly accountRepository: AccountRepository,
     @Inject(CREDIT_CARD_REPOSITORY)
     private readonly creditCardRepository: CreditCardRepository,
+    @Inject(DEBT_LEDGER)
+    private readonly debtLedger: DebtLedger,
   ) {}
 
   async execute(input: DeleteTransactionInput): Promise<void> {
@@ -42,6 +45,10 @@ export class DeleteTransactionUseCase {
     );
     if (!transaction || transaction.userId !== input.userId) {
       throw new NotFoundException('Transaction not found');
+    }
+
+    if (transaction.debtLink) {
+      await this.debtLedger.revert(input.userId, transaction.id);
     }
 
     const account = await this.accountRepository.findById(

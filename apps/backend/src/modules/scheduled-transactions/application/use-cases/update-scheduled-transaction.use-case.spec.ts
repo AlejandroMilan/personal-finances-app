@@ -19,6 +19,7 @@ describe('UpdateScheduledTransactionUseCase', () => {
   const scheduled = scheduledRepositoryMock();
   const accounts = accountRepositoryMock();
   const categories = categoryRepositoryMock();
+  const debtRepository = { findById: jest.fn() };
   let useCase: UpdateScheduledTransactionUseCase;
 
   const base = { userId: 'u1', scheduledTransactionId: 's1' };
@@ -29,6 +30,7 @@ describe('UpdateScheduledTransactionUseCase', () => {
       scheduled,
       accounts,
       categories,
+      debtRepository as never,
     );
     scheduled.findById.mockResolvedValue(aScheduled());
     accounts.findById.mockResolvedValue(anAccount());

@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AccountsModule } from '../accounts/accounts.module';
 import { AuthModule } from '../auth/auth.module';
+import { DebtsModule } from '../debts/debts.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { SCHEDULED_TRANSACTION_REPOSITORY } from './application/ports/scheduled-transaction.repository';
@@ -30,6 +31,7 @@ import { ScheduledTransactionsController } from './presentation/scheduled-transa
     forwardRef(() => AccountsModule),
     forwardRef(() => CategoriesModule),
     forwardRef(() => TransactionsModule),
+    DebtsModule,
   ],
   controllers: [ScheduledTransactionsController],
   providers: [

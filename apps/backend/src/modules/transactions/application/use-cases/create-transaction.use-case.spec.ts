@@ -34,6 +34,7 @@ describe('CreateTransactionUseCase', () => {
     save: jest.fn(),
     delete: jest.fn(),
   };
+  const debtLedger = { record: jest.fn(), revert: jest.fn() };
   let useCase: CreateTransactionUseCase;
 
   const account = (type: AccountType, id = 'a1', userId = 'u1') =>
@@ -54,6 +55,7 @@ describe('CreateTransactionUseCase', () => {
       accountRepository,
       creditCardRepository,
       categoryRepository,
+      debtLedger as never,
     );
   });
 

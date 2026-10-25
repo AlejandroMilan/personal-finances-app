@@ -15,6 +15,7 @@ describe('CreateScheduledTransactionUseCase', () => {
   const scheduled = scheduledRepositoryMock();
   const accounts = accountRepositoryMock();
   const categories = categoryRepositoryMock();
+  const debtRepository = { findById: jest.fn() };
   let useCase: CreateScheduledTransactionUseCase;
 
   const input = {
@@ -35,6 +36,7 @@ describe('CreateScheduledTransactionUseCase', () => {
       scheduled,
       accounts,
       categories,
+      debtRepository as never,
     );
     accounts.findById.mockResolvedValue(anAccount());
     categories.findById.mockResolvedValue(aCategory());

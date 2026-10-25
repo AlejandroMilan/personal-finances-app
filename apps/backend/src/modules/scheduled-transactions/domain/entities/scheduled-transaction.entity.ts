@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DebtLink } from '../../../transactions/domain/debt-link';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 import { ScheduledTransactionError } from '../scheduled-transaction.error';
 import { ScheduledTransactionStatus } from '../scheduled-transaction-status.enum';
@@ -18,6 +19,8 @@ export interface ScheduledTransactionProps {
   status: ScheduledTransactionStatus;
   /** Transacción real creada al confirmar; `null` mientras no se ejecuta. */
   transactionId: string | null;
+  /** Vínculo con una deuda; se valida y calcula al crear o editar. */
+  debtLink?: DebtLink | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +73,7 @@ export class ScheduledTransaction {
       id: randomUUID(),
       status: ScheduledTransactionStatus.PENDING,
       transactionId: null,
+      debtLink: input.debtLink ?? null,
       createdAt: now,
       updatedAt: now,
     });
@@ -163,6 +167,10 @@ export class ScheduledTransaction {
 
   get transactionId(): string | null {
     return this.props.transactionId;
+  }
+
+  get debtLink(): DebtLink | null {
+    return this.props.debtLink ?? null;
   }
 
   get createdAt(): Date {

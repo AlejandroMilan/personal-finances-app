@@ -157,6 +157,7 @@ describe('ScheduledTransactionsController', () => {
       title: 'Rent',
       amount: 12000,
       tags: ['home'],
+      debtLink: null,
       scheduledFor,
       recurring: true,
       status: ScheduledTransactionStatus.PENDING,
@@ -393,6 +394,7 @@ describe('ScheduledTransactionsController', () => {
       amount: 12000,
       timestamp: new Date('2026-08-20T00:00:00.000Z'),
       tags: ['home'],
+      debtLink: null,
     });
     expect(response.next?.id).toBe('s2');
   });
@@ -435,6 +437,7 @@ describe('ScheduledTransactionsController', () => {
       amount: 75,
       timestamp: new Date('2026-08-20T00:00:00.000Z'),
       tags: [],
+      debtLink: null,
     });
   });
 

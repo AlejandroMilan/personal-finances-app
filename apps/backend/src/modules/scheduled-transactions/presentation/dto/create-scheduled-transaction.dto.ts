@@ -1,3 +1,5 @@
+import { DebtLinkDto } from '../../../transactions/presentation/dto/debt-link.dto';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -10,6 +12,7 @@ import {
   IsPositive,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 
@@ -52,4 +55,9 @@ export class CreateScheduledTransactionDto {
   @ArrayMaxSize(10)
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DebtLinkDto)
+  debtLink?: DebtLinkDto | null;
 }

@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { DebtsModule } from './modules/debts/debts.module';
 import { ScheduledTransactionsModule } from './modules/scheduled-transactions/scheduled-transactions.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 
@@ -26,6 +27,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
     AccountsModule,
     BudgetsModule,
     CategoriesModule,
+    DebtsModule,
     TransactionsModule,
     ScheduledTransactionsModule,
   ],

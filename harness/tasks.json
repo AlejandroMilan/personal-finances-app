@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-08-25T21:42:41.746Z",
+  "updatedAt": "2026-10-25T01:55:09.119Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -2654,6 +2654,388 @@
         }
       ],
       "spec": "0008-correcciones-de-la-vista-de-presupuestos"
+    },
+    {
+      "id": "T-0055",
+      "title": "Debts backend module: CRUD and movement log",
+      "description": "Módulo apps/backend/src/modules/debts con Clean Architecture. Entidad Debt (name, totalAmount, revolving, annualInterestRate opcional 0-100, paymentMode 'capital' | 'total' por defecto 'capital') y entidad DebtMovement (kind alta|pago|aumento|ajuste, amount, capitalAmount, interestAmount, balanceBefore, balanceAfter, transactionId opcional, occurredAt). API protegida con JwtAuthGuard: POST/GET /debts, GET/PATCH/DELETE /debts/:id, GET /debts/movements?debtId=. Al crear una deuda se registra un movimiento 'alta'. PATCH de totalAmount genera un movimiento 'ajuste'. DELETE rechaza con 409 si la deuda tiene movimientos distintos de 'alta'.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.040Z",
+      "implementedAt": "2026-10-25T01:32:23.669Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "POST /debts crea la deuda con paymentMode por defecto 'capital' y registra un movimiento 'alta' con saldo final igual al adeudo",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.416Z",
+          "note": "debts.use-cases.spec CreateDebtUseCase + debt.entity.spec 'defaults to capital'; alta movement con delta=total"
+        },
+        {
+          "id": "AC-2",
+          "text": "annualInterestRate es opcional, acepta null, y rechaza valores fuera de 0-100 o no numéricos",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.457Z",
+          "note": "debt.entity.spec rechaza rate -0.1/100.1/NaN; create-debt.dto.spec acepta null y 0-100 y rechaza -1/100.5/'abc'"
+        },
+        {
+          "id": "AC-3",
+          "text": "GET /debts y GET /debts/:id devuelven sólo deudas del userId del token; otra cuenta recibe 404",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.493Z",
+          "note": "debts.use-cases.spec GetDebtUseCase: otro userId y null -> NotFoundException; repos filtran por userId"
+        },
+        {
+          "id": "AC-4",
+          "text": "PATCH de totalAmount registra un movimiento 'ajuste' con balanceBefore/balanceAfter correctos",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.529Z",
+          "note": "debts.use-cases.spec UpdateDebtUseCase 'logs an adjustment movement' (delta -200) y saldo verificado"
+        },
+        {
+          "id": "AC-5",
+          "text": "GET /debts/movements devuelve el log ordenado del más reciente al más antiguo, filtrable por debtId y restringido al userId",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.565Z",
+          "note": "computeDebtBalances orden asc + ListDebtMovementsUseCase devuelve desc, filtro por debtId con saldos de historial completo; findByUserId restringido por userId"
+        },
+        {
+          "id": "AC-6",
+          "text": "DELETE /debts/:id devuelve 409 si existen movimientos distintos de 'alta' y 204 si sólo queda el alta",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.599Z",
+          "note": "delete-debt.use-case.spec ConflictException con movimientos no alta; borrado sólo con alta; controlador @HttpCode(NO_CONTENT)"
+        },
+        {
+          "id": "AC-7",
+          "text": "Jest: cobertura >= 80 % en las capas del módulo debts y pnpm --filter backend test pasa",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:32:23.633Z",
+          "note": "pnpm jest --coverage: 71 suites, 571 tests en verde, cobertura global 99.13 % stmts; módulo debts 100 % salvo use-cases/application 87.5 % stmts"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0056",
+      "title": "Link transactions to debt payments and debt increases",
+      "description": "Extender CreateTransaction, UpdateTransaction y DeleteTransaction con un debtLink opcional. Gasto: { kind: 'payment', debtId, capitalAmount } (interés = amount - capital, calculado en servidor, no editable). Ingreso: { kind: 'increase', debtId, interestAmount }. Efecto en la deuda: pago reduce el saldo por capital si paymentMode='capital' o por amount si 'total'; aumento suma amount + interés. Transferencias no admiten vínculo. Los casos de uso de transacciones dependen de un puerto DebtLedgerPort (en transactions/application/ports) implementado por el módulo debts.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.085Z",
+      "implementedAt": "2026-10-25T01:37:47.399Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Crear un gasto con debtLink payment reduce el saldo de la deuda según su paymentMode y registra un movimiento 'pago' con capital e interés",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.147Z",
+          "note": "debt-effects.use-cases.spec: pago en modo capital reduce 100 y en modo total reduce 120, movimiento 'pago' con capital/interés"
+        },
+        {
+          "id": "AC-2",
+          "text": "Crear un ingreso con debtLink increase suma amount + interés al saldo y registra un movimiento 'aumento'",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.184Z",
+          "note": "debt-effects.use-cases.spec RecordDebtIncreaseUseCase: 1000 + 500 + 25.5 = 1525.5, movimiento 'aumento'"
+        },
+        {
+          "id": "AC-3",
+          "text": "capitalAmount debe ser > 0 y <= amount; el interés se calcula en servidor como amount - capital",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.222Z",
+          "note": "debt-link.spec: capital 0/-5/>amount/NaN/undefined rechazados; interés = amount - capital (100.004 -> 100, interés 20)"
+        },
+        {
+          "id": "AC-4",
+          "text": "Un pago que dejaría el saldo por debajo de 0 se rechaza con 400 sin modificar cuentas ni deuda",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.256Z",
+          "note": "debt-effects.use-cases.spec rechaza saldo negativo sin guardar; create-transaction.use-cases spec 'does not touch the account' (adjustBalance no llamado)"
+        },
+        {
+          "id": "AC-5",
+          "text": "Vincular a una deuda de otro usuario, o un tipo no compatible (pago en ingreso, aumento en gasto, vínculo en transferencia) responde 400 o 404",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.292Z",
+          "note": "GetDebtUseCase -> 404 para deuda ajena (debt-effects spec); debt-link.spec rechaza pago en ingreso, aumento en gasto y interés negativo (400)"
+        },
+        {
+          "id": "AC-6",
+          "text": "Editar una transacción vinculada revierte el efecto anterior y aplica el nuevo; borrarla revierte el efecto y elimina el movimiento",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.328Z",
+          "note": "debt-link.use-cases.spec: update revierte y aplica (revert + record con nuevo link), delete revierte y borra; RevertDebtMovementsUseCase borra el movimiento"
+        },
+        {
+          "id": "AC-7",
+          "text": "Jest: cobertura >= 80 % en los casos de uso tocados y las pruebas existentes de transacciones siguen en verde",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:37:47.364Z",
+          "note": "npx jest --coverage: 75 suites, 611 tests en verde, 99.06 % stmts global; pruebas previas de transacciones actualizadas al nuevo contrato"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0057",
+      "title": "Link scheduled transactions to debts",
+      "description": "Las transacciones agendadas guardan el mismo debtLink opcional. Al crear o editar se valida igual que una transacción real. Al ejecutarse (ExecuteScheduledTransaction) se pasa el debtLink agendado al CreateTransaction, y la ejecución puede sobrescribir capitalAmount o el debtLink como ya hace con amount y categoría.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.122Z",
+      "implementedAt": "2026-10-25T01:42:22.041Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Crear o editar un movimiento agendado con debtLink valida dueño y tipo compatible con la misma regla que las transacciones",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:42:21.897Z",
+          "note": "scheduled-debt-link.use-cases.spec: crear rechaza deuda ajena (404) e incompatible (400); editar valida dueño al cambiar el vínculo (404) y recalcula con nuevo monto"
+        },
+        {
+          "id": "AC-2",
+          "text": "Al ejecutar un movimiento agendado vinculado se aplica el efecto sobre la deuda y el movimiento 'pago' o 'aumento' queda ligado a la transacción creada",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:42:21.935Z",
+          "note": "scheduled-debt-link spec 'passes the scheduled link with its capital'; el CreateTransaction registra el efecto con el id de la transacción creada (transaction spec 'records the debt effect')"
+        },
+        {
+          "id": "AC-3",
+          "text": "La ejecución puede sobrescribir el capitalAmount del pago sin cambiar el monto agendado",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:42:21.971Z",
+          "note": "scheduled-debt-link spec 'lets the execution override the capital': capital 90 con monto agendado 120 sin cambios"
+        },
+        {
+          "id": "AC-4",
+          "text": "Jest: cobertura >= 80 % en los casos de uso de agenda tocados y las pruebas existentes de agenda siguen en verde",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:42:22.005Z",
+          "note": "npx jest --coverage: 76 suites, 622 tests en verde, 98.94 % stmts global; pruebas de agenda existentes actualizadas al nuevo contrato"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0058",
+      "title": "Frontend debts domain: types, service, store and pure utils",
+      "description": "Tipos en src/types/debt.ts, servicio src/services/debts.ts (sobre api.ts), store Pinia src/stores/debts.ts y utilidades puras en src/utils/debt.ts: total adeudado, distribución por deuda para el pastel, serie temporal del saldo total y por deuda a partir del log, interés previsto de un pago (amount - capital) y formateo.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.158Z",
+      "implementedAt": "2026-10-25T01:43:37.379Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El store expone deudas, movimientos (general y por deuda) y acciones CRUD que sólo llaman al servicio",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:43:37.176Z",
+          "note": "stores/debts.spec: fetchAll carga deudas y log en paralelo; create/update/remove sólo llaman a debtsService y recargan; movementsOf filtra"
+        },
+        {
+          "id": "AC-2",
+          "text": "utils/debt.ts calcula el total adeudado y el porcentaje de cada deuda, y maneja listas vacías sin NaN",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:43:37.216Z",
+          "note": "utils/debt.spec 'computes each debt share ... without NaN' (total 0 -> ratio 0) y lista vacía"
+        },
+        {
+          "id": "AC-3",
+          "text": "utils/debt.ts construye la serie de evolución del saldo total y por deuda a partir de los movimientos ordenados cronológicamente",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:43:37.263Z",
+          "note": "utils/debt.spec 'builds the total balance over time' y 'follows a single debt': serie cronológica desde el log"
+        },
+        {
+          "id": "AC-4",
+          "text": "utils/debt.ts calcula el interés de un pago como amount - capital y valida que el capital esté en (0, amount]",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:43:37.301Z",
+          "note": "utils/debt.spec: paymentInterest(120,100)=20; paymentCapitalError rechaza 0, NaN y capital > monto"
+        },
+        {
+          "id": "AC-5",
+          "text": "Vitest: cobertura >= 80 % en utils/debt.ts y tests del store y del servicio",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:43:37.340Z",
+          "note": "vitest --coverage: utils/debt.ts y store/servicio cubiertos; global frontend 100 % stmts, 458 tests en verde; vue-tsc limpio"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0059",
+      "title": "Debts view: list, form, ledgers and charts",
+      "description": "Nueva vista DebtsView en /debts (requiresAuth) con entrada en la navegación. Muestra tarjetas de deuda, diálogo de alta/edición (nombre, adeudo total, revolvente, interés anual opcional, modo de descuento capital/total), un log general y un log por deuda, una gráfica de línea con la evolución del saldo y una gráfica de pastel con la distribución del total adeudado. Componentes atomic design: DebtCard (molecule), DebtFormDialog y DebtLedgerTable (organisms), DebtEvolutionChart y DebtDistributionChart (molecules). El pastel registra PieController en plugins/charts.ts.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.192Z",
+      "implementedAt": "2026-10-25T01:46:19.852Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "DebtsView lista las deudas y permite crear, editar y eliminar mediante DebtFormDialog, con validación de nombre y adeudo",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:46:19.637Z",
+          "note": "DebtsView.spec: carga deudas y total; borrado con confirmación llama debtsService.remove; DebtFormDialog.spec: nombre obligatorio (no emite) y payload con tasa null; store create/update"
+        },
+        {
+          "id": "AC-2",
+          "text": "El log general y el log por deuda muestran fecha, tipo, monto, capital, interés y saldo resultante, y el log por deuda filtra por la deuda seleccionada",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:46:19.673Z",
+          "note": "DebtLedgerTable.spec: fila con tipo, monto, capital, interés y saldo; showDebt muestra la deuda; DebtsView.spec muestra log general con el nombre; store.movementsOf filtra por deuda"
+        },
+        {
+          "id": "AC-3",
+          "text": "La gráfica de evolución muestra el saldo total a lo largo del tiempo y puede cambiar a una deuda concreta",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:46:19.710Z",
+          "note": "DebtEvolutionChart.spec: serie total por defecto ([1000,1200,1100]) y cambio a una deuda desde el v-select ([1000,900])"
+        },
+        {
+          "id": "AC-4",
+          "text": "La gráfica de pastel muestra el total adeudado repartido entre deudas y se corresponde con la suma de DebtCard",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:46:19.745Z",
+          "note": "DebtDistributionChart.spec: una porción por deuda con su importe; DebtsView.spec renderiza el pastel; el total mostrado es totalDebt(debts) (utils/debt.spec)"
+        },
+        {
+          "id": "AC-5",
+          "text": "Vuetify usa el tema greenBeige y ningún componente nuevo importa de un nivel superior de atomic design",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:46:19.782Z",
+          "note": "Componentes sólo importan de utils/plugins/types (molecules) y de molecules/organisms desde la vista; colores vía chartTheme y fallbackPalette del tema greenBeige"
+        },
+        {
+          "id": "AC-6",
+          "text": "Vitest: cobertura >= 80 % en utils nuevos y tests de la vista; vue-tsc --noEmit limpio",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:46:19.816Z",
+          "note": "vitest --coverage: 50 suites, 477 tests en verde, 100 % stmts global; vue-tsc --noEmit limpio"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0060",
+      "title": "Debt fields in transaction and scheduled forms",
+      "description": "TransactionFormDialog y ScheduledTransactionFormDialog incorporan la vinculación de deuda. En gasto, un interruptor 'Es pago de deuda' abre: selector de deuda, capital (editable) e interés (solo lectura, calculado como monto - capital). En ingreso, un interruptor 'Es ingreso de deuda' abre: selector de deuda y cantidad adicional de interés. Al guardar se envía el debtLink y la lista de transacciones se refresca. Los cambios de agenda aplican igual.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.226Z",
+      "implementedAt": "2026-10-25T01:49:43.984Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "Con el interruptor de pago activo aparecen los campos deuda, capital e interés; el interés se actualiza al cambiar monto o capital y no es editable",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:49:43.797Z",
+          "note": "DebtLinkFields.spec 'shows the capital editable and the interest read-only': campo capital editable, interés readonly = $20.00 (monto − capital); el computed se recalcula con monto y capital"
+        },
+        {
+          "id": "AC-2",
+          "text": "Con el interruptor de ingreso de deuda activo aparecen deuda e interés adicional, y el payload incluye el debtLink correcto",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:49:43.837Z",
+          "note": "DebtLinkFields.spec 'offers the increase fields for income' + TransactionFormDialog.spec 'sends an increase link with the extra interest for income' (payload {kind:'increase', debtId, interestAmount:25})"
+        },
+        {
+          "id": "AC-3",
+          "text": "Los campos de deuda no aparecen en transferencias y se limpian al desactivar el interruptor",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:49:43.876Z",
+          "note": "DebtLinkFields.spec 'renders nothing for transfers' y 'clears the link fields when the switch is turned off' (estado reiniciado al desactivar)"
+        },
+        {
+          "id": "AC-4",
+          "text": "El mismo comportamiento está disponible en el formulario de transacciones agendadas",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:49:43.913Z",
+          "note": "ScheduledTransactionFormDialog.spec 'sends the debt link of a scheduled payment' y 'preloads the link ... when editing'; mismo componente DebtLinkFields"
+        },
+        {
+          "id": "AC-5",
+          "text": "Vitest: cobertura >= 80 % en las utilidades usadas por los formularios y tests de los dos diálogos",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:49:43.948Z",
+          "note": "vitest --coverage: 52 suites, 495 tests en verde, 100 % stmts global; vue-tsc --noEmit limpio"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0061",
+      "title": "Debt charts on the dashboard",
+      "description": "DashboardSummary incorpora una tarjeta con la gráfica de evolución del saldo total de deudas (misma gráfica que la vista de Deudas) y una tarjeta con la gráfica de pastel del total adeudado. Si el usuario no tiene deudas, las tarjetas muestran un mensaje en lugar de gráficas vacías.",
+      "status": "completada",
+      "createdAt": "2026-10-25T01:29:06.261Z",
+      "implementedAt": "2026-10-25T01:51:14.945Z",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "El dashboard muestra la tarjeta de evolución de deudas alimentada por el store de deudas",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:51:14.785Z",
+          "note": "DashboardSummary.spec 'shows the debt evolution and distribution charts': debt-evolution-card alimentada por el store de deudas (debts.movements/debts)"
+        },
+        {
+          "id": "AC-2",
+          "text": "El dashboard muestra la tarjeta de pastel con el total adeudado y el reparto por deuda",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:51:14.827Z",
+          "note": "DashboardSummary.spec: debt-distribution-card presente con distribution-chart (Pie) cuando hay deudas"
+        },
+        {
+          "id": "AC-3",
+          "text": "Sin deudas registradas se muestra un mensaje en lugar de gráficas vacías",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:51:14.866Z",
+          "note": "DashboardSummary.spec 'says there are no debts instead of drawing empty debt charts': mensaje 'Sin deudas registradas' y sin Pie"
+        },
+        {
+          "id": "AC-4",
+          "text": "Vitest: cobertura >= 80 % en las utilidades usadas y tests de DashboardSummary actualizados",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:51:14.905Z",
+          "note": "vitest --coverage: 52 suites, 497 tests en verde, 100 % stmts global; DashboardSummary.spec actualizado (layout de la fila de donas acotado a su VRow)"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
+    },
+    {
+      "id": "T-0062",
+      "title": "Build, container verification and deployment readiness",
+      "description": "Verificación de cierre: builds de backend y frontend, imagen Docker de cada target del Dockerfile y documentación de variables necesarias. Desplegar a un entorno real requiere el destino (proveedor, URI de MongoDB y dominio), que aún no está definido en el repo; esa parte queda marcada como bloqueada hasta tener esa información.",
+      "status": "bloqueada",
+      "createdAt": "2026-10-25T01:29:06.295Z",
+      "implementedAt": null,
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "text": "pnpm build compila backend y frontend sin errores",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:55:08.972Z",
+          "note": "pnpm build (raíz): backend nest build y frontend vue-tsc + vite build sin errores"
+        },
+        {
+          "id": "AC-2",
+          "text": "pnpm test:coverage pasa con >= 80 % en backend y frontend",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:55:09.013Z",
+          "note": "pnpm test:coverage (raíz): backend 76 suites / 622 tests, 98.94 % stmts; frontend 52 files / 497 tests, 100 % stmts"
+        },
+        {
+          "id": "AC-3",
+          "text": "docker build de los targets backend y frontend termina correctamente",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:55:09.048Z",
+          "note": "docker build --target backend (pfa-backend:debts) y --target frontend (pfa-frontend:debts) terminan con exit 0"
+        },
+        {
+          "id": "AC-4",
+          "text": "El despliegue a un entorno real queda documentado como bloqueado hasta definir el destino",
+          "validated": true,
+          "validatedAt": "2026-10-25T01:55:09.084Z",
+          "note": "Bloqueado: el repo no define destino de despliegue (sin CI, compose ni manifiestos de proveedor); faltan proveedor, MONGODB_URI y dominio"
+        }
+      ],
+      "spec": "0009-gestion-de-deudas"
     }
   ]
 }

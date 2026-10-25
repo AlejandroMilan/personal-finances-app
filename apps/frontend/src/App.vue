@@ -85,6 +85,12 @@ function logout(): void {
           title="Categories"
           @click="drawer = false"
         />
+        <v-list-item
+          to="/debts"
+          prepend-icon="mdi-hand-coin"
+          title="Deudas"
+          @click="drawer = false"
+        />
       </v-list>
 
       <template #append>

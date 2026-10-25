@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 import { CreateTransactionUseCase } from '../../../transactions/application/use-cases/create-transaction.use-case';
 import { Transaction } from '../../../transactions/domain/entities/transaction.entity';
+import {
+  DebtLinkRequest,
+  toDebtLinkRequest,
+} from '../../../transactions/domain/debt-link';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
 import { nextScheduledDate } from '../../domain/next-scheduled-date.util';
@@ -28,6 +32,8 @@ export interface ExecuteScheduledTransactionInput {
   reschedule?: boolean;
   /** Fecha exacta de la siguiente ocurrencia; implica `reschedule`. */
   rescheduleFor?: Date;
+  /** Sustituye el vínculo con la deuda; `null` lo quita. */
+  debtLink?: DebtLinkRequest | null;
 }
 
 export interface ExecuteScheduledTransactionResult {
@@ -81,6 +87,7 @@ export class ExecuteScheduledTransactionUseCase {
       amount: input.amount ?? existing.amount,
       timestamp: input.timestamp ?? new Date(),
       tags: existing.tags,
+      debtLink: this.debtLinkFor(existing, input),
     });
 
     const scheduled = await this.saveExecuted(existing, transaction.id);
@@ -103,6 +110,17 @@ export class ExecuteScheduledTransactionUseCase {
       }
       throw error;
     }
+  }
+
+  /** Sin override manda el vínculo agendado, con su capital; el interés se recalcula. */
+  private debtLinkFor(
+    existing: ScheduledTransaction,
+    input: ExecuteScheduledTransactionInput,
+  ): DebtLinkRequest | null {
+    if (input.debtLink !== undefined) {
+      return input.debtLink;
+    }
+    return existing.debtLink ? toDebtLinkRequest(existing.debtLink) : null;
   }
 
   private async scheduleNext(
@@ -130,6 +148,7 @@ export class ExecuteScheduledTransactionUseCase {
         tags: existing.tags,
         scheduledFor,
         recurring: true,
+        debtLink: existing.debtLink,
       }),
     );
   }

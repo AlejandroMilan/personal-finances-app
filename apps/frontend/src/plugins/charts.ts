@@ -8,14 +8,15 @@ import {
   LineController,
   LineElement,
   LinearScale,
+  PieController,
   PointElement,
   Tooltip,
 } from 'chart.js';
 
 /**
- * Registro explícito de Chart.js: solo lo que usan la dona y la línea del
- * dashboard. Registrar `...registerables` arrastraría todos los tipos de
- * gráfica al bundle.
+ * Registro explícito de Chart.js: solo lo que usan la dona, el pastel y la
+ * línea. Registrar `...registerables` arrastraría todos los tipos de gráfica
+ * al bundle.
  */
 Chart.register(
   DoughnutController,
@@ -23,6 +24,7 @@ Chart.register(
   LineController,
   LineElement,
   PointElement,
+  PieController,
   LinearScale,
   CategoryScale,
   Filler,

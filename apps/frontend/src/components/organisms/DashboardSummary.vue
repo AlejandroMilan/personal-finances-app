@@ -4,11 +4,14 @@ import PeriodFilter from '../molecules/PeriodFilter.vue';
 import MissingBudgetAlert from '../molecules/MissingBudgetAlert.vue';
 import CategoryDonutCard from '../molecules/CategoryDonutCard.vue';
 import IncomeExpenseLineCard from '../molecules/IncomeExpenseLineCard.vue';
+import DebtDistributionChart from '../molecules/DebtDistributionChart.vue';
+import DebtEvolutionChart from '../molecules/DebtEvolutionChart.vue';
 import BudgetStatusCard from './BudgetStatusCard.vue';
 import { fallbackPalette } from '../../plugins/charts';
 import { useCategoriesStore } from '../../stores/categories';
 import { useDashboardStore } from '../../stores/dashboard';
 import { useBudgetsStore } from '../../stores/budgets';
+import { useDebtsStore } from '../../stores/debts';
 import type { PeriodRange } from '../../utils/period';
 import {
   buildBudgetStatus,
@@ -20,6 +23,7 @@ import { toDonutData } from '../../utils/summary';
 const dashboard = useDashboardStore();
 const categories = useCategoriesStore();
 const budgets = useBudgetsStore();
+const debts = useDebtsStore();
 
 const currentMonth = monthKey(new Date());
 const budgetsLoaded = ref(false);
@@ -128,6 +132,7 @@ onMounted(() => {
   void categories.fetchCategories();
   void dashboard.fetchSummary();
   void refreshBudgets();
+  void debts.fetchAll();
 });
 </script>
 
@@ -182,6 +187,22 @@ onMounted(() => {
           :points="points"
           :granularity="granularity"
           :loading="dashboard.loading"
+        />
+      </v-col>
+    </v-row>
+
+    <v-row class="mt-4">
+      <v-col cols="12" md="7">
+        <DebtEvolutionChart
+          data-test="debt-evolution-card"
+          :movements="debts.movements"
+          :debts="debts.debts"
+        />
+      </v-col>
+      <v-col cols="12" md="5">
+        <DebtDistributionChart
+          data-test="debt-distribution-card"
+          :debts="debts.debts"
         />
       </v-col>
     </v-row>

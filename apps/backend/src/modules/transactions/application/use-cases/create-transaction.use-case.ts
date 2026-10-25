@@ -19,6 +19,14 @@ import {
   CategoryRepository,
 } from '../../../categories/application/ports/category.repository';
 import { Transaction } from '../../domain/entities/transaction.entity';
+import {
+  buildDebtLink,
+  DebtLink,
+  DebtLinkRequest,
+  toDebtLinkRequest,
+} from '../../domain/debt-link';
+import { withTransactionErrors } from '../domain-error';
+import { DEBT_LEDGER, DebtLedger } from '../ports/debt-ledger.port';
 import { TransactionType } from '../../domain/transaction-type.enum';
 import {
   TRANSACTION_REPOSITORY,
@@ -35,6 +43,7 @@ export interface CreateTransactionInput {
   amount: number;
   timestamp?: Date;
   tags?: string[];
+  debtLink?: DebtLinkRequest | null;
 }
 
 @Injectable()
@@ -48,6 +57,8 @@ export class CreateTransactionUseCase {
     private readonly creditCardRepository: CreditCardRepository,
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
+    @Inject(DEBT_LEDGER)
+    private readonly debtLedger: DebtLedger,
   ) {}
 
   async execute(input: CreateTransactionInput): Promise<Transaction> {
@@ -62,6 +73,12 @@ export class CreateTransactionUseCase {
       await this.assertCategoryOwnership(input.categoryId, input.userId);
     }
 
+    const debtLink = this.resolveDebtLink(
+      input.type,
+      input.amount,
+      input.debtLink,
+    );
+
     const transaction = Transaction.create({
       userId: input.userId,
       accountId: input.accountId,
@@ -72,7 +89,17 @@ export class CreateTransactionUseCase {
       amount: input.amount,
       timestamp: input.timestamp ?? new Date(),
       tags: this.cleanTags(input.tags),
+      debtLink,
     });
+
+    if (debtLink) {
+      await this.debtLedger.record(
+        input.userId,
+        transaction.id,
+        debtLink,
+        transaction.timestamp,
+      );
+    }
 
     await this.applyTransactionDeltas(account, destinationAccount, transaction);
 
@@ -143,6 +170,17 @@ export class CreateTransactionUseCase {
     if (!category || category.userId !== userId) {
       throw new BadRequestException('Category not found');
     }
+  }
+
+  private resolveDebtLink(
+    type: TransactionType,
+    amount: number,
+    request: DebtLinkRequest | null | undefined,
+  ): DebtLink | null {
+    if (!request) {
+      return null;
+    }
+    return withTransactionErrors(() => buildDebtLink(type, amount, request));
   }
 
   private cleanTags(tags: string[] | undefined): string[] {

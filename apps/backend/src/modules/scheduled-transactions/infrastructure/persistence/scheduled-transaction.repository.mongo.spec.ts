@@ -214,6 +214,7 @@ describe('MongoScheduledTransactionRepository', () => {
           title: 'Payroll',
           amount: 25000,
           tags: [],
+          debtLink: null,
           scheduledFor,
           recurring: false,
           status: ScheduledTransactionStatus.EXECUTED,

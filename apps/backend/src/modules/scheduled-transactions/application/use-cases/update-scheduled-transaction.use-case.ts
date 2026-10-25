@@ -14,6 +14,17 @@ import {
   CategoryRepository,
 } from '../../../categories/application/ports/category.repository';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
+import {
+  DEBT_REPOSITORY,
+  DebtRepository,
+} from '../../../debts/application/ports/debt.repository';
+import {
+  buildDebtLink,
+  DebtLink,
+  DebtLinkRequest,
+  toDebtLinkRequest,
+} from '../../../transactions/domain/debt-link';
+import { withTransactionErrors } from '../../../transactions/application/domain-error';
 import { ScheduledTransaction } from '../../domain/entities/scheduled-transaction.entity';
 import { ScheduledTransactionError } from '../../domain/scheduled-transaction.error';
 import {
@@ -23,6 +34,7 @@ import {
 import {
   assertAccountOwnership,
   assertCategoryOwnership,
+  assertDebtOwnership,
 } from './scheduled-transaction-ownership.guard';
 
 export interface UpdateScheduledTransactionInput {
@@ -37,6 +49,7 @@ export interface UpdateScheduledTransactionInput {
   scheduledFor?: Date;
   recurring?: boolean;
   tags?: string[];
+  debtLink?: DebtLinkRequest | null;
 }
 
 @Injectable()
@@ -48,6 +61,8 @@ export class UpdateScheduledTransactionUseCase {
     private readonly accountRepository: AccountRepository,
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
+    @Inject(DEBT_REPOSITORY)
+    private readonly debtRepository: DebtRepository,
   ) {}
 
   async execute(
@@ -113,6 +128,8 @@ export class UpdateScheduledTransactionUseCase {
       throw new BadRequestException('Amount must be greater than zero');
     }
 
+    const debtLink = await this.resolveDebtLink(input, type, amount, existing);
+
     const updated = ScheduledTransaction.restore({
       id: existing.id,
       userId: existing.userId,
@@ -129,11 +146,34 @@ export class UpdateScheduledTransactionUseCase {
       recurring: input.recurring ?? existing.recurring,
       status: existing.status,
       transactionId: existing.transactionId,
+      debtLink,
       createdAt: existing.createdAt,
       updatedAt: new Date(),
     });
 
     return this.scheduledRepository.save(updated);
+  }
+
+  /** Un vínculo sin cambios se recalcula sobre el nuevo monto; `null` lo quita. */
+  private async resolveDebtLink(
+    input: UpdateScheduledTransactionInput,
+    type: TransactionType,
+    amount: number,
+    existing: ScheduledTransaction,
+  ): Promise<DebtLink | null> {
+    const request =
+      input.debtLink === undefined && existing.debtLink
+        ? toDebtLinkRequest(existing.debtLink)
+        : input.debtLink;
+    if (!request) {
+      return null;
+    }
+    await assertDebtOwnership(
+      this.debtRepository,
+      request.debtId,
+      input.userId,
+    );
+    return withTransactionErrors(() => buildDebtLink(type, amount, request));
   }
 
   private assertDestination(

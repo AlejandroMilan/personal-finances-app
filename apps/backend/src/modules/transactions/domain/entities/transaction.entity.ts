@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { TransactionType } from '../transaction-type.enum';
+import { DebtLink } from '../debt-link';
 import { TransactionError } from '../transaction.error';
 
 export interface TransactionProps {
@@ -13,6 +14,7 @@ export interface TransactionProps {
   amount: number;
   timestamp: Date;
   tags: string[];
+  debtLink?: DebtLink | null;
   createdAt: Date;
 }
 
@@ -119,6 +121,10 @@ export class Transaction {
 
   get tags(): string[] {
     return this.props.tags;
+  }
+
+  get debtLink(): DebtLink | null {
+    return this.props.debtLink ?? null;
   }
 
   get createdAt(): Date {

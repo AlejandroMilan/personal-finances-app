@@ -1,3 +1,4 @@
+import type { DebtLink, DebtLinkPayload } from './debt';
 import type { TransactionType, TransactionView } from './transaction';
 
 export type ScheduledTransactionStatus = 'pending' | 'executed' | 'cancelled';
@@ -11,6 +12,7 @@ export interface ScheduledTransactionView {
   title: string;
   amount: number;
   tags: string[];
+  debtLink?: DebtLink | null;
   scheduledFor: string;
   recurring: boolean;
   status: ScheduledTransactionStatus;
@@ -27,6 +29,7 @@ export interface CreateScheduledTransactionPayload {
   scheduledFor: string;
   recurring?: boolean;
   tags?: string[];
+  debtLink?: DebtLinkPayload | null;
 }
 
 export interface UpdateScheduledTransactionPayload {
@@ -39,6 +42,7 @@ export interface UpdateScheduledTransactionPayload {
   scheduledFor?: string;
   recurring?: boolean;
   tags?: string[];
+  debtLink?: DebtLinkPayload | null;
 }
 
 export interface ExecuteScheduledTransactionPayload {

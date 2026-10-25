@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { DebtLink } from '../../../transactions/domain/debt-link';
 import { TransactionType } from '../../../transactions/domain/transaction-type.enum';
 import { ScheduledTransactionStatus } from '../../domain/scheduled-transaction-status.enum';
 
@@ -34,6 +35,9 @@ export class ScheduledTransactionModel {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  @Prop({ type: Object, default: null })
+  debtLink: DebtLink | null;
 
   @Prop({ type: Date, required: true, index: true })
   scheduledFor: Date;

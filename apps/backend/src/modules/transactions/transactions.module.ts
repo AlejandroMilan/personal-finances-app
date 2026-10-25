@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AccountsModule } from '../accounts/accounts.module';
 import { AuthModule } from '../auth/auth.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { DebtsModule } from '../debts/debts.module';
 import { TRANSACTION_REPOSITORY } from './application/ports/transaction.repository';
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { DeleteTransactionUseCase } from './application/use-cases/delete-transaction.use-case';
@@ -24,6 +25,7 @@ import { TransactionsController } from './presentation/transactions.controller';
     ]),
     forwardRef(() => AccountsModule),
     forwardRef(() => CategoriesModule),
+    DebtsModule,
   ],
   controllers: [TransactionsController],
   providers: [

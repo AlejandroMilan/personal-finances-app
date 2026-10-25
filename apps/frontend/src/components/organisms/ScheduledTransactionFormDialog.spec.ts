@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { useDebtsStore } from '../../stores/debts';
+import DebtLinkFields from '../molecules/DebtLinkFields.vue';
 
 vi.mock('../../services/accounts', () => ({
   accountsService: {
@@ -292,5 +294,59 @@ describe('ScheduledTransactionFormDialog', () => {
 
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false]);
     expect(wrapper.emitted('save')).toBeUndefined();
+  });
+});
+
+describe('ScheduledTransactionFormDialog debt link', () => {
+  const debt = {
+    id: 'd1',
+    name: 'Card',
+    totalAmount: 900,
+    revolving: true,
+    annualInterestRate: null,
+    paymentMode: 'capital' as const,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    useAccountsStore().accounts = [account('a1', 'Checking')];
+    useDebtsStore().debts = [debt];
+  });
+
+  it('sends the debt link of a scheduled payment with its capital', async () => {
+    const wrapper = mountDialog();
+    await open(wrapper);
+    vm(wrapper).title = 'Card';
+    vm(wrapper).amount = 120;
+    wrapper.findComponent(DebtLinkFields).vm.$emit('update:modelValue', {
+      enabled: true,
+      kind: 'payment',
+      debtId: 'd1',
+      capital: 100,
+      extraInterest: 0,
+    });
+    await wrapper.vm.$nextTick();
+
+    await vm(wrapper).save();
+
+    const [[payload]] = wrapper.emitted('save') as [[Record<string, unknown>]];
+    expect(payload.debtLink).toEqual({ kind: 'payment', debtId: 'd1', capitalAmount: 100 });
+  });
+
+  it('preloads the link of an existing scheduled payment when editing', async () => {
+    const wrapper = mountDialog({
+      ...scheduled,
+      debtLink: { kind: 'payment', debtId: 'd1', capitalAmount: 100, interestAmount: 20 },
+    } as ScheduledTransactionView);
+    await open(wrapper);
+
+    const fields = wrapper.findComponent(DebtLinkFields).props('modelValue') as {
+      enabled: boolean;
+      capital: number;
+    };
+    expect(fields.enabled).toBe(true);
+    expect(fields.capital).toBe(100);
   });
 });

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useAccountsStore } from '../../stores/accounts';
 import { useCategoriesStore } from '../../stores/categories';
+import { useDebtsStore } from '../../stores/debts';
 import type {
   CreateTransactionPayload,
   TransactionType,
@@ -12,6 +13,14 @@ import {
   getDestinationAccountOptions,
   transactionTypeOptions,
 } from '../../utils/transaction';
+import {
+  buildDebtLinkPayload,
+  debtLinkError,
+  debtLinkFormFrom,
+  emptyDebtLinkForm,
+  type DebtLinkForm,
+} from '../../utils/debt-link';
+import DebtLinkFields from '../molecules/DebtLinkFields.vue';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -25,6 +34,7 @@ const emit = defineEmits<{
 
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
+const debtsStore = useDebtsStore();
 
 const form = ref<{ validate: () => Promise<string[]> } | null>(null);
 const accountId = ref('');
@@ -35,6 +45,8 @@ const amount = ref(0);
 const categoryId = ref<string | null>(null);
 const timestamp = ref('');
 const tags = ref<string[]>([]);
+const debtLink = ref<DebtLinkForm>(emptyDebtLinkForm());
+const hadDebtLink = ref(false);
 const saving = ref(false);
 const error = ref('');
 
@@ -73,6 +85,8 @@ watch(
       categoryId.value = props.transaction.categoryId;
       timestamp.value = toDateTimeLocal(new Date(props.transaction.timestamp));
       tags.value = [...props.transaction.tags];
+      debtLink.value = debtLinkFormFrom(props.transaction.debtLink);
+      hadDebtLink.value = !!props.transaction.debtLink;
     } else {
       accountId.value = accountsStore.accounts[0]?.id ?? '';
       type.value = 'expense';
@@ -82,7 +96,10 @@ watch(
       categoryId.value = null;
       timestamp.value = toDateTimeLocal(new Date());
       tags.value = [];
+      debtLink.value = emptyDebtLinkForm();
+      hadDebtLink.value = false;
     }
+    if (debtsStore.debts.length === 0) void debtsStore.fetchAll();
   },
 );
 
@@ -103,6 +120,12 @@ async function save(): Promise<void> {
   if (errors.length > 0) return;
   if (isTransfer.value && !destinationAccountId.value) return;
 
+  const linkError = debtLinkError(debtLink.value, type.value, amount.value);
+  if (linkError) {
+    error.value = linkError;
+    return;
+  }
+
   const payload = {
     title: title.value,
     amount: amount.value,
@@ -113,6 +136,7 @@ async function save(): Promise<void> {
       : { categoryId: categoryId.value ?? undefined }),
     timestamp: new Date(timestamp.value).toISOString(),
     tags: tags.value,
+    debtLink: buildDebtLinkPayload(debtLink.value, type.value, hadDebtLink.value),
   };
 
   saving.value = true;
@@ -184,6 +208,12 @@ function close(): void {
           item-value="id"
           clearable
           prepend-icon="mdi-tag-multiple"
+        />
+        <DebtLinkFields
+          v-model="debtLink"
+          :type="type"
+          :amount="amount"
+          :debts="debtsStore.debts"
         />
         <v-text-field
           v-model="timestamp"

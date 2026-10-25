@@ -1,4 +1,6 @@
 import { ConfigModule } from '@nestjs/config';
+import { DebtModel } from '../debts/infrastructure/persistence/debt.schema';
+import { DebtMovementModel } from '../debts/infrastructure/persistence/debt-movement.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { ScheduledTransactionsController } from './presentation/scheduled-transactions.controller';
@@ -23,6 +25,10 @@ describe('ScheduledTransactionsModule', () => {
       .overrideProvider(getModelToken(ScheduledTransactionModel.name))
       .useValue({})
       .overrideProvider(getModelToken(TransactionModel.name))
+      .useValue({})
+      .overrideProvider(getModelToken(DebtModel.name))
+      .useValue({})
+      .overrideProvider(getModelToken(DebtMovementModel.name))
       .useValue({})
       .overrideProvider(getModelToken(AccountModel.name))
       .useValue({})

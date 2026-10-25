@@ -1,3 +1,4 @@
+import type { DebtLink, DebtLinkPayload } from './debt';
 export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export interface TransactionView {
@@ -10,6 +11,7 @@ export interface TransactionView {
   amount: number;
   timestamp: string;
   tags: string[];
+  debtLink?: DebtLink | null;
 }
 
 export interface CreateTransactionPayload {
@@ -21,6 +23,7 @@ export interface CreateTransactionPayload {
   categoryId?: string;
   timestamp?: string;
   tags?: string[];
+  debtLink?: DebtLinkPayload | null;
 }
 
 export interface UpdateTransactionPayload {
@@ -32,6 +35,7 @@ export interface UpdateTransactionPayload {
   categoryId?: string | null;
   timestamp?: string;
   tags?: string[];
+  debtLink?: DebtLinkPayload | null;
 }
 
 export interface TransactionFilters {

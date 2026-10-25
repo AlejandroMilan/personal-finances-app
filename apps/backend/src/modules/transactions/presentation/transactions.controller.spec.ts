@@ -98,6 +98,7 @@ describe('TransactionsController', () => {
       amount: 50,
       timestamp: new Date('2026-08-01T12:00:00.000Z'),
       tags: ['food'],
+      debtLink: null,
     });
   });
 
@@ -184,6 +185,7 @@ describe('TransactionsController', () => {
       amount: 75,
       timestamp: new Date('2026-08-02T12:00:00.000Z'),
       tags: [],
+      debtLink: null,
     });
   });
 

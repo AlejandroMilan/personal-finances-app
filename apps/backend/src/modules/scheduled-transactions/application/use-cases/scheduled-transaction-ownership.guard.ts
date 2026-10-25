@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AccountRepository } from '../../../accounts/application/ports/account.repository';
 import { CategoryRepository } from '../../../categories/application/ports/category.repository';
+import { DebtRepository } from '../../../debts/application/ports/debt.repository';
 
 /**
  * Comprobaciones de pertenencia compartidas por los casos de uso de la agenda.
@@ -26,5 +27,16 @@ export async function assertCategoryOwnership(
   const category = await categories.findById(categoryId);
   if (!category || category.userId !== userId) {
     throw new BadRequestException('Category not found');
+  }
+}
+
+export async function assertDebtOwnership(
+  debts: DebtRepository,
+  debtId: string,
+  userId: string,
+): Promise<void> {
+  const debt = await debts.findById(debtId);
+  if (!debt || debt.userId !== userId) {
+    throw new NotFoundException('Debt not found');
   }
 }

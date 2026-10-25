@@ -13,6 +13,11 @@ vi.mock('vue-chartjs', () => ({
     props: ['data', 'options'],
     template: '<div data-test="line-chart" />',
   },
+  Pie: {
+    name: 'Pie',
+    props: ['data', 'options'],
+    template: '<div data-test="distribution-chart" />',
+  },
 }));
 
 vi.mock('../../services/transactions', () => ({
@@ -34,6 +39,16 @@ vi.mock('../../services/categories', () => ({
   },
 }));
 
+vi.mock('../../services/debts', () => ({
+  debtsService: {
+    list: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    movements: vi.fn(),
+  },
+}));
+
 vi.mock('../../services/budgets', () => ({
   budgetsService: {
     list: vi.fn(),
@@ -47,6 +62,7 @@ vi.mock('../../services/budgets', () => ({
 
 import { categoriesService } from '../../services/categories';
 import { budgetsService } from '../../services/budgets';
+import { debtsService } from '../../services/debts';
 import { transactionsService } from '../../services/transactions';
 import { mountOptions } from '../../test-utils/vuetify';
 import type { Budget } from '../../types/budget';
@@ -110,6 +126,8 @@ describe('DashboardSummary', () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.mocked(transactionsService.summary).mockResolvedValue(summary);
+    vi.mocked(debtsService.list).mockResolvedValue([]);
+    vi.mocked(debtsService.movements).mockResolvedValue([]);
     vi.mocked(categoriesService.list).mockResolvedValue([
       { id: 'c1', name: 'Comida', color: '#2E6B4F' },
       { id: 'c3', name: 'Sueldo', color: '#3E7C4F' },
@@ -269,7 +287,9 @@ describe('DashboardSummary', () => {
     const wrapper = mount(DashboardSummary, mountOptions);
     await flush();
 
-    const columns = wrapper.findAllComponents({ name: 'VCol' });
+    // Sólo la fila de gastos e ingresos; las de deudas tienen su propio layout.
+    const [donutRow] = wrapper.findAllComponents({ name: 'VRow' });
+    const columns = donutRow.findAllComponents({ name: 'VCol' });
     const layout = columns.map((column) => ({
       cols: column.props('cols'),
       md: column.props('md'),
@@ -350,5 +370,33 @@ describe('DashboardSummary', () => {
     expect(
       wrapper.find('[data-test="budget-period-totals-empty"]').text(),
     ).toContain('There is no budget defined for this period yet.');
+  });
+  it('shows the debt evolution and distribution charts beside the cash flow', async () => {
+    vi.mocked(debtsService.list).mockResolvedValue([
+      {
+        id: 'd1',
+        name: 'Card',
+        totalAmount: 900,
+        revolving: true,
+        annualInterestRate: null,
+        paymentMode: 'capital',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    expect(wrapper.find('[data-test="debt-evolution-card"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="debt-distribution-card"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="distribution-chart"]').exists()).toBe(true);
+  });
+
+  it('says there are no debts instead of drawing empty debt charts', async () => {
+    const wrapper = mount(DashboardSummary, mountOptions);
+    await flush();
+
+    expect(wrapper.text()).toContain('Sin deudas registradas');
+    expect(wrapper.find('[data-test="distribution-chart"]').exists()).toBe(false);
   });
 });

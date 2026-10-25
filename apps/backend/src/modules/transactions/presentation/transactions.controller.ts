@@ -59,6 +59,7 @@ export class TransactionsController {
       amount: dto.amount,
       timestamp: dto.timestamp ? new Date(dto.timestamp) : undefined,
       tags: dto.tags,
+      debtLink: dto.debtLink,
     });
     return this.toView(transaction);
   }
@@ -134,6 +135,7 @@ export class TransactionsController {
       amount: dto.amount,
       timestamp: dto.timestamp ? new Date(dto.timestamp) : undefined,
       tags: dto.tags,
+      debtLink: dto.debtLink,
     });
     return this.toView(transaction);
   }
@@ -172,6 +174,7 @@ export class TransactionsController {
       amount: transaction.amount,
       timestamp: transaction.timestamp,
       tags: transaction.tags,
+      debtLink: transaction.debtLink,
     };
   }
 }

@@ -19,6 +19,14 @@ import {
   CategoryRepository,
 } from '../../../categories/application/ports/category.repository';
 import { Transaction } from '../../domain/entities/transaction.entity';
+import {
+  buildDebtLink,
+  DebtLink,
+  DebtLinkRequest,
+  toDebtLinkRequest,
+} from '../../domain/debt-link';
+import { withTransactionErrors } from '../domain-error';
+import { DEBT_LEDGER, DebtLedger } from '../ports/debt-ledger.port';
 import { TransactionType } from '../../domain/transaction-type.enum';
 import {
   TRANSACTION_REPOSITORY,
@@ -41,6 +49,7 @@ export interface UpdateTransactionInput {
   amount?: number;
   timestamp?: Date;
   tags?: string[];
+  debtLink?: DebtLinkRequest | null;
 }
 
 @Injectable()
@@ -54,6 +63,8 @@ export class UpdateTransactionUseCase {
     private readonly creditCardRepository: CreditCardRepository,
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
+    @Inject(DEBT_LEDGER)
+    private readonly debtLedger: DebtLedger,
   ) {}
 
   async execute(input: UpdateTransactionInput): Promise<Transaction> {
@@ -112,6 +123,13 @@ export class UpdateTransactionUseCase {
       }
     }
 
+    const debtLink = this.resolveDebtLink(
+      input,
+      type,
+      input.amount ?? existing.amount,
+      existing,
+    );
+
     const updated = Transaction.restore({
       id: existing.id,
       userId: existing.userId,
@@ -125,6 +143,7 @@ export class UpdateTransactionUseCase {
       tags: input.tags
         ? input.tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0)
         : existing.tags,
+      debtLink,
       createdAt: existing.createdAt,
     });
 
@@ -143,9 +162,62 @@ export class UpdateTransactionUseCase {
       newDestinationAccount,
       1,
     );
+    await this.applyDebtLink(
+      input.userId,
+      existing,
+      debtLink,
+      updated.timestamp,
+    );
     await this.applyAdjustments(adjustments);
 
     return this.transactionRepository.save(updated);
+  }
+
+  /**
+   * Un vínculo sin cambios se recalcula sobre el nuevo monto; `null` lo quita.
+   */
+  private resolveDebtLink(
+    input: UpdateTransactionInput,
+    type: TransactionType,
+    amount: number,
+    existing: Transaction,
+  ): DebtLink | null {
+    const request =
+      input.debtLink === undefined && existing.debtLink
+        ? toDebtLinkRequest(existing.debtLink)
+        : input.debtLink;
+    if (!request) {
+      return null;
+    }
+    return withTransactionErrors(() => buildDebtLink(type, amount, request));
+  }
+
+  /** Revierte el efecto previo y aplica el nuevo; si falla, restaura el previo. */
+  private async applyDebtLink(
+    userId: string,
+    existing: Transaction,
+    debtLink: DebtLink | null,
+    occurredAt: Date,
+  ): Promise<void> {
+    if (existing.debtLink) {
+      await this.debtLedger.revert(userId, existing.id);
+    }
+    if (!debtLink) {
+      return;
+    }
+    try {
+      await this.debtLedger.record(userId, existing.id, debtLink, occurredAt);
+    } catch (error) {
+      if (existing.debtLink) {
+        await this.debtLedger.record(
+          userId,
+          existing.id,
+          existing.debtLink,
+          existing.timestamp,
+        );
+      }
+      throw error;
+    }
   }
 
   private assertDestination(

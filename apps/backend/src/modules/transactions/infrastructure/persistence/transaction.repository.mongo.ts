@@ -13,10 +13,7 @@ import {
 import { Transaction } from '../../domain/entities/transaction.entity';
 import { TransactionType } from '../../domain/transaction-type.enum';
 import { TransactionDocument, TransactionModel } from './transaction.schema';
-import {
-  buildBucketSequence,
-  roundToCents,
-} from './bucket-range.util';
+import { buildBucketSequence, roundToCents } from './bucket-range.util';
 
 interface TransactionFilterQuery {
   userId: string;
@@ -99,6 +96,7 @@ export class MongoTransactionRepository implements TransactionRepository {
             amount: transaction.amount,
             timestamp: transaction.timestamp,
             tags: transaction.tags,
+            debtLink: transaction.debtLink,
             createdAt: transaction.createdAt,
           },
         },
@@ -242,7 +240,10 @@ export class MongoTransactionRepository implements TransactionRepository {
       query.granularity,
       query.timeZone,
     ).map((bucket) => {
-      const entry = totals.get(bucket.toISOString()) ?? { income: 0, expense: 0 };
+      const entry = totals.get(bucket.toISOString()) ?? {
+        income: 0,
+        expense: 0,
+      };
       return {
         bucket,
         income: roundToCents(entry.income),
@@ -297,6 +298,7 @@ export class MongoTransactionRepository implements TransactionRepository {
       amount: doc.amount,
       timestamp: doc.timestamp,
       tags: doc.tags ?? [],
+      debtLink: doc.debtLink ?? null,
       createdAt: doc.createdAt,
     });
   }

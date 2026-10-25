@@ -2,13 +2,22 @@
 import { computed, ref, watch } from 'vue';
 import { useAccountsStore } from '../../stores/accounts';
 import { useCategoriesStore } from '../../stores/categories';
+import { useDebtsStore } from '../../stores/debts';
 import type {
   CreateScheduledTransactionPayload,
   ScheduledTransactionView,
   UpdateScheduledTransactionPayload,
 } from '../../types/scheduled-transaction';
 import type { TransactionType } from '../../types/transaction';
+import {
+  buildDebtLinkPayload,
+  debtLinkError,
+  debtLinkFormFrom,
+  emptyDebtLinkForm,
+  type DebtLinkForm,
+} from '../../utils/debt-link';
 import { fromDateInputValue, toDateInputValue } from '../../utils/schedule';
+import DebtLinkFields from '../molecules/DebtLinkFields.vue';
 import {
   getDestinationAccountOptions,
   transactionTypeOptions,
@@ -30,6 +39,7 @@ const emit = defineEmits<{
 
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
+const debtsStore = useDebtsStore();
 
 const form = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null);
 const accountId = ref('');
@@ -41,7 +51,10 @@ const categoryId = ref<string | null>(null);
 const scheduledFor = ref('');
 const recurring = ref(false);
 const tags = ref<string[]>([]);
+const debtLink = ref<DebtLinkForm>(emptyDebtLinkForm());
+const hadDebtLink = ref(false);
 const saving = ref(false);
+const error = ref('');
 
 const isTransfer = computed(() => type.value === 'transfer');
 const destinationAccounts = computed(() =>
@@ -73,6 +86,7 @@ watch(
   () => props.modelValue,
   (open) => {
     if (!open) return;
+    error.value = '';
     if (props.scheduled) {
       accountId.value = props.scheduled.accountId;
       type.value = props.scheduled.type;
@@ -85,6 +99,8 @@ watch(
       );
       recurring.value = props.scheduled.recurring;
       tags.value = [...props.scheduled.tags];
+      debtLink.value = debtLinkFormFrom(props.scheduled.debtLink);
+      hadDebtLink.value = !!props.scheduled.debtLink;
     } else {
       accountId.value = accountsStore.accounts[0]?.id ?? '';
       type.value = 'expense';
@@ -95,7 +111,10 @@ watch(
       scheduledFor.value = toDateInputValue(new Date());
       recurring.value = false;
       tags.value = [];
+      debtLink.value = emptyDebtLinkForm();
+      hadDebtLink.value = false;
     }
+    if (debtsStore.debts.length === 0) void debtsStore.fetchAll();
   },
 );
 
@@ -116,6 +135,12 @@ async function save(): Promise<void> {
   if (!result.valid) return;
   if (!canSave.value) return;
 
+  const linkError = debtLinkError(debtLink.value, type.value, amount.value);
+  if (linkError) {
+    error.value = linkError;
+    return;
+  }
+
   saving.value = true;
   try {
     emit('save', {
@@ -129,6 +154,7 @@ async function save(): Promise<void> {
       scheduledFor: fromDateInputValue(scheduledFor.value).toISOString(),
       recurring: recurring.value,
       tags: tags.value,
+      debtLink: buildDebtLinkPayload(debtLink.value, type.value, hadDebtLink.value),
     });
   } finally {
     saving.value = false;
@@ -150,6 +176,8 @@ function close(): void {
       <v-card-title class="text-h5 font-weight-bold pa-0 pb-4">
         {{ scheduled ? 'Editar agendada' : 'Nueva transacción agendada' }}
       </v-card-title>
+
+      <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
 
       <v-form ref="form" @submit.prevent="save">
         <v-select
@@ -204,6 +232,12 @@ function close(): void {
           item-value="id"
           clearable
           prepend-icon="mdi-tag-multiple"
+        />
+        <DebtLinkFields
+          v-model="debtLink"
+          :type="type"
+          :amount="amount"
+          :debts="debtsStore.debts"
         />
         <v-text-field
           v-model="scheduledFor"
