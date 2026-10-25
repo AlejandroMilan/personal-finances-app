@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maxTasks": 100,
-  "updatedAt": "2026-10-25T01:55:09.119Z",
+  "updatedAt": "2026-10-25T02:02:35.608Z",
   "tasks": [
     {
       "id": "T-0001",
@@ -3002,9 +3002,9 @@
       "id": "T-0062",
       "title": "Build, container verification and deployment readiness",
       "description": "Verificación de cierre: builds de backend y frontend, imagen Docker de cada target del Dockerfile y documentación de variables necesarias. Desplegar a un entorno real requiere el destino (proveedor, URI de MongoDB y dominio), que aún no está definido en el repo; esa parte queda marcada como bloqueada hasta tener esa información.",
-      "status": "bloqueada",
+      "status": "completada",
       "createdAt": "2026-10-25T01:29:06.295Z",
-      "implementedAt": null,
+      "implementedAt": "2026-10-25T02:02:35.607Z",
       "acceptanceCriteria": [
         {
           "id": "AC-1",
@@ -3031,8 +3031,8 @@
           "id": "AC-4",
           "text": "El despliegue a un entorno real queda documentado como bloqueado hasta definir el destino",
           "validated": true,
-          "validatedAt": "2026-10-25T01:55:09.084Z",
-          "note": "Bloqueado: el repo no define destino de despliegue (sin CI, compose ni manifiestos de proveedor); faltan proveedor, MONGODB_URI y dominio"
+          "validatedAt": "2026-10-25T02:02:35.568Z",
+          "note": "Desplegado en t-panel-prod (45.55.198.99) el 2026-10-25: sólo finances_api y finances_web reconstruidos (rev 26df264), backup en /opt/t-panel/backup/finances-20261025. Verificado: finanzas.t-panel.app / 200, /api/debts 401, Nest arrancó sin errores"
         }
       ],
       "spec": "0009-gestion-de-deudas"
